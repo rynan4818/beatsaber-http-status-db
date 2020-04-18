@@ -21,6 +21,7 @@ namespace BeatSaberHTTPStatus {
 		private bool initialized;
 
 		private StatusManager statusManager = new StatusManager();
+		private MovieCutRecord movieCutRecord = new MovieCutRecord();
 		private HTTPServer server;
 
 		private bool headInObstacle = false;
@@ -67,6 +68,7 @@ namespace BeatSaberHTTPStatus {
 
 			SceneManager.activeSceneChanged += this.OnActiveSceneChanged;
 
+			movieCutRecord.DbCheck();
 			server = new HTTPServer(statusManager);
 			server.InitServer();
 		}
@@ -118,7 +120,9 @@ namespace BeatSaberHTTPStatus {
 				// Release references for AfterCutScoreBuffers that don't resolve due to player leaving the map before finishing.
 				noteCutMapping.Clear();
 
-				statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "menu");
+				if (movieCutRecord.http_scenechange)
+					statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "menu");
+				movieCutRecord.BeatsaberEvent(gameStatus, "menu");
 			} else if (newScene.name == "GameCore") {
 				// In game
 				gameStatus.scene = "Song";
@@ -248,7 +252,9 @@ namespace BeatSaberHTTPStatus {
 				gameStatus.advancedHUD = playerSettings.advancedHud;
 				gameStatus.autoRestart = playerSettings.autoRestart;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "songStart");
+				if (movieCutRecord.http_scenechange)
+					statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "songStart");
+				movieCutRecord.BeatsaberEvent(gameStatus, "songStart");
 			}
 		}
 
@@ -297,25 +303,33 @@ namespace BeatSaberHTTPStatus {
 			if (!headInObstacle && currentHeadInObstacle) {
 				headInObstacle = true;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleEnter");
+				if (movieCutRecord.http_obstacle)
+					statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleEnter");
+				movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "obstacleEnter");
 			} else if (headInObstacle && !currentHeadInObstacle) {
 				headInObstacle = false;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleExit");
+				if (movieCutRecord.http_obstacle)
+					statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleExit");
+				movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "obstacleExit");
 			}
 		}
 
 		public void OnGamePause() {
 			statusManager.gameStatus.paused = GetCurrentTime();
 
-			statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "pause");
+			if (movieCutRecord.http_scenechange)
+				statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "pause");
+			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "pause");
 		}
 
 		public void OnGameResume() {
 			statusManager.gameStatus.start = GetCurrentTime() - (long) (audioTimeSyncController.songTime * 1000f / statusManager.gameStatus.songSpeedMultiplier);
 			statusManager.gameStatus.paused = 0;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "resume");
+			if (movieCutRecord.http_scenechange)
+				statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "resume");
+			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "resume");
 		}
 
 		public void OnNoteWasCut(NoteData noteData, NoteCutInfo noteCutInfo, int multiplier) {
@@ -339,18 +353,24 @@ namespace BeatSaberHTTPStatus {
 				gameStatus.passedBombs++;
 				gameStatus.hitBombs++;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombCut");
+				if (movieCutRecord.http_bombcut)
+					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombCut");
+				movieCutRecord.BeatsaberEvent(gameStatus,"bombCut");
 			} else {
 				gameStatus.passedNotes++;
 
 				if (noteCutInfo.allIsOK) {
 					gameStatus.hitNotes++;
 
-					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteCut");
+					if (movieCutRecord.http_notecut)
+						statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteCut");
+					movieCutRecord.BeatsaberEvent(gameStatus,"noteCut");
 				} else {
 					gameStatus.missedNotes++;
 
-					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
+					if (movieCutRecord.http_notemissed)
+						statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
+					movieCutRecord.BeatsaberEvent(gameStatus,"noteMissed");
 				}
 			}
 
@@ -385,10 +405,12 @@ namespace BeatSaberHTTPStatus {
 			int multiplier = (int) cutScoreBufferMultiplierField.GetValue(acsb);
 
 			statusManager.gameStatus.initialScore = score;
-			statusManager.gameStatus.finalScore = score + afterScore;
+			statusManager.gameStatus.finalScore = score + afterScore + cutDistanceScore;
 			statusManager.gameStatus.cutMultiplier = multiplier;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteFullyCut");
+			if (movieCutRecord.http_notefullycut)
+				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteFullyCut");
+			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "noteFullyCut", afterScore, cutDistanceScore);
 
 			acsb.didFinishEvent -= OnNoteWasFullyCut;
 		}
@@ -423,20 +445,59 @@ namespace BeatSaberHTTPStatus {
 			gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
 		}
 
+		private void SetNoteStatus(NoteData noteData)
+		{
+			GameStatus gameStatus = statusManager.gameStatus;
+
+			gameStatus.noteID = noteData.id;
+			gameStatus.noteType = noteData.noteType.ToString();
+			gameStatus.noteCutDirection = noteData.cutDirection.ToString();
+			gameStatus.noteLine = noteData.lineIndex;
+			gameStatus.noteLayer = (int)noteData.noteLineLayer;
+			gameStatus.timeToNextBasicNote = noteData.timeToNextBasicNote;
+			gameStatus.speedOK = false;
+			gameStatus.directionOK = false;
+			gameStatus.saberTypeOK = false;
+			gameStatus.wasCutTooSoon = false;
+			gameStatus.saberSpeed = 0;
+			gameStatus.saberDirX = 0;
+			gameStatus.saberDirY = 0;
+			gameStatus.saberDirZ = 0;
+			gameStatus.saberType = null;
+			gameStatus.swingRating = 0;
+			gameStatus.timeDeviation = 0;
+			gameStatus.cutDirectionDeviation = 0;
+			gameStatus.cutPointX = 0;
+			gameStatus.cutPointY = 0;
+			gameStatus.cutPointZ = 0;
+			gameStatus.cutNormalX = 0;
+			gameStatus.cutNormalY = 0;
+			gameStatus.cutNormalZ = 0;
+			gameStatus.cutDistanceToCenter = 0;
+		}
+
 		public void OnNoteWasMissed(NoteData noteData, int multiplier) {
 			// Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
 
 			statusManager.gameStatus.batteryEnergy = gameEnergyCounter.batteryEnergy;
+			SetNoteStatus(noteData);
+			statusManager.gameStatus.initialScore = 0;
+			statusManager.gameStatus.finalScore = 0;
+			statusManager.gameStatus.cutMultiplier = 0;
 
 			if (noteData.noteType == NoteType.Bomb) {
 				statusManager.gameStatus.passedBombs++;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "bombMissed");
+				if (movieCutRecord.http_bombmissed)
+					statusManager.EmitStatusUpdate(ChangedProperties.Performance, "bombMissed");
+				movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "bombMissed");
 			} else {
 				statusManager.gameStatus.passedNotes++;
 				statusManager.gameStatus.missedNotes++;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "noteMissed");
+				if (movieCutRecord.http_notemissed)
+					statusManager.EmitStatusUpdate(ChangedProperties.Performance, "noteMissed");
+				movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "noteMissed");
 			}
 		}
 
@@ -451,7 +512,8 @@ namespace BeatSaberHTTPStatus {
 			RankModel.Rank rank = RankModel.GetRankForScore(scoreBeforeMultiplier, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
 			gameStatus.rank = RankModel.GetRankName(rank);
 
-			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "scoreChanged");
+			if (movieCutRecord.http_scorechanged)
+				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "scoreChanged");
 		}
 
 		public void OnComboDidChange(int combo) {
@@ -466,18 +528,23 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void OnLevelFinished() {
-			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "finished");
+			if (movieCutRecord.http_scenechange)
+				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "finished");
+			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "finished");
 		}
 
 		public void OnLevelFailed() {
-			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "failed");
+			if (movieCutRecord.http_scenechange)
+				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "failed");
+			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "failed");
 		}
 
 		public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData) {
 			statusManager.gameStatus.beatmapEventType = (int) beatmapEventData.type;
 			statusManager.gameStatus.beatmapEventValue = beatmapEventData.value;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.BeatmapEvent, "beatmapEvent");
+			if (movieCutRecord.http_beatmapevent)
+				statusManager.EmitStatusUpdate(ChangedProperties.BeatmapEvent, "beatmapEvent");
 		}
 
 		public static long GetCurrentTime() {

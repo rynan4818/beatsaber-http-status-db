@@ -16,6 +16,8 @@
     <BeatSaberVersion>1.3.0</BeatSaberVersion>
     <GameDirPath>..\libs\beatsaber\</GameDirPath>
     <SemVerVersion>$(Version)</SemVerVersion>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -48,9 +50,16 @@
       <HintPath>$(GameDirPath)Beat Saber_Data\Managed\IllusionPlugin.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="IPA.Loader">
+      <HintPath>$(GameDirPath)Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Data.SQLite, Version=1.0.112.1, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Data.SQLite.Core.1.0.112.1\lib\net40\System.Data.SQLite.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>$(GameDirPath)Beat Saber_Data\Managed\UnityEngine.dll</HintPath>
@@ -79,6 +88,9 @@
   </ItemGroup>
   <ItemGroup>
     <ToCompile Include="**\*.cs" Exclude="bin\**\*;obj\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Clean output directories before build -->
