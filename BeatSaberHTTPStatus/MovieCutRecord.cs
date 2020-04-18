@@ -70,11 +70,11 @@ namespace BeatSaberHTTPStatus
 		// Default setting
 		private const int obstacleEventCount = 100; 					//obstacleイベント分
 		private const int initNoteScoreSize  = 2000;					//noteScore配列初期化サイズ (必要な配列サイズはノーツ数＋爆弾数＋obstacleイベント数)
-		private static readonly string defaultDbFile = System.IO.Path.Combine(IPA.Utilities.BeatSaber.UserDataPath, "beatsaber.db");  //データベースファイル初期値
+		private static readonly string defaultDbFile = System.IO.Path.Combine(IPA.Utilities.UnityGame.UserDataPath, "beatsaber.db");  //データベースファイル初期値
 		private string dbFile;											//データベースファイル名
 
 		// Setting file
-		private string settingFile = System.IO.Path.Combine(IPA.Utilities.BeatSaber.UserDataPath, "movie_cut_record.json"); //設定ファイル名
+		private string settingFile = System.IO.Path.Combine(IPA.Utilities.UnityGame.UserDataPath, "movie_cut_record.json"); //設定ファイル名
 		private Encoding encUTF8 = new UTF8Encoding(false);
 															 //http_statusイベント送信許可
 		public bool http_scenechange { get; set; } = true;	 //hello,songStart,finished,failed,menu,pause,resume

@@ -2,13 +2,13 @@
 
 pull requestをする前に、以下のことを確認してください。
 
-- 提出するコードがビルドされているか。
+- 提出するコードはビルド可能か。
 
-- 文字コードはBOM無しUTF-8している。
+- 文字コードはBOM無しUTF-8を使用しているか。
 
-- 改行はLFを使用している。
+- 改行はLFを使用しているか。
 
-- インデントにタブを使用している。
+- インデントにタブを使用しているか。
 
 - Beat Saber HTTP Status の機能部分はオリジナルのプロジェクトに準拠し、本プロジェクトでは対応しません。
 したがって、プラグイン名称やバージョンは改造元のBeat Saber HTTP Statusに合わせます。
@@ -28,8 +28,8 @@ Before opening a pull request please make sure that:
 
 - You're using tabs for indentation.
 
--The functional part of the Beat Saber HTTP Status is based on the original project and is not supported in this project.
+- The functional part of the Beat Saber HTTP Status is based on the original project and is not supported in this project.
 Therefore, the name and version of the plugin should match the original Beat Saber HTTP Status.
 
--The project's administrator (rynan4818[リュナン]) does not speak English, so he uses a translation tool to read and write English.
+- The project's administrator (rynan4818[リュナン]) does not speak English, so he uses a translation tool to read and write English.
 Please understand that it may sound strange. If you can, please post in Japanese.
