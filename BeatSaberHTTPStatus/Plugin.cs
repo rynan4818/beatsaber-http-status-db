@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using IllusionPlugin;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using BS_Utils.Gameplay;
+using IPA;
+using IPALogger = IPA.Logging.Logger;
 
 // Interesting props and methods:
 // protected const int ScoreController.kMaxCutScore // 110
@@ -17,7 +18,7 @@ using BS_Utils.Gameplay;
 // protected ScoreController._baseScore
 
 namespace BeatSaberHTTPStatus {
-	public class Plugin : IPlugin {
+	public class Plugin : IBeatSaberPlugin {
 		private bool initialized;
 
 		private StatusManager statusManager = new StatusManager();
@@ -27,8 +28,10 @@ namespace BeatSaberHTTPStatus {
 		private bool headInObstacle = false;
 
 		private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
-		private GamePauseManager gamePauseManager;
+		private GamePause gamePause;
 		private ScoreController scoreController;
+		private StandardLevelGameplayManager standardLevelGameplayManager;
+		private MissionLevelGameplayManager missionLevelGameplayManager;
 		private MonoBehaviour gameplayManager;
 		private GameplayModifiersModelSO gameplayModifiersSO;
 		private GameplayModifiers gameplayModifiers;
@@ -58,15 +61,15 @@ namespace BeatSaberHTTPStatus {
 			get {return PluginVersion;}
 		}
 
-		public static void PluginLog(string str) {
-			Console.WriteLine("[HTTP Status " + PluginVersion + "] " + str);
+		public static IPALogger log;
+
+		public void Init(IPALogger logger) {
+			log = logger;
 		}
 
 		public void OnApplicationStart() {
 			if (initialized) return;
 			initialized = true;
-
-			SceneManager.activeSceneChanged += this.OnActiveSceneChanged;
 
 			movieCutRecord.DbCheck();
 			server = new HTTPServer(statusManager);
@@ -74,11 +77,9 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void OnApplicationQuit() {
-			SceneManager.activeSceneChanged -= this.OnActiveSceneChanged;
-
-			if (gamePauseManager != null) {
-				RemoveSubscriber(gamePauseManager, "_gameDidPauseSignal", OnGamePause);
-				RemoveSubscriber(gamePauseManager, "_gameDidResumeSignal", OnGameResume);
+			if (gamePause != null) {
+				gamePause.didPauseEvent -= OnGamePause;
+				gamePause.didResumeEvent -= OnGameResume;
 			}
 
 			if (scoreController != null) {
@@ -89,9 +90,14 @@ namespace BeatSaberHTTPStatus {
 				scoreController.multiplierDidChangeEvent -= OnMultiplierDidChange;
 			}
 
-			if (gameplayManager != null) {
-				RemoveSubscriber(gameplayManager, "_levelFinishedSignal", OnLevelFinished);
-				RemoveSubscriber(gameplayManager, "_levelFailedSignal", OnLevelFailed);
+			if (standardLevelGameplayManager != null) {
+				standardLevelGameplayManager.levelFinishedEvent -= OnLevelFinished;
+				standardLevelGameplayManager.levelFailedEvent -= OnLevelFailed;
+			}
+
+			if (missionLevelGameplayManager != null) {
+				missionLevelGameplayManager.levelFinishedEvent -= OnLevelFinished;
+				missionLevelGameplayManager.levelFailedEvent -= OnLevelFailed;
 			}
 
 			if (beatmapObjectCallbackController != null) {
@@ -101,7 +107,7 @@ namespace BeatSaberHTTPStatus {
 			server.StopServer();
 		}
 
-		private void OnActiveSceneChanged(Scene oldScene, Scene newScene) {
+		public void OnActiveSceneChanged(Scene oldScene, Scene newScene) {
 			GameStatus gameStatus = statusManager.gameStatus;
 
 			gameStatus.scene = newScene.name;
@@ -127,7 +133,7 @@ namespace BeatSaberHTTPStatus {
 				// In game
 				gameStatus.scene = "Song";
 
-				gamePauseManager = FindFirstOrDefault<GamePauseManager>();
+				gamePause = FindFirstOrDefault<GamePause>();
 				scoreController = FindFirstOrDefault<ScoreController>();
 				gameplayManager = Resources.FindObjectsOfTypeAll<StandardLevelGameplayManager>().FirstOrDefault() as MonoBehaviour ?? Resources.FindObjectsOfTypeAll<MissionLevelGameplayManager>().FirstOrDefault();
 				beatmapObjectCallbackController = FindFirstOrDefault<BeatmapObjectCallbackController>();
@@ -136,13 +142,29 @@ namespace BeatSaberHTTPStatus {
 				playerHeadAndObstacleInteraction = FindFirstOrDefault<PlayerHeadAndObstacleInteraction>();
 				gameEnergyCounter = FindFirstOrDefault<GameEnergyCounter>();
 
+				if (gameplayManager.GetType() == typeof(StandardLevelGameplayManager)) {
+					Plugin.log.Info("Standard Level loaded");
+					standardLevelGameplayManager = FindFirstOrDefault<StandardLevelGameplayManager>();
+					// public event Action StandardLevelGameplayManager#levelFailedEvent;
+					standardLevelGameplayManager.levelFailedEvent += OnLevelFailed;
+					// public event Action StandardLevelGameplayManager#levelFinishedEvent;
+					standardLevelGameplayManager.levelFinishedEvent += OnLevelFinished;
+				} else if (gameplayManager.GetType() == typeof(MissionLevelGameplayManager)) {
+					Plugin.log.Info("Mission Level loaded");
+					missionLevelGameplayManager = FindFirstOrDefault<MissionLevelGameplayManager>();
+					// public event Action StandardLevelGameplayManager#levelFailedEvent;
+					missionLevelGameplayManager.levelFailedEvent += OnLevelFailed;
+					// public event Action StandardLevelGameplayManager#levelFinishedEvent;
+					missionLevelGameplayManager.levelFinishedEvent += OnLevelFinished;
+				}
+
 				gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
 
 				// Register event listeners
-				// private GameEvent GamePauseManager#_gameDidPauseSignal
-				AddSubscriber(gamePauseManager, "_gameDidPauseSignal", OnGamePause);
-				// private GameEvent GamePauseManager#_gameDidResumeSignal
-				AddSubscriber(gamePauseManager, "_gameDidResumeSignal", OnGameResume);
+				// public event Action GamePause#didPauseEvent;
+				gamePause.didPauseEvent += OnGamePause;
+				// public event Action GamePause#didResumeEvent;
+				gamePause.didResumeEvent += OnGameResume;
 				// public ScoreController#noteWasCutEvent<NoteData, NoteCutInfo, int multiplier> // called after AfterCutScoreBuffer is created
 				scoreController.noteWasCutEvent += OnNoteWasCut;
 				// public ScoreController#noteWasMissedEvent<NoteData, int multiplier>
@@ -153,10 +175,6 @@ namespace BeatSaberHTTPStatus {
 				scoreController.comboDidChangeEvent += OnComboDidChange;
 				// public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
 				scoreController.multiplierDidChangeEvent += OnMultiplierDidChange;
-				// private GameEvent GameplayManager#_levelFinishedSignal
-				AddSubscriber(gameplayManager, "_levelFinishedSignal", OnLevelFinished);
-				// private GameEvent GameplayManager#_levelFailedSignal
-				AddSubscriber(gameplayManager, "_levelFailedSignal", OnLevelFailed);
 				// public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
 				beatmapObjectCallbackController.beatmapEventDidTriggerEvent += OnBeatmapEventDidTrigger;
 
@@ -246,7 +264,7 @@ namespace BeatSaberHTTPStatus {
 				gameStatus.staticLights = playerSettings.staticLights;
 				gameStatus.leftHanded = playerSettings.leftHanded;
 				gameStatus.playerHeight = playerSettings.playerHeight;
-				gameStatus.disableSFX = playerSettings.disableSFX;
+				gameStatus.sfxVolume = playerSettings.sfxVolume;
 				gameStatus.reduceDebris = playerSettings.reduceDebris;
 				gameStatus.noHUD = playerSettings.noTextsAndHuds;
 				gameStatus.advancedHUD = playerSettings.advancedHud;
@@ -261,36 +279,10 @@ namespace BeatSaberHTTPStatus {
 		private static T FindFirstOrDefault<T>() where T: UnityEngine.Object {
 			T obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
 			if (obj == null) {
-				PluginLog("Couldn't find " + typeof(T).FullName);
+				Plugin.log.Error("Couldn't find " + typeof(T).FullName);
 				throw new InvalidOperationException("Couldn't find " + typeof(T).FullName);
 			}
 			return obj;
-		}
-
-		private void AddSubscriber(object obj, string field, Action action) {
-			Type t = obj.GetType();
-			FieldInfo gameEventField = t.GetField(field, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-			if (gameEventField == null) {
-				PluginLog("Can't subscribe to " + t.Name + "." + field);
-				return;
-			}
-
-			MethodInfo methodInfo = gameEventField.FieldType.GetMethod("Subscribe");
-			methodInfo.Invoke(gameEventField.GetValue(obj), new object[] {action});
-		}
-
-		private void RemoveSubscriber(object obj, string field, Action action) {
-			Type t = obj.GetType();
-			FieldInfo gameEventField = t.GetField(field, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-
-			if (gameEventField == null) {
-				PluginLog("Can't unsubscribe from " + t.Name + "." + field);
-				return;
-			}
-
-			MethodInfo methodInfo = gameEventField.FieldType.GetMethod("Unsubscribe");
-			methodInfo.Invoke(gameEventField.GetValue(obj), new object[] {action});
 		}
 
 		public void OnUpdate() {
@@ -551,8 +543,8 @@ namespace BeatSaberHTTPStatus {
 			return (long) (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).Ticks / TimeSpan.TicksPerMillisecond);
 		}
 
-		public void OnLevelWasLoaded(int level) {}
-		public void OnLevelWasInitialized(int level) {}
 		public void OnFixedUpdate() {}
+		public void OnSceneLoaded(Scene scene, LoadSceneMode mode) {}
+		public void OnSceneUnloaded(Scene scene) {}
 	}
 }

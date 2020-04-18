@@ -483,7 +483,7 @@ namespace BeatSaberHTTPStatus
 										// データ更新できない場合
 										if (result != 1)
 										{
-											Plugin.PluginLog("DB NoteScore INSERT Error");
+											Plugin.log.Error("DB NoteScore INSERT Error");
 											transaction.Rollback();
 											transaction = null;
 											break;
@@ -500,7 +500,7 @@ namespace BeatSaberHTTPStatus
 							// トランザクションが有効な場合
 							if (transaction != null)
 							{
-								Plugin.PluginLog("DB NoteScore INSERT Error " + e.Message);
+								Plugin.log.Error("DB NoteScore INSERT Error " + e.Message);
 								transaction.Rollback();
 							}
 						}
