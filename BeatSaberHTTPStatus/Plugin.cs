@@ -20,7 +20,7 @@ using IPALogger = IPA.Logging.Logger;
 namespace BeatSaberHTTPStatus {
 	[Plugin(RuntimeOptions.SingleStartInit)]
 	internal class Plugin {
-		private bool initialized;
+		public static Plugin instance {get; private set;}
 
 		private StatusManager statusManager = new StatusManager();
 		private MovieCutRecord movieCutRecord = new MovieCutRecord();
@@ -71,8 +71,10 @@ namespace BeatSaberHTTPStatus {
 
 		[OnStart]
 		public void OnApplicationStart() {
-			if (initialized) return;
-			initialized = true;
+			if (instance != null) return;
+			instance = this;
+
+			PluginTickerScript.TouchInstance();
 
 			movieCutRecord.DbCheck();
 			server = new HTTPServer(statusManager);
@@ -115,7 +117,7 @@ namespace BeatSaberHTTPStatus {
 			server.StopServer();
 		}
 
-		public void OnActiveSceneChanged(Scene oldScene, Scene newScene) {
+		public async void OnActiveSceneChanged(Scene oldScene, Scene newScene) {
 			GameStatus gameStatus = statusManager.gameStatus;
 
 			gameStatus.scene = newScene.name;
@@ -206,7 +208,9 @@ namespace BeatSaberHTTPStatus {
 				gameStatus.levelAuthorName = level.levelAuthorName;
 				gameStatus.songBPM = level.beatsPerMinute;
 				gameStatus.noteJumpSpeed = diff.noteJumpMovementSpeed;
-				gameStatus.songHash = level.levelID.Substring(0, Math.Min(32, level.levelID.Length));
+				// 13 is "custom_level_" and 40 is the magic number for the length of the SHA-1 hash
+				gameStatus.songHash = level.levelID.StartsWith("custom_level_") && !level.levelID.EndsWith(" WIP") ? level.levelID.Substring(13, 40) : null;
+				gameStatus.levelId = level.levelID;
 				gameStatus.songTimeOffset = (long) (level.songTimeOffset * 1000f / songSpeedMul);
 				gameStatus.length = (long) (level.beatmapLevelData.audioClip.length * 1000f / songSpeedMul);
 				gameStatus.start = GetCurrentTime() - (long) (audioTimeSyncController.songTime * 1000f / songSpeedMul);
@@ -223,7 +227,7 @@ namespace BeatSaberHTTPStatus {
 
 				try {
 					// From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
-					var texture = level.GetCoverImageTexture2DAsync(CancellationToken.None).Result;
+					var texture = await level.GetCoverImageTexture2DAsync(CancellationToken.None);
 					var active = RenderTexture.active;
 					var temporary = RenderTexture.GetTemporary(
 						texture.width,
@@ -339,14 +343,15 @@ namespace BeatSaberHTTPStatus {
 
 			SetNoteCutStatus(noteData, noteCutInfo, true);
 
-			int score = 0;
-			int afterScore = 0;
+			int beforeCutScore = 0;
+			int afterCutScore = 0;
 			int cutDistanceScore = 0;
 
-			ScoreModel.RawScoreWithoutMultiplier(noteCutInfo, out score, out afterScore, out cutDistanceScore);
+			ScoreModel.RawScoreWithoutMultiplier(noteCutInfo, out beforeCutScore, out afterCutScore, out cutDistanceScore);
 
-			gameStatus.initialScore = score;
+			gameStatus.initialScore = beforeCutScore + cutDistanceScore;
 			gameStatus.finalScore = -1;
+			gameStatus.cutDistanceScore = cutDistanceScore;
 			gameStatus.cutMultiplier = multiplier;
 
 			if (noteData.noteType == NoteType.Bomb) {
@@ -388,8 +393,8 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void OnNoteWasFullyCut(CutScoreBuffer acsb) {
-			int score;
-			int afterScore;
+			int beforeCutScore;
+			int afterCutScore;
 			int cutDistanceScore;
 
 			NoteCutInfo noteCutInfo = (NoteCutInfo) noteCutInfoField.GetValue(acsb);
@@ -400,23 +405,26 @@ namespace BeatSaberHTTPStatus {
 			SetNoteCutStatus(noteData, noteCutInfo, false);
 
 			// public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
-			ScoreModel.RawScoreWithoutMultiplier(noteCutInfo, out score, out afterScore, out cutDistanceScore);
+			ScoreModel.RawScoreWithoutMultiplier(noteCutInfo, out beforeCutScore, out afterCutScore, out cutDistanceScore);
 
 			int multiplier = (int) cutScoreBufferMultiplierField.GetValue(acsb);
 
-			statusManager.gameStatus.initialScore = score;
-			statusManager.gameStatus.finalScore = score + afterScore + cutDistanceScore;
+			statusManager.gameStatus.initialScore = beforeCutScore + cutDistanceScore;
+			statusManager.gameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
+			statusManager.gameStatus.cutDistanceScore = cutDistanceScore;
 			statusManager.gameStatus.cutMultiplier = multiplier;
 
 			if (movieCutRecord.http_notefullycut)
 				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteFullyCut");
-			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "noteFullyCut", afterScore, cutDistanceScore);
+			movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "noteFullyCut");
 
 			acsb.didFinishEvent -= OnNoteWasFullyCut;
 		}
 
-		private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo, bool initialCut) {
+		private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = null, bool initialCut = true) {
 			GameStatus gameStatus = statusManager.gameStatus;
+
+			gameStatus.ResetNoteCut();
 
 			gameStatus.noteID = noteData.id;
 			gameStatus.noteType = noteData.noteType.ToString();
@@ -424,79 +432,49 @@ namespace BeatSaberHTTPStatus {
 			gameStatus.noteLine = noteData.lineIndex;
 			gameStatus.noteLayer = (int) noteData.noteLineLayer;
 			gameStatus.timeToNextBasicNote = noteData.timeToNextBasicNote;
-			gameStatus.speedOK = noteCutInfo.speedOK;
-			gameStatus.directionOK = noteCutInfo.directionOK;
-			gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
-			gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
-			gameStatus.saberSpeed = noteCutInfo.saberSpeed;
-			gameStatus.saberDirX = noteCutInfo.saberDir[0];
-			gameStatus.saberDirY = noteCutInfo.saberDir[1];
-			gameStatus.saberDirZ = noteCutInfo.saberDir[2];
-			gameStatus.saberType = noteCutInfo.saberType.ToString();
-			gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
-			gameStatus.timeDeviation = noteCutInfo.timeDeviation;
-			gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
-			gameStatus.cutPointX = noteCutInfo.cutPoint[0];
-			gameStatus.cutPointY = noteCutInfo.cutPoint[1];
-			gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
-			gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
-			gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
-			gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
-			gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
-		}
 
-		private void SetNoteStatus(NoteData noteData)
-		{
-			GameStatus gameStatus = statusManager.gameStatus;
-
-			gameStatus.noteID = noteData.id;
-			gameStatus.noteType = noteData.noteType.ToString();
-			gameStatus.noteCutDirection = noteData.cutDirection.ToString();
-			gameStatus.noteLine = noteData.lineIndex;
-			gameStatus.noteLayer = (int)noteData.noteLineLayer;
-			gameStatus.timeToNextBasicNote = noteData.timeToNextBasicNote;
-			gameStatus.speedOK = false;
-			gameStatus.directionOK = false;
-			gameStatus.saberTypeOK = false;
-			gameStatus.wasCutTooSoon = false;
-			gameStatus.saberSpeed = 0;
-			gameStatus.saberDirX = 0;
-			gameStatus.saberDirY = 0;
-			gameStatus.saberDirZ = 0;
-			gameStatus.saberType = null;
-			gameStatus.swingRating = 0;
-			gameStatus.timeDeviation = 0;
-			gameStatus.cutDirectionDeviation = 0;
-			gameStatus.cutPointX = 0;
-			gameStatus.cutPointY = 0;
-			gameStatus.cutPointZ = 0;
-			gameStatus.cutNormalX = 0;
-			gameStatus.cutNormalY = 0;
-			gameStatus.cutNormalZ = 0;
-			gameStatus.cutDistanceToCenter = 0;
+			if (noteCutInfo != null) {
+				gameStatus.speedOK = noteCutInfo.speedOK;
+				gameStatus.directionOK = noteCutInfo.directionOK;
+				gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
+				gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
+				gameStatus.saberSpeed = noteCutInfo.saberSpeed;
+				gameStatus.saberDirX = noteCutInfo.saberDir[0];
+				gameStatus.saberDirY = noteCutInfo.saberDir[1];
+				gameStatus.saberDirZ = noteCutInfo.saberDir[2];
+				gameStatus.saberType = noteCutInfo.saberType.ToString();
+				gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
+				gameStatus.timeDeviation = noteCutInfo.timeDeviation;
+				gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
+				gameStatus.cutPointX = noteCutInfo.cutPoint[0];
+				gameStatus.cutPointY = noteCutInfo.cutPoint[1];
+				gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
+				gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
+				gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
+				gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
+				gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
+			}
 		}
 
 		public void OnNoteWasMissed(NoteData noteData, int multiplier) {
 			// Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
 
 			statusManager.gameStatus.batteryEnergy = gameEnergyCounter.batteryEnergy;
-			SetNoteStatus(noteData);
-			statusManager.gameStatus.initialScore = 0;
-			statusManager.gameStatus.finalScore = 0;
-			statusManager.gameStatus.cutMultiplier = 0;
+
+			SetNoteCutStatus(noteData);
 
 			if (noteData.noteType == NoteType.Bomb) {
 				statusManager.gameStatus.passedBombs++;
 
 				if (movieCutRecord.http_bombmissed)
-					statusManager.EmitStatusUpdate(ChangedProperties.Performance, "bombMissed");
+					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombMissed");
 				movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "bombMissed");
 			} else {
 				statusManager.gameStatus.passedNotes++;
 				statusManager.gameStatus.missedNotes++;
 
 				if (movieCutRecord.http_notemissed)
-					statusManager.EmitStatusUpdate(ChangedProperties.Performance, "noteMissed");
+					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
 				movieCutRecord.BeatsaberEvent(statusManager.gameStatus, "noteMissed");
 			}
 		}
@@ -548,11 +526,13 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public static long GetCurrentTime() {
-			return (long) (DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).Ticks / TimeSpan.TicksPerMillisecond);
+			return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 		}
 
-		public void OnFixedUpdate() {}
-		public void OnSceneLoaded(Scene scene, LoadSceneMode mode) {}
-		public void OnSceneUnloaded(Scene scene) {}
+		public class PluginTickerScript : PersistentSingleton<PluginTickerScript> {
+			public void Update() {
+				if (Plugin.instance != null) Plugin.instance.OnUpdate();
+			}
+		}
 	}
 }

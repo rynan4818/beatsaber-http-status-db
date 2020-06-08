@@ -41,7 +41,8 @@ namespace BeatSaberHTTPStatus
 		public bool? directionOK { get; set; } = null;			 //正しい方向でノーツがカットされた。爆弾の場合はnull。
 		public bool? saberTypeOK { get; set; } = null;			 //正しいセイバーでノーツがカットされた。爆弾の場合はnull。
 		public bool? wasCutTooSoon { get; set; } = null;		 //ノーツのカットが早すぎる
-		public int? initialScore { get; set; } = null;			 //カット前のスイングのスコア[max70]。爆弾の場合はnull。
+		public int? initialScore { get; set; } = null;			 //カット前のスイングのスコアとノーツ中心カットの合計[max85]。爆弾の場合はnull。
+		public int? beforeScore { get; set; } = null;            //カット前のスイングのスコア[max70]。爆弾の場合はnull。
 		public int? afterScore { get; set; } = null;			 //カット後のスイングのスコア[max30]。爆弾の場合はnull。
 		public int? cutDistanceScore { get; set; } = null;		 //ノーツ中心カットのスコア[max15]。  爆弾の場合はnull。
 		public int? finalScore { get; set; } = null;			 //カット全体の乗数なしのスコア。爆弾の場合はnull。
@@ -116,6 +117,7 @@ namespace BeatSaberHTTPStatus
 		private string songAuthorName = null;					//曲の作者
 		private string levelAuthorName = null;					//譜面の作者
 		private string songHash = null; 						//譜面ID(SHA-1ハッシュ値)
+		private string levelId = null;                          //譜面のRawレベル。全て難易度で同じ
 		private float songBPM;									//曲のBPM
 		private float noteJumpSpeed;							//譜面のNJS
 		private long songTimeOffset = 0;						//譜面開始オフセット値(取得出来ていない？)
@@ -172,7 +174,7 @@ namespace BeatSaberHTTPStatus
 		private bool advancedHUD = false;						//Advanced HUD
 		private bool autoRestart = false;						//失敗時に自動リスタート
 
-		public void BeatsaberEvent(GameStatus gameStatus, string bs_event, int? afterScore = null,int? cutDistanceScore = null)
+		public void BeatsaberEvent(GameStatus gameStatus, string bs_event)
 		{
 			if (bs_event == "songStart")
 			{
@@ -190,6 +192,7 @@ namespace BeatSaberHTTPStatus
 				songAuthorName = gameStatus.songAuthorName;
 				levelAuthorName = gameStatus.levelAuthorName;
 				songHash = gameStatus.songHash;
+				levelId = gameStatus.levelId;
 				songBPM = gameStatus.songBPM;
 				noteJumpSpeed = gameStatus.noteJumpSpeed;
 				songTimeOffset = gameStatus.songTimeOffset;
@@ -305,7 +308,7 @@ namespace BeatSaberHTTPStatus
 							{
 								db_cmd.CommandText = "insert into MovieCutRecord(startTime, endTime, menuTime, cleared, endFlag, pauseCount, pluginVersion," +
 													 "gameVersion, scene, mode, songName, songSubName, songAuthorName, levelAuthorName," +
-													 "songHash, songBPM, noteJumpSpeed, songTimeOffset, start, paused, length, difficulty," + "" +
+													 "songHash, levelId, songBPM, noteJumpSpeed, songTimeOffset, start, paused, length, difficulty," + "" +
 													 "notesCount, bombsCount, obstaclesCount, maxScore, maxRank," +
 													 "environmentName, scorePercentage, score, currentMaxScore, rank, passedNotes, hitNotes," +
 													 "missedNotes, lastNoteScore, passedBombs, hitBombs, combo, maxCombo, multiplier, obstacles," +
@@ -313,7 +316,7 @@ namespace BeatSaberHTTPStatus
 													 "noArrows, ghostNotes, failOnSaberClash, strictAngles, fastNotes, staticLights, leftHanded," +
 													 "playerHeight, reduceDebris, noHUD, advancedHUD, autoRestart) values (" +
 													 "@startTime, @endTime, @menuTime, @cleared, @endFlag, @pauseCount, @pluginVersion, @gameVersion, @scene, @mode," +
-													 "@songName, @songSubName, @songAuthorName, @levelAuthorName,@songHash, @songBPM, @noteJumpSpeed," +
+													 "@songName, @songSubName, @songAuthorName, @levelAuthorName, @songHash, @levelId, @songBPM, @noteJumpSpeed," +
 													 "@songTimeOffset, @start, @paused, @length, @difficulty, @notesCount," +
 													 "@bombsCount, @obstaclesCount, @maxScore, @maxRank, @environmentName, @scorePercentage, @score," +
 													 "@currentMaxScore, @rank, @passedNotes, @hitNotes, @missedNotes, @lastNoteScore, @passedBombs," +
@@ -340,6 +343,7 @@ namespace BeatSaberHTTPStatus
 								db_cmd.Parameters.Add(new SQLiteParameter("@levelAuthorName", levelAuthorName));
 								db_cmd.Parameters.Add(new SQLiteParameter("@length", length));
 								db_cmd.Parameters.Add(new SQLiteParameter("@songHash", songHash));
+								db_cmd.Parameters.Add(new SQLiteParameter("@levelId", levelId));
 								db_cmd.Parameters.Add(new SQLiteParameter("@songBPM", songBPM));
 								db_cmd.Parameters.Add(new SQLiteParameter("@noteJumpSpeed", noteJumpSpeed));
 								db_cmd.Parameters.Add(new SQLiteParameter("@songTimeOffset", songTimeOffset));
@@ -414,7 +418,7 @@ namespace BeatSaberHTTPStatus
 														 "hitBombs, combo, maxCombo, multiplier, multiplierProgress, " +
 														 "batteryEnergy, noteID, noteType, noteCutDirection, noteLine, " +
 														 "noteLayer, speedOK, directionOK, saberTypeOK, wasCutTooSoon, " +
-														 "initialScore, afterScore, cutDistanceScore, finalScore, cutMultiplier, " +
+														 "initialScore, beforeScore, afterScore, cutDistanceScore, finalScore, cutMultiplier, " +
 														 "saberSpeed, saberDirX, saberDirY, saberDirZ, saberType, " +
 														 "swingRating, swingRatingFullyCut, timeDeviation, cutDirectionDeviation, cutPointX, " +
 														 "cutPointY, cutPointZ, cutNormalX, cutNormalY, cutNormalZ, cutDistanceToCenter, " +
@@ -423,7 +427,7 @@ namespace BeatSaberHTTPStatus
 														 "@hitNotes, @missedNotes, @lastNoteScore, @passedBombs, @hitBombs, @combo, " +
 														 "@maxCombo, @multiplier, @multiplierProgress, @batteryEnergy, @noteID, @noteType, " +
 														 "@noteCutDirection, @noteLine, @noteLayer, @speedOK, @directionOK, @saberTypeOK, " +
-														 "@wasCutTooSoon, @initialScore, @afterScore, @cutDistanceScore, @finalScore, @cutMultiplier, " +
+														 "@wasCutTooSoon, @initialScore, @beforeScore, @afterScore, @cutDistanceScore, @finalScore, @cutMultiplier, " +
 														 "@saberSpeed, @saberDirX, @saberDirY, @saberDirZ, @saberType, @swingRating, @swingRatingFullyCut, " +
 														 "@timeDeviation, @cutDirectionDeviation, @cutPointX, @cutPointY, @cutPointZ, @cutNormalX, " +
 														 "@cutNormalY, @cutNormalZ, @cutDistanceToCenter, @timeToNextBasicNote)";
@@ -458,6 +462,7 @@ namespace BeatSaberHTTPStatus
 										db_cmd.Parameters.Add(new SQLiteParameter("@saberTypeOK", noteScores[idx].saberTypeOK == null ? null : (noteScores[idx].saberTypeOK == true ? (int?)1 : (int?)0)));
 										db_cmd.Parameters.Add(new SQLiteParameter("@wasCutTooSoon", noteScores[idx].wasCutTooSoon == true ? 1 : 0));
 										db_cmd.Parameters.Add(new SQLiteParameter("@initialScore", noteScores[idx].initialScore));
+										db_cmd.Parameters.Add(new SQLiteParameter("@beforeScore", noteScores[idx].beforeScore));
 										db_cmd.Parameters.Add(new SQLiteParameter("@afterScore", noteScores[idx].afterScore));
 										db_cmd.Parameters.Add(new SQLiteParameter("@cutDistanceScore", noteScores[idx].cutDistanceScore));
 										db_cmd.Parameters.Add(new SQLiteParameter("@finalScore", noteScores[idx].finalScore));
@@ -624,8 +629,9 @@ namespace BeatSaberHTTPStatus
 					noteScores[noteScoresIdx].saberTypeOK = gameStatus.saberTypeOK;
 					noteScores[noteScoresIdx].wasCutTooSoon = gameStatus.wasCutTooSoon;
 					noteScores[noteScoresIdx].initialScore = gameStatus.initialScore;
-					noteScores[noteScoresIdx].afterScore = afterScore;
-					noteScores[noteScoresIdx].cutDistanceScore = cutDistanceScore;
+					noteScores[noteScoresIdx].beforeScore = gameStatus.initialScore - gameStatus.cutDistanceScore;
+					noteScores[noteScoresIdx].afterScore = gameStatus.finalScore - gameStatus.initialScore;
+					noteScores[noteScoresIdx].cutDistanceScore = gameStatus.cutDistanceScore;
 					noteScores[noteScoresIdx].finalScore = gameStatus.finalScore;
 					noteScores[noteScoresIdx].cutMultiplier = gameStatus.cutMultiplier;
 					noteScores[noteScoresIdx].saberSpeed = gameStatus.saberSpeed;
@@ -772,6 +778,7 @@ namespace BeatSaberHTTPStatus
 							"songAuthorName TEXT," +
 							"levelAuthorName TEXT," +
 							"songHash TEXT," +
+							"levelId TEXT," +
 							"songBPM REAL," +
 							"noteJumpSpeed REAL," +
 							"songTimeOffset INTEGER," +
@@ -817,11 +824,11 @@ namespace BeatSaberHTTPStatus
 							"reduceDebris INTEGER," +
 							"noHUD INTEGER," +
 							"advancedHUD INTEGER," +
-							"autoRestart INTEGER)";
+							"autoRestart INTEGER);";
 						db_cmd.ExecuteNonQuery();
 						db_cmd.CommandText = "CREATE TABLE IF NOT EXISTS MovieCutPause(" +
 							"time INTEGER NOT NULL PRIMARY KEY," +
-							"event TEXT)";
+							"event TEXT);";
 						db_cmd.ExecuteNonQuery();
 						db_cmd.CommandText = "CREATE TABLE IF NOT EXISTS NoteScore(" +
 							"time INTEGER," +
@@ -852,6 +859,7 @@ namespace BeatSaberHTTPStatus
 							"saberTypeOK INTEGER," +
 							"wasCutTooSoon INTEGER," +
 							"initialScore INTEGER," +
+							"beforeScore INTEGER," +
 							"afterScore INTEGER," +
 							"cutDistanceScore INTEGER," +
 							"finalScore INTEGER," +
@@ -872,14 +880,37 @@ namespace BeatSaberHTTPStatus
 							"cutNormalY REAL," +
 							"cutNormalZ REAL," +
 							"cutDistanceToCenter REAL," +
-							"timeToNextBasicNote REAL)";
+							"timeToNextBasicNote REAL);";
 						db_cmd.ExecuteNonQuery();
+						DbColumnCheck(db_cmd, "MovieCutRecord", "levelId", "TEXT");
+						DbColumnCheck(db_cmd, "NoteScore", "beforeScore", "INTEGER");
 					}
 				}
 				finally
 				{
 					db_con.Close();
 				}
+			}
+		}
+		public void DbColumnCheck(SQLiteCommand db_cmd, string table, string column, string type)
+		{
+			db_cmd.CommandText = "PRAGMA table_info('" + table + "');";
+			bool column_check = true;
+			using (SQLiteDataReader db_reader = db_cmd.ExecuteReader())
+			{
+				while (db_reader.Read())
+				{
+					if (column == (string)db_reader["name"])
+					{
+						column_check = false;
+						break;
+					}
+				}
+			}
+			if (column_check)
+			{
+				db_cmd.CommandText = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type + ";";
+				db_cmd.ExecuteNonQuery();
 			}
 		}
 	}

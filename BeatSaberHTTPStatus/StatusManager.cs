@@ -81,6 +81,8 @@ namespace BeatSaberHTTPStatus {
 			beatmapJSON["songAuthorName"] = stringOrNull(gameStatus.songAuthorName);
 			beatmapJSON["levelAuthorName"] = stringOrNull(gameStatus.levelAuthorName);
 			beatmapJSON["songCover"] = String.IsNullOrEmpty(gameStatus.songCover) ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONString(gameStatus.songCover);
+			beatmapJSON["songHash"] = stringOrNull(gameStatus.songHash);
+			beatmapJSON["levelId"] = stringOrNull(gameStatus.levelId);
 			beatmapJSON["songBPM"] = gameStatus.songBPM;
 			beatmapJSON["noteJumpSpeed"] = gameStatus.noteJumpSpeed;
 			beatmapJSON["songTimeOffset"] = new JSONNumber(gameStatus.songTimeOffset);
@@ -133,6 +135,8 @@ namespace BeatSaberHTTPStatus {
 			_noteCutJSON["wasCutTooSoon"] = gameStatus.wasCutTooSoon;
 			_noteCutJSON["initialScore"] = gameStatus.initialScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.initialScore);
 			_noteCutJSON["finalScore"] = gameStatus.finalScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.finalScore);
+			_noteCutJSON["cutDistanceScore"] = gameStatus.cutDistanceScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.cutDistanceScore);
+			_noteCutJSON["swingRating"] = gameStatus.swingRating;
 			_noteCutJSON["multiplier"] = gameStatus.cutMultiplier;
 			_noteCutJSON["saberSpeed"] = gameStatus.saberSpeed;
 			if (!_noteCutJSON["saberDir"].IsArray) _noteCutJSON["saberDir"] = new JSONArray();

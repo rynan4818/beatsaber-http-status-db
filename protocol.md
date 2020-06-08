@@ -43,7 +43,8 @@ StatusObject = {
 		"songAuthorName": String, // Song author name
 		"levelAuthorName": String, // Beatmap author name
 		"songCover": null | String, // Base64 encoded PNG image of the song cover
-		"songHash": String, // Unique beatmap identifier. At most 32 characters long. Same for all difficulties.
+		"songHash": String, // Unique beatmap identifier. Same for all difficulties. Is extracted from the levelId and will return null for OST and WIP songs.
+		"levelId": String, // Raw levelId for a song. Same for all difficulties. 
 		"songBPM": Number, // Song Beats Per Minute
 		"noteJumpSpeed": Number, // Song note jump movement speed, how fast the notes move towards the player.
 		"songTimeOffset": Integer, // Time in millis of where in the song the beatmap starts. Adjusted for song speed multiplier.
@@ -116,8 +117,9 @@ NoteCutObject = {
 	"directionOK": null | Boolean, // Note was cut in the correct direction. null for bombs.
 	"saberTypeOK": null | Boolean, // Note was cut with the correct saber. null for bombs.
 	"wasCutTooSoon": Boolean, // Note was cut too early
-	"initalScore": null | Integer, // Score without multipliers for the cut. Doesn't include the score for swinging after cut. null for bombs.
-	"finalScore": null | Integer, // Score without multipliers for the entire cut, including score for swinging after cut. Available in [`noteFullyCut` event](#notefullycut-event). null for bombs.
+	"initalScore": null | Integer, // Score without multipliers for the cut. It contains the prehit swing score and the cutDistanceScore, but doesn't include the score for swinging after cut. [0..85] null for bombs.
+	"finalScore": null | Integer, // Score without multipliers for the entire cut, including score for swinging after cut. [0..115] Available in [`noteFullyCut` event](#notefullycut-event). null for bombs.
+	"cutDistanceScore": null | Integer, // Score for the hit itself. [0..15] 
 	"multiplier": Integer, // Combo multiplier at the time of cut
 	"saberSpeed": Number, // Speed of the saber when the note was cut
 	"saberDir": [ // Direction the saber was moving in when the note was cut
@@ -221,7 +223,7 @@ Fired when a note is missed.
 
 Contains only the `performance` property of [Status object](#status-object).
 
-Contains `noteCut` property with an object value as described in [Note cut object](#note-cut-object) or `null` if the note wasn't cut at all.
+Contains the `noteCut` property with an object value as described in [Note cut object](#note-cut-object). Only the properties describing the note data will be set, leaving the cut and swing related properties with their default values.
 
 ### `bombCut` event
 
@@ -234,6 +236,8 @@ Contains only the `performance` property of [Status object](#status-object) and 
 Fired when a bomb is missed.
 
 Contains only the `performance` property of [Status object](#status-object).
+
+Contains the `noteCut` property with an object value as described in [Note cut object](#note-cut-object). Only the properties describing the note data will be set, leaving the cut and swing related properties with their default values.
 
 ### `obstacleEnter` event
 
