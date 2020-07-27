@@ -25,6 +25,8 @@ Since the function of HTTP Status is the same, it is assumed to be used as a rep
 
 4. 一度Beat Saberを起動すると、`UserData` フォルダに下記内容の `movie_cut_record.json` ファイルが作成されます。
 必要に応じて設定値を変更して下さい。[BS Movie Cut](https://github.com/rynan4818/bs-movie-cut)を使用すれば、GUI画面で設定可能です。
+
+5. ModAssistant を使用されている場合は、オリジナルのHTTP Statusに更新されてしまうため HTTP Status のチェックを外しておいて下さい。
 ---
 1. Follow the [Beat Saber HTTP Status](https://github.com/opl-/beatsaber-http-status) installation instructions to install HTTP Status.
 Verify that HTTP Status is working properly.
@@ -34,6 +36,8 @@ Verify that HTTP Status is working properly.
 3. Extract the zip to your Beat Saber folder. (`SQLite.Interop.dll` and `System.Data.SQLite.dll` to Copy to the `Beat Saber\Beat Saber_Data\Managed` folder. `BeatSaberHTTPStatus.dll` to `Beat Saber\Plugins` overwrite the same file in the folder.)
 
 4. Once you start the Beat Saber, you will see a `movie_cut_record.json` in the `UserData` folder with the following content file is created. Change the settings as needed. If you use [BS Movie Cut](https://github.com/rynan4818/bs-movie-cut), it is possible to set up on GUI screen.
+
+5. If you are using ModAssistant, leave HTTP Status unchecked as it will be updated to the original HTTP Status.
 
 ```json
 {
