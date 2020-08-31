@@ -117,7 +117,7 @@ NoteCutObject = {
 	"directionOK": null | Boolean, // Note was cut in the correct direction. null for bombs.
 	"saberTypeOK": null | Boolean, // Note was cut with the correct saber. null for bombs.
 	"wasCutTooSoon": Boolean, // Note was cut too early
-	"initalScore": null | Integer, // Score without multipliers for the cut. It contains the prehit swing score and the cutDistanceScore, but doesn't include the score for swinging after cut. [0..85] null for bombs.
+	"initialScore": null | Integer, // Score without multipliers for the cut. It contains the prehit swing score and the cutDistanceScore, but doesn't include the score for swinging after cut. [0..85] null for bombs.
 	"finalScore": null | Integer, // Score without multipliers for the entire cut, including score for swinging after cut. [0..115] Available in [`noteFullyCut` event](#notefullycut-event). null for bombs.
 	"cutDistanceScore": null | Integer, // Score for the hit itself. [0..15] 
 	"multiplier": Integer, // Combo multiplier at the time of cut
@@ -148,7 +148,9 @@ NoteCutObject = {
 
 ### Beatmap event object
 
-Basic references for event types and values can be found here: <https://steamcommunity.com/sharedfiles/filedetails/?id=1377190061>
+An explanation of the beatmap events system can be found here: <https://bsmg.wiki/mapping/basic-lighting.html>
+
+Meanings of the different integer values can be derived from here: <https://github.com/Caeden117/ChroMapper/blob/master/Assets/__Scripts/Map/Events/MapEvent.cs>
 
 ```js
 BeatmapEvent = {
