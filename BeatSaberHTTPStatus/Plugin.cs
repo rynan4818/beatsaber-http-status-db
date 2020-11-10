@@ -159,7 +159,7 @@ namespace BeatSaberHTTPStatus {
 			// Clear note id mappings.
 			noteToIdMapping = null;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "menu");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "menu");
 		}
 
 		public async void HandleSongStart() {
@@ -360,7 +360,7 @@ namespace BeatSaberHTTPStatus {
 			gameStatus.autoRestart = playerSettings.autoRestart;
 			log.Info("8");
 
-			statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "songStart");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "songStart");
 		}
 
 		private static T FindFirstOrDefault<T>() where T: UnityEngine.Object {
@@ -387,11 +387,11 @@ namespace BeatSaberHTTPStatus {
 			if (!headInObstacle && currentHeadInObstacle) {
 				headInObstacle = true;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleEnter");
+				_ = statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleEnter");
 			} else if (headInObstacle && !currentHeadInObstacle) {
 				headInObstacle = false;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleExit");
+				_ = statusManager.EmitStatusUpdate(ChangedProperties.Performance, "obstacleExit");
 			}
 		}
 
@@ -415,14 +415,14 @@ namespace BeatSaberHTTPStatus {
 		public void OnGamePause() {
 			statusManager.gameStatus.paused = GetCurrentTime();
 
-			statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "pause");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "pause");
 		}
 
 		public void OnGameResume() {
 			statusManager.gameStatus.start = GetCurrentTime() - (long) (audioTimeSyncController.songTime * 1000f / statusManager.gameStatus.songSpeedMultiplier);
 			statusManager.gameStatus.paused = 0;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "resume");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "resume");
 		}
 
 		public void OnNoteWasCut(NoteData noteData, NoteCutInfo noteCutInfo, int multiplier) {
@@ -447,18 +447,18 @@ namespace BeatSaberHTTPStatus {
 				gameStatus.passedBombs++;
 				gameStatus.hitBombs++;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombCut");
+				_ = statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombCut");
 			} else {
 				gameStatus.passedNotes++;
 
 				if (noteCutInfo.allIsOK) {
 					gameStatus.hitNotes++;
 
-					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteCut");
+					_ = statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteCut");
 				} else {
 					gameStatus.missedNotes++;
 
-					statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
+					_ = statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
 				}
 			}
 
@@ -497,7 +497,7 @@ namespace BeatSaberHTTPStatus {
 			statusManager.gameStatus.cutDistanceScore = cutDistanceScore;
 			statusManager.gameStatus.cutMultiplier = multiplier;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteFullyCut");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteFullyCut");
 
 			acsb.didFinishEvent -= OnNoteWasFullyCut;
 		}
@@ -568,12 +568,12 @@ namespace BeatSaberHTTPStatus {
 			if (noteData.colorType == ColorType.None) {
 				statusManager.gameStatus.passedBombs++;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombMissed");
+				_ = statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombMissed");
 			} else {
 				statusManager.gameStatus.passedNotes++;
 				statusManager.gameStatus.missedNotes++;
 
-				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
+				_ = statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
 			}
 		}
 
@@ -588,7 +588,7 @@ namespace BeatSaberHTTPStatus {
 			RankModel.Rank rank = RankModel.GetRankForScore(scoreBeforeMultiplier, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
 			gameStatus.rank = RankModel.GetRankName(rank);
 
-			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "scoreChanged");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.Performance, "scoreChanged");
 		}
 
 		public void OnComboDidChange(int combo) {
@@ -603,18 +603,18 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void OnLevelFinished() {
-			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "finished");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.Performance, "finished");
 		}
 
 		public void OnLevelFailed() {
-			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "failed");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.Performance, "failed");
 		}
 
 		public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData) {
 			statusManager.gameStatus.beatmapEventType = (int) beatmapEventData.type;
 			statusManager.gameStatus.beatmapEventValue = beatmapEventData.value;
 
-			statusManager.EmitStatusUpdate(ChangedProperties.BeatmapEvent, "beatmapEvent");
+			_ = statusManager.EmitStatusUpdate(ChangedProperties.BeatmapEvent, "beatmapEvent");
 		}
 
 		public static long GetCurrentTime() {

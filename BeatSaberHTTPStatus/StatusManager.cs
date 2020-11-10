@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using SimpleJSON;
+using System.Threading.Tasks;
 
 namespace BeatSaberHTTPStatus {
 	public class StatusManager {
@@ -31,20 +32,22 @@ namespace BeatSaberHTTPStatus {
 			UpdateAll();
 		}
 
-		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			gameStatus.updateCause = cause;
+		public async Task EmitStatusUpdate(ChangedProperties changedProps, string cause) {
+			await Task.Run(() =>
+			{
+				gameStatus.updateCause = cause;
+				if (changedProps.game) UpdateGameJSON();
+				if (changedProps.beatmap) UpdateBeatmapJSON();
+				if (changedProps.performance) UpdatePerformanceJSON();
+				if (changedProps.noteCut) UpdateNoteCutJSON();
+				if (changedProps.mod) {
+					UpdateModJSON();
+					UpdatePlayerSettingsJSON();
+				}
+				if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
 
-			if (changedProps.game) UpdateGameJSON();
-			if (changedProps.beatmap) UpdateBeatmapJSON();
-			if (changedProps.performance) UpdatePerformanceJSON();
-			if (changedProps.noteCut) UpdateNoteCutJSON();
-			if (changedProps.mod) {
-				UpdateModJSON();
-				UpdatePlayerSettingsJSON();
-			}
-			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
-
-			if (statusChange != null) statusChange(this, changedProps, cause);
+				this.statusChange?.Invoke(this, changedProps, cause);
+			});
 		}
 
 		private void UpdateAll() {

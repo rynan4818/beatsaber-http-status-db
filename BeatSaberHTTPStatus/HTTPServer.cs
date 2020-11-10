@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using SimpleJSON;
 using WebSocketSharp;
 using WebSocketSharp.Net;
@@ -87,7 +88,8 @@ namespace BeatSaberHTTPStatus {
 
 			if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
 				eventJSON["status"] = statusManager.statusJSON;
-			} else {
+			}
+			else {
 				JSONObject status = new JSONObject();
 				eventJSON["status"] = status;
 
