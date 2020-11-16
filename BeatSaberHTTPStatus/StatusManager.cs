@@ -5,6 +5,7 @@ using SimpleJSON;
 namespace BeatSaberHTTPStatus {
 	public class StatusManager {
 		public GameStatus gameStatus = new GameStatus();
+		public MovieCutRecord movieCutRecord = new MovieCutRecord();
 
 		private JSONObject _statusJSON;
 		public JSONObject statusJSON {
@@ -32,19 +33,22 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			gameStatus.updateCause = cause;
+			if (movieCutRecord.EventSendCheck(cause)) {
+				gameStatus.updateCause = cause;
 
-			if (changedProps.game) UpdateGameJSON();
-			if (changedProps.beatmap) UpdateBeatmapJSON();
-			if (changedProps.performance) UpdatePerformanceJSON();
-			if (changedProps.noteCut) UpdateNoteCutJSON();
-			if (changedProps.mod) {
-				UpdateModJSON();
-				UpdatePlayerSettingsJSON();
+				if (changedProps.game) UpdateGameJSON();
+				if (changedProps.beatmap) UpdateBeatmapJSON();
+				if (changedProps.performance) UpdatePerformanceJSON();
+				if (changedProps.noteCut) UpdateNoteCutJSON();
+				if (changedProps.mod) {
+					UpdateModJSON();
+					UpdatePlayerSettingsJSON();
+				}
+				if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
+
+				if (statusChange != null) statusChange(this, changedProps, cause);
 			}
-			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
-
-			if (statusChange != null) statusChange(this, changedProps, cause);
+			movieCutRecord.BeatsaberEvent(gameStatus, cause);
 		}
 
 		private void UpdateAll() {

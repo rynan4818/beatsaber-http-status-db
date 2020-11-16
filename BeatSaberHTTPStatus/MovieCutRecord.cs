@@ -68,6 +68,23 @@ namespace BeatSaberHTTPStatus
 
 	public class MovieCutRecord
 	{
+		//イベント名称
+		private const string menu_event_name = "menu";
+		private const string songStart_event_name = "songStart";
+		private const string obstacleEnter_event_name = "obstacleEnter";
+		private const string obstacleExit_event_name = "obstacleExit";
+		private const string pause_event_name = "pause";
+		private const string resume_event_name = "resume";
+		private const string bombCut_event_name = "bombCut";
+		private const string noteCut_event_name = "noteCut";
+		private const string noteFullyCut_event_name = "noteFullyCut";
+		private const string bombMissed_event_name = "bombMissed";
+		private const string noteMissed_event_name = "noteMissed";
+		private const string scoreChanged_event_name = "scoreChanged";
+		private const string finished_event_name = "finished";
+		private const string failed_event_name = "failed";
+		private const string beatmapEvent_event_name = "beatmapEvent";
+
 		// Default setting
 		private const int obstacleEventCount = 100; 					//obstacleイベント分
 		private const int initNoteScoreSize  = 2000;					//noteScore配列初期化サイズ (必要な配列サイズはノーツ数＋爆弾数＋obstacleイベント数)
@@ -77,16 +94,17 @@ namespace BeatSaberHTTPStatus
 		// Setting file
 		private string settingFile = System.IO.Path.Combine(IPA.Utilities.UnityGame.UserDataPath, "movie_cut_record.json"); //設定ファイル名
 		private Encoding encUTF8 = new UTF8Encoding(false);
-															 //http_statusイベント送信許可
-		public bool http_scenechange { get; set; } = true;	 //hello,songStart,finished,failed,menu,pause,resume
-		public bool http_scorechanged { get; set; } = true;  //scoreChanged
-		public bool http_notecut { get; set; } = true;		 //noteCut
-		public bool http_notefullycut { get; set; } = true;  //noteFullyCut
-		public bool http_notemissed { get; set; } = true;	 //noteMissed
-		public bool http_bombcut { get; set; } = true;		 //bombCut
-		public bool http_bombmissed { get; set; } = true;	 //bombMissed
-		public bool http_beatmapevent { get; set; } = true;  //beatmapEvent
-		public bool http_obstacle { get; set; } = true; 	 //obstacleEnter,obstacleExit
+
+		//http_statusイベント送信許可
+		private bool http_scenechange { get; set; } = true;  //songStart,finished,failed,menu,pause,resume
+		private bool http_scorechanged { get; set; } = true; //scoreChanged
+		private bool http_notecut { get; set; } = true;      //noteCut
+		private bool http_notefullycut { get; set; } = true; //noteFullyCut
+		private bool http_notemissed { get; set; } = true;   //noteMissed
+		private bool http_bombcut { get; set; } = true;      //bombCut
+		private bool http_bombmissed { get; set; } = true;   //bombMissed
+		private bool http_beatmapevent { get; set; } = true; //beatmapEvent
+		private bool http_obstacle { get; set; } = true; 	 //obstacleEnter,obstacleExit
 		private bool db_notes_score = true; 				 //ノーツ毎のスコア記録許可
 		private bool gc_collect = true; 					 //songStart、menuイベント時にGC実行
 
@@ -107,7 +125,7 @@ namespace BeatSaberHTTPStatus
 		private int initSize = 0;										   //配列の初期化済みサイズ
 
 		// StatusObject[game]
-		private string scene = "Menu";							//プレイ中画面の現在のシーン
+		private string scene = menu_event_name;					//プレイ中画面の現在のシーン
 		private bool partyMode = false; 						//Partyモード有無
 		private string mode = null; 							//プレイモード
 
@@ -176,7 +194,7 @@ namespace BeatSaberHTTPStatus
 
 		public void BeatsaberEvent(GameStatus gameStatus, string bs_event)
 		{
-			if (bs_event == "songStart")
+			if (bs_event == songStart_event_name)
 			{
 				start_time = Plugin.GetCurrentTime();
 				song = true;
@@ -267,7 +285,7 @@ namespace BeatSaberHTTPStatus
 				if (gc_collect)
 					GC.Collect();
 			}
-			else if (bs_event == "finished" || bs_event == "failed")
+			else if (bs_event == finished_event_name || bs_event == failed_event_name)
 			{
 				end_time = Plugin.GetCurrentTime();
 				end = true;
@@ -288,7 +306,7 @@ namespace BeatSaberHTTPStatus
 				multiplierProgress = gameStatus.multiplierProgress;
 				batteryEnergy = gameStatus.batteryEnergy;
 			}
-			if (bs_event == "menu")
+			if (bs_event == menu_event_name)
 			{
 				if (song)
 				{
@@ -522,7 +540,7 @@ namespace BeatSaberHTTPStatus
 				if (gc_collect)
 					GC.Collect();
 			}
-			if (bs_event == "resume" || bs_event == "pause")
+			if (bs_event == resume_event_name || bs_event == pause_event_name)
 			{
 				cleared = bs_event;
 				using (SQLiteConnection db_con = new SQLiteConnection("Data Source=" + dbFile + ";Version=3;"))
@@ -543,11 +561,11 @@ namespace BeatSaberHTTPStatus
 						db_con.Close();
 					}
 				}
-				if (bs_event == "resume")
+				if (bs_event == resume_event_name)
 				{
 					start = gameStatus.start;
 				}
-				if (bs_event == "pause")
+				if (bs_event == pause_event_name)
 				{
 					++pause;
 					// Performance
@@ -569,7 +587,7 @@ namespace BeatSaberHTTPStatus
 					end_time = Plugin.GetCurrentTime();
 				}
 			}
-			if (bs_event == "noteCut" && db_notes_score)
+			if (bs_event == noteCut_event_name && db_notes_score)
 			{
 				noteCutTimeIdx = gameStatus.noteID;
 				// noteCutTime 配列サイズチェック
@@ -581,7 +599,7 @@ namespace BeatSaberHTTPStatus
 				noteCutTime[noteCutTimeIdx] = Plugin.GetCurrentTime();
 				cutSwingRating[noteCutTimeIdx] = gameStatus.swingRating;
 			}
-			if ((bs_event == "noteFullyCut" || bs_event == "noteMissed" || bs_event == "bombCut" || bs_event == "bombMissed" || bs_event == "obstacleEnter" || bs_event == "obstacleExit") && db_notes_score)
+			if ((bs_event == noteFullyCut_event_name || bs_event == noteMissed_event_name || bs_event == bombCut_event_name || bs_event == bombMissed_event_name || bs_event == obstacleEnter_event_name || bs_event == obstacleExit_event_name) && db_notes_score)
 			{
 				// notescores 配列サイズチェック
 				if (noteScoresIdx + 1 >= noteScores.Length)
@@ -594,7 +612,7 @@ namespace BeatSaberHTTPStatus
 				}
 
 				noteScores[noteScoresIdx].time = Plugin.GetCurrentTime();
-				if (bs_event == "noteFullyCut")
+				if (bs_event == noteFullyCut_event_name)
 				{
 					noteScores[noteScoresIdx].cutTime = noteCutTime[gameStatus.noteID];
 				}
@@ -617,7 +635,7 @@ namespace BeatSaberHTTPStatus
 				noteScores[noteScoresIdx].multiplier = gameStatus.multiplier;
 				noteScores[noteScoresIdx].multiplierProgress = gameStatus.multiplierProgress;
 				noteScores[noteScoresIdx].batteryEnergy = gameStatus.batteryEnergy;
-				if (bs_event == "noteFullyCut" || bs_event == "bombCut" || bs_event == "noteMissed" || bs_event == "bombMissed")
+				if (bs_event == noteFullyCut_event_name || bs_event == bombCut_event_name || bs_event == noteMissed_event_name || bs_event == bombMissed_event_name)
 				{
 					noteScores[noteScoresIdx].noteID = gameStatus.noteID;
 					noteScores[noteScoresIdx].noteType = gameStatus.noteType;
@@ -640,7 +658,7 @@ namespace BeatSaberHTTPStatus
 					noteScores[noteScoresIdx].saberDirZ = gameStatus.saberDirZ;
 					noteScores[noteScoresIdx].saberType = gameStatus.saberType;
 					noteScores[noteScoresIdx].swingRating = cutSwingRating[gameStatus.noteID];
-					if (bs_event == "noteFullyCut" || bs_event == "bombCut")
+					if (bs_event == noteFullyCut_event_name || bs_event == bombCut_event_name)
 						noteScores[noteScoresIdx].swingRatingFullyCut = gameStatus.swingRating;
 					else
 						noteScores[noteScoresIdx].swingRatingFullyCut = 0;
@@ -913,5 +931,37 @@ namespace BeatSaberHTTPStatus
 				db_cmd.ExecuteNonQuery();
 			}
 		}
+		public bool EventSendCheck(string event_name)
+        {
+			switch(event_name)
+            {
+				case songStart_event_name:
+				case finished_event_name:
+				case failed_event_name:
+				case menu_event_name:
+				case pause_event_name:
+				case resume_event_name:
+					return http_scenechange;
+				case scoreChanged_event_name:
+					return http_scorechanged;
+				case noteCut_event_name:
+					return http_notecut;
+				case noteFullyCut_event_name:
+					return http_notefullycut;
+				case noteMissed_event_name:
+					return http_notemissed;
+				case bombCut_event_name:
+					return http_bombcut;
+				case bombMissed_event_name:
+					return http_bombmissed;
+				case beatmapEvent_event_name:
+					return http_beatmapevent;
+				case obstacleEnter_event_name:
+				case obstacleExit_event_name:
+					return http_obstacle;
+				default:
+					return true;
+			}
+        }
 	}
 }
