@@ -33,21 +33,23 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			if (movieCutRecord.EventSendCheck(cause)) {
-				gameStatus.updateCause = cause;
-
-				if (changedProps.game) UpdateGameJSON();
-				if (changedProps.beatmap) UpdateBeatmapJSON();
-				if (changedProps.performance) UpdatePerformanceJSON();
-				if (changedProps.noteCut) UpdateNoteCutJSON();
-				if (changedProps.mod) {
-					UpdateModJSON();
-					UpdatePlayerSettingsJSON();
-				}
-				if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
-
-				if (statusChange != null) statusChange(this, changedProps, cause);
+			if (!movieCutRecord.EventSendCheck(cause)) {
+				movieCutRecord.BeatsaberEvent(gameStatus, cause);
+				return;
 			}
+			gameStatus.updateCause = cause;
+
+			if (changedProps.game) UpdateGameJSON();
+			if (changedProps.beatmap) UpdateBeatmapJSON();
+			if (changedProps.performance) UpdatePerformanceJSON();
+			if (changedProps.noteCut) UpdateNoteCutJSON();
+			if (changedProps.mod) {
+				UpdateModJSON();
+				UpdatePlayerSettingsJSON();
+			}
+			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
+
+			if (statusChange != null) statusChange(this, changedProps, cause);
 			movieCutRecord.BeatsaberEvent(gameStatus, cause);
 		}
 
