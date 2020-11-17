@@ -9,11 +9,11 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BeatSaberHTTPStatus</RootNamespace>
     <AssemblyName>BeatSaberHTTPStatus</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
-    <Version>2.0.0</Version>
-    <BeatSaberVersion>1.12.1</BeatSaberVersion>
+    <Version>3.0.0</Version>
+    <BeatSaberVersion>1.13.0</BeatSaberVersion>
     <!-- <BeatSaberDir>..\libs\beatsaber\</BeatSaberDir> -->
     <SemVerVersion>$(Version)</SemVerVersion>
     <CopyToPlugins Condition=" '$(CopyToPlugins)' == '' ">true</CopyToPlugins>
@@ -66,6 +66,11 @@
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\BGNet.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="SiraUtil, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <Private>False</Private>
+      <HintPath>$(BeatSaberDir)\Plugins\SiraUtil.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -90,9 +95,14 @@
       <HintPath>$(BeatSaberDir)Plugins\BS_Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="websocket-sharp, Version=1.0.2.39861, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
+    <Reference Include="Zenject, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <Private>False</Private>
-      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\websocket-sharp.dll</HintPath>
+      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Zenject.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+    <Reference Include="Zenject-usage, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <Private>False</Private>
+      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Zenject-usage.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
     </Reference>
   </ItemGroup>
@@ -100,14 +110,9 @@
     <Compile Include="**\*.cs" Exclude="bin\**\*;obj\**\*" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="$(IntermediateOutputPath)src/manifest.json">
-      <LogicalName>$(RootNamespace).manifest.json</LogicalName>
+    <EmbeddedResource Include="obj\Release\src/manifest.json">
+      <LogicalName>BeatSaberHTTPStatus.manifest.json</LogicalName>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="websocket-sharp.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Clean output directories before build -->
@@ -138,16 +143,11 @@
   <Target Name="CopyToPlugins" AfterTargets="AfterBuild" Condition=" '$(CopyToPlugins)' != '' And $(CopyToPlugins) ">
     <Message Text="Copying $(OutDir)BeatSaberHTTPStatus.dll to Plugins folder" Importance="high" />
     <Copy SourceFiles="$(OutDir)BeatSaberHTTPStatus.dll" DestinationFiles="$(BeatSaberDir)Plugins\BeatSaberHTTPStatus.dll" />
-    <Message Text="Copying $(OutDir)websocket-sharp.dll to Beat Saber_Data folder" Importance="high" />
-    <Copy SourceFiles="$(OutDir)websocket-sharp.dll" DestinationFiles="$(BeatSaberDir)Beat Saber_Data\Managed\websocket-sharp.dll" />
   </Target>
   <!-- Package built DLLs into a zip -->
   <Target Name="CreateZip" AfterTargets="AfterBuild" Condition=" '$(OutputZip)' != '' And $(OutputZip) ">
     <ItemGroup>
       <ZipFilesPlugins Include="$(OutDir)\BeatSaberHTTPStatus.dll" />
-    </ItemGroup>
-    <ItemGroup>
-      <ZipFilesLibs Include="$(OutDir)\websocket-sharp.dll" />
     </ItemGroup>
     <Exec Command="git rev-parse HEAD &gt; $(IntermediateOutputPath)head" />
     <ReadLinesFromFile File="$(IntermediateOutputPath)head">

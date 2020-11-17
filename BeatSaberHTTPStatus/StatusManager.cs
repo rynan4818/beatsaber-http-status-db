@@ -2,10 +2,12 @@ using System;
 using UnityEngine;
 using SimpleJSON;
 using System.Threading.Tasks;
+using BeatSaberHTTPStatus.Interfaces;
 
 namespace BeatSaberHTTPStatus {
-	public class StatusManager {
-		public GameStatus gameStatus = new GameStatus();
+	public class StatusManager : IStatusManager
+	{
+		public GameStatus gameStatus { get; } = new GameStatus();
 
 		private JSONObject _statusJSON;
 		public JSONObject statusJSON {
@@ -32,22 +34,19 @@ namespace BeatSaberHTTPStatus {
 			UpdateAll();
 		}
 
-		public async Task EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			await Task.Run(() =>
-			{
-				gameStatus.updateCause = cause;
-				if (changedProps.game) UpdateGameJSON();
-				if (changedProps.beatmap) UpdateBeatmapJSON();
-				if (changedProps.performance) UpdatePerformanceJSON();
-				if (changedProps.noteCut) UpdateNoteCutJSON();
-				if (changedProps.mod) {
-					UpdateModJSON();
-					UpdatePlayerSettingsJSON();
-				}
-				if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
+		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
+			gameStatus.updateCause = cause;
+			if (changedProps.game) UpdateGameJSON();
+			if (changedProps.beatmap) UpdateBeatmapJSON();
+			if (changedProps.performance) UpdatePerformanceJSON();
+			if (changedProps.noteCut) UpdateNoteCutJSON();
+			if (changedProps.mod) {
+				UpdateModJSON();
+				UpdatePlayerSettingsJSON();
+			}
+			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
 
-				this.statusChange?.Invoke(this, changedProps, cause);
-			});
+			this.statusChange?.Invoke(this, changedProps, cause);
 		}
 
 		private void UpdateAll() {
