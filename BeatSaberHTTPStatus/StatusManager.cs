@@ -2,10 +2,12 @@ using System;
 using UnityEngine;
 using SimpleJSON;
 using System.Threading.Tasks;
+using BeatSaberHTTPStatus.Interfaces;
 
 namespace BeatSaberHTTPStatus {
-	public class StatusManager {
-		public GameStatus gameStatus = new GameStatus();
+	public class StatusManager : IStatusManager
+	{
+		public GameStatus gameStatus { get; } = new GameStatus();
 
 		private JSONObject _statusJSON;
 		public JSONObject statusJSON {
