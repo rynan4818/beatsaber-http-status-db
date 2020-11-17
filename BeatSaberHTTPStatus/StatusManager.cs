@@ -32,22 +32,19 @@ namespace BeatSaberHTTPStatus {
 			UpdateAll();
 		}
 
-		public async Task EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			await Task.Run(() =>
-			{
-				gameStatus.updateCause = cause;
-				if (changedProps.game) UpdateGameJSON();
-				if (changedProps.beatmap) UpdateBeatmapJSON();
-				if (changedProps.performance) UpdatePerformanceJSON();
-				if (changedProps.noteCut) UpdateNoteCutJSON();
-				if (changedProps.mod) {
-					UpdateModJSON();
-					UpdatePlayerSettingsJSON();
-				}
-				if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
+		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
+			gameStatus.updateCause = cause;
+			if (changedProps.game) UpdateGameJSON();
+			if (changedProps.beatmap) UpdateBeatmapJSON();
+			if (changedProps.performance) UpdatePerformanceJSON();
+			if (changedProps.noteCut) UpdateNoteCutJSON();
+			if (changedProps.mod) {
+				UpdateModJSON();
+				UpdatePlayerSettingsJSON();
+			}
+			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
 
-				this.statusChange?.Invoke(this, changedProps, cause);
-			});
+			this.statusChange?.Invoke(this, changedProps, cause);
 		}
 
 		private void UpdateAll() {
