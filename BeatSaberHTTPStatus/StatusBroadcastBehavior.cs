@@ -25,6 +25,7 @@ namespace BeatSaberHTTPStatus
 
 		protected override void OnOpen()
 		{
+			base.OnOpen();
 			JSONObject eventJSON = new JSONObject();
 
 			eventJSON["event"] = "hello";
@@ -37,6 +38,7 @@ namespace BeatSaberHTTPStatus
 		protected override void OnClose(CloseEventArgs e)
 		{
 			statusManager.statusChange -= OnStatusChange;
+			base.OnClose(e);
 		}
 
 		public void OnStatusChange(StatusManager statusManager, ChangedProperties changedProps, string cause)
