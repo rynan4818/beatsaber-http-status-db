@@ -17,7 +17,7 @@ namespace BeatSaberHTTPStatus
 		private IStatusManager statusManager;
         private bool disposedValue;
 
-		public void SetStatusManager(StatusManager statusManager)
+		public void SetStatusManager(IStatusManager statusManager)
         {
 			this.statusManager = statusManager;
 			this.statusManager.statusChange += OnStatusChange;

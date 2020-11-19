@@ -3,34 +3,33 @@ using UnityEngine;
 using SimpleJSON;
 using System.Threading.Tasks;
 using BeatSaberHTTPStatus.Interfaces;
+using Zenject;
 
 namespace BeatSaberHTTPStatus {
 	public class StatusManager : IStatusManager
 	{
-		public GameStatus gameStatus { get; } = new GameStatus();
+		[Inject]
+		public GameStatus gameStatus { get; }
 
-		private JSONObject _statusJSON;
+		private JSONObject _statusJSON = new JSONObject();
 		public JSONObject statusJSON {
 			get {return _statusJSON;}
 		}
 
-		private JSONObject _noteCutJSON;
+		private JSONObject _noteCutJSON = new JSONObject();
 		public JSONObject noteCutJSON {
 			get {return _noteCutJSON;}
 		}
 
-		private JSONObject _beatmapEventJSON;
+		private JSONObject _beatmapEventJSON = new JSONObject();
 		public JSONObject beatmapEventJSON {
 			get {return _beatmapEventJSON;}
 		}
-
 		public event Action<StatusManager, ChangedProperties, string> statusChange;
 
-		public StatusManager() {
-			_statusJSON = new JSONObject();
-			_noteCutJSON = new JSONObject();
-			_beatmapEventJSON = new JSONObject();
-
+		[Inject]
+		void Constractor()
+        {
 			UpdateAll();
 		}
 
@@ -50,13 +49,18 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		private void UpdateAll() {
-			UpdateGameJSON();
-			UpdateBeatmapJSON();
-			UpdatePerformanceJSON();
-			UpdateNoteCutJSON();
-			UpdateModJSON();
-			UpdatePlayerSettingsJSON();
-			UpdateBeatmapEventJSON();
+            try {
+				UpdateGameJSON();
+				UpdateBeatmapJSON();
+				UpdatePerformanceJSON();
+				UpdateNoteCutJSON();
+				UpdateModJSON();
+				UpdatePlayerSettingsJSON();
+				UpdateBeatmapEventJSON();
+			}
+            catch (Exception e) {
+				Plugin.log.Error(e);
+            }
 		}
 
 		private void UpdateGameJSON() {

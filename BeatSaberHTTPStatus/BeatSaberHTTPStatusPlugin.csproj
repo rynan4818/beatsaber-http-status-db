@@ -113,7 +113,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="**\*.cs" Exclude="bin\**\*;obj\**\*" />
-    <Compile Include="StatusBroadcastBehavior.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="obj\Release\src/manifest.json">

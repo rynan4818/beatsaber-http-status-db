@@ -19,6 +19,10 @@ namespace BeatSaberHTTPStatus.Models
     {
 		[Inject]
 		DiContainer container;
+		[Inject]
+		private IStatusManager statusManager;
+		[Inject]
+		GameStatus gameStatus;
 
 		private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
 		private PauseController pauseController;
@@ -30,7 +34,7 @@ namespace BeatSaberHTTPStatus.Models
 		private GameSongController gameSongController;
 		private GameEnergyCounter gameEnergyCounter;
 		private ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
-		private IStatusManager statusManager;
+		
 		private GameplayModifiersModelSO gameplayModifiersSO;
 
 		/// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
@@ -60,39 +64,43 @@ namespace BeatSaberHTTPStatus.Models
                 if (disposing) {
 					// TODO: マネージド状態を破棄します (マネージド オブジェクト)
 					Plugin.log.Debug("dispose call");
-					GameStatus gameStatus = statusManager.gameStatus;
-					gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
+                    try {
+						gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
 
-					gameStatus.ResetMapInfo();
+						gameStatus?.ResetMapInfo();
 
-					gameStatus.ResetPerformance();
+						gameStatus?.ResetPerformance();
 
-					// Release references for AfterCutScoreBuffers that don't resolve due to player leaving the map before finishing.
-					noteCutMapping.Clear();
+						// Release references for AfterCutScoreBuffers that don't resolve due to player leaving the map before finishing.
+						noteCutMapping?.Clear();
 
-					// Clear note id mappings.
-					noteToIdMapping = null;
+						// Clear note id mappings.
+						noteToIdMapping = null;
 
-					statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "menu");
+						statusManager?.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "menu");
 
-					if (pauseController != null) {
-						pauseController.didPauseEvent -= OnGamePause;
-						pauseController.didResumeEvent -= OnGameResume;
+						if (pauseController != null) {
+							pauseController.didPauseEvent -= OnGamePause;
+							pauseController.didResumeEvent -= OnGameResume;
+						}
+
+						if (scoreController != null) {
+							scoreController.noteWasCutEvent -= OnNoteWasCut;
+							scoreController.noteWasMissedEvent -= OnNoteWasMissed;
+							scoreController.scoreDidChangeEvent -= OnScoreDidChange;
+							scoreController.comboDidChangeEvent -= OnComboDidChange;
+							scoreController.multiplierDidChangeEvent -= OnMultiplierDidChange;
+						}
+
+						//CleanUpMultiplayer();
+
+						if (beatmapObjectCallbackController != null) {
+							beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= OnBeatmapEventDidTrigger;
+						}
 					}
-
-					if (scoreController != null) {
-						scoreController.noteWasCutEvent -= OnNoteWasCut;
-						scoreController.noteWasMissedEvent -= OnNoteWasMissed;
-						scoreController.scoreDidChangeEvent -= OnScoreDidChange;
-						scoreController.comboDidChangeEvent -= OnComboDidChange;
-						scoreController.multiplierDidChangeEvent -= OnMultiplierDidChange;
-					}
-
-					//CleanUpMultiplayer();
-
-					if (beatmapObjectCallbackController != null) {
-						beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= OnBeatmapEventDidTrigger;
-					}
+                    catch (Exception e) {
+						Plugin.log.Error(e);
+                    }
 				}
 
                 // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
@@ -127,14 +135,12 @@ namespace BeatSaberHTTPStatus.Models
 				playerHeadAndObstacleInteraction = container.Resolve<PlayerHeadAndObstacleInteraction>();
 				gameSongController = container.Resolve<GameSongController>();
 				gameEnergyCounter = container.Resolve<GameEnergyCounter>();
-				statusManager = container.Resolve<IStatusManager>();
 				gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
 			}
 			catch (Exception e) {
 				Plugin.log.Error(e);
 				return;
 			}
-			GameStatus gameStatus = statusManager.gameStatus;
 			Plugin.log.Info("0");
 
 			// Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later

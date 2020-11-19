@@ -10,6 +10,7 @@ namespace BeatSaberHTTPStatus.Installer
     {
         public override void InstallBindings()
         {
+            this.Container.BindInterfacesAndSelfTo<GameStatus>().AsSingle();
             this.Container.BindInterfacesAndSelfTo<StatusManager>().AsSingle();
             this.Container.BindInterfacesAndSelfTo<HTTPServer>().AsSingle();
         }
