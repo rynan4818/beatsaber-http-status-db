@@ -14,5 +14,6 @@ namespace BeatSaberHTTPStatus.Interfaces
 		JSONObject noteCutJSON { get; }
 		JSONObject beatmapEventJSON { get; }
 		event Action<StatusManager, ChangedProperties, string> statusChange;
+		void EmitStatusUpdate(ChangedProperties changedProps, string cause);
 	}
 }

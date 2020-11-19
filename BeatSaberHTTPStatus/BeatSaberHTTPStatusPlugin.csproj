@@ -95,6 +95,11 @@
       <HintPath>$(BeatSaberDir)Plugins\BS_Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="websocket-sharp, Version=1.0.2.39861, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
+      <Private>False</Private>
+      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\websocket-sharp.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="Zenject, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <Private>False</Private>
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Zenject.dll</HintPath>
@@ -108,6 +113,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="**\*.cs" Exclude="bin\**\*;obj\**\*" />
+    <Compile Include="StatusBroadcastBehavior.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="obj\Release\src/manifest.json">
@@ -142,7 +148,7 @@
   <!-- Copy the plugin to the Beat Saber installation -->
   <Target Name="CopyToPlugins" AfterTargets="AfterBuild" Condition=" '$(CopyToPlugins)' != '' And $(CopyToPlugins) ">
     <Message Text="Copying $(OutDir)BeatSaberHTTPStatus.dll to Plugins folder" Importance="high" />
-    <Copy SourceFiles="$(OutDir)BeatSaberHTTPStatus.dll" DestinationFiles="$(BeatSaberDir)Plugins\BeatSaberHTTPStatus.dll" />
+    <Copy SourceFiles="$(OutDir)BeatSaberHTTPStatus.dll" DestinationFiles="$(BeatSaberDir)\Plugins\BeatSaberHTTPStatus.dll" />
   </Target>
   <!-- Package built DLLs into a zip -->
   <Target Name="CreateZip" AfterTargets="AfterBuild" Condition=" '$(OutputZip)' != '' And $(OutputZip) ">

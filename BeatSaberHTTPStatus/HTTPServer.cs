@@ -1,116 +1,83 @@
 using System;
 using System.Text;
-using System.Threading.Tasks;
-using SimpleJSON;
-using WebSocketSharp;
-using WebSocketSharp.Net;
 using WebSocketSharp.Server;
+using Zenject;
 
-namespace BeatSaberHTTPStatus {
-	public class HTTPServer {
-		private int ServerPort = 6557;
+namespace BeatSaberHTTPStatus
+{
+    public class HTTPServer : IInitializable, IDisposable
+    {
+        private int ServerPort = 6557;
 
-		private HttpServer server;
+        private HttpServer server;
+        [Inject]
+        private StatusManager statusManager;
+        private bool disposedValue;
 
-		private StatusManager statusManager;
+        public void OnHTTPGet(HttpRequestEventArgs e)
+        {
+            var req = e.Request;
+            var res = e.Response;
 
-		public HTTPServer(StatusManager statusManager) {
-			this.statusManager = statusManager;
-		}
+            if (req.RawUrl == "/status.json") {
+                res.StatusCode = 200;
+                res.ContentType = "application/json";
+                res.ContentEncoding = Encoding.UTF8;
 
-		public void InitServer() {
-			server = new HttpServer(ServerPort);
+                var stringifiedStatus = Encoding.UTF8.GetBytes(statusManager.statusJSON.ToString());
 
-			server.OnGet += (sender, e) => {
-				OnHTTPGet(e);
-			};
+                res.ContentLength64 = stringifiedStatus.Length;
+                res.Close(stringifiedStatus, false);
 
-			server.AddWebSocketService<StatusBroadcastBehavior>("/socket", behavior => behavior.SetStatusManager(statusManager));
+                return;
+            }
 
-			BeatSaberHTTPStatus.Plugin.log.Info("Starting HTTP server on port " + ServerPort);
-			server.Start();
-		}
+            res.StatusCode = 404;
+            res.Close();
+        }
 
-		public void StopServer() {
-			BeatSaberHTTPStatus.Plugin.log.Info("Stopping HTTP server");
-			server.Stop();
-		}
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue) {
+                if (disposing) {
+                    // TODO: マネージド状態を破棄します (マネージド オブジェクト)
+                    BeatSaberHTTPStatus.Plugin.log.Info("Stopping HTTP server");
+                    server.Stop();
+                }
 
-		public void OnHTTPGet(HttpRequestEventArgs e) {
-			var req = e.Request;
-			var res = e.Response;
+                // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
+                // TODO: 大きなフィールドを null に設定します
+                disposedValue = true;
+            }
+        }
 
-			if (req.RawUrl == "/status.json") {
-				res.StatusCode = 200;
-				res.ContentType = "application/json";
-				res.ContentEncoding = Encoding.UTF8;
+        // // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
+        // ~HTTPServer()
+        // {
+        //     // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+        //     Dispose(disposing: false);
+        // }
 
-				var stringifiedStatus = Encoding.UTF8.GetBytes(statusManager.statusJSON.ToString());
+        public void Dispose()
+        {
+            // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
 
-				res.ContentLength64 = stringifiedStatus.Length;
-				res.Close(stringifiedStatus, false);
+        public void Initialize()
+        {
+            server = new HttpServer(this.ServerPort);
 
-				return;
-			}
+            server.OnGet += (sender, e) =>
+            {
+                OnHTTPGet(e);
+            };
 
-			res.StatusCode = 404;
-			res.Close();
-		}
-	}
+            server.AddWebSocketService<StatusBroadcastBehavior>("/socket", initializer => initializer.SetStatusManager(this.statusManager));
 
-	public class StatusBroadcastBehavior : WebSocketBehavior {
-		private StatusManager statusManager;
-
-		public void SetStatusManager(StatusManager statusManager) {
-			this.statusManager = statusManager;
-
-			statusManager.statusChange += OnStatusChange;
-		}
-
-		protected override void OnOpen() {
-			JSONObject eventJSON = new JSONObject();
-
-			eventJSON["event"] = "hello";
-			eventJSON["time"] = new JSONNumber(Plugin.GetCurrentTime());
-			eventJSON["status"] = statusManager.statusJSON;
-
-			SendAsync(eventJSON.ToString(), null);
-		}
-
-		protected override void OnClose(CloseEventArgs e) {
-			statusManager.statusChange -= OnStatusChange;
-		}
-
-		public void OnStatusChange(StatusManager statusManager, ChangedProperties changedProps, string cause) {
-			JSONObject eventJSON = new JSONObject();
-			eventJSON["event"] = cause;
-			eventJSON["time"] = new JSONNumber(Plugin.GetCurrentTime());
-
-			if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
-				eventJSON["status"] = statusManager.statusJSON;
-			}
-			else {
-				JSONObject status = new JSONObject();
-				eventJSON["status"] = status;
-
-				if (changedProps.game) status["game"] = statusManager.statusJSON["game"];
-				if (changedProps.beatmap) status["beatmap"] = statusManager.statusJSON["beatmap"];
-				if (changedProps.performance) status["performance"] = statusManager.statusJSON["performance"];
-				if (changedProps.mod) {
-					status["mod"] = statusManager.statusJSON["mod"];
-					status["playerSettings"] = statusManager.statusJSON["playerSettings"];
-				}
-			}
-
-			if (changedProps.noteCut) {
-				eventJSON["noteCut"] = statusManager.noteCutJSON;
-			}
-
-			if (changedProps.beatmapEvent) {
-				eventJSON["beatmapEvent"] = statusManager.beatmapEventJSON;
-			}
-
-			SendAsync(eventJSON.ToString(), null);
-		}
-	}
+            BeatSaberHTTPStatus.Plugin.log.Info("Starting HTTP server on port " + this.ServerPort);
+            server.Start();
+        }
+    }
 }

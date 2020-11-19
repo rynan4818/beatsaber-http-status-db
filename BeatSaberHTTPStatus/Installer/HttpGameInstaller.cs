@@ -11,7 +11,7 @@ namespace BeatSaberHTTPStatus.Installer
     {
         public override void InstallBindings()
         {
-            this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().AsCached();
+            this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().AsTransient();
         }
     }
 }

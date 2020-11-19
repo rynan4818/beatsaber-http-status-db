@@ -1,6 +1,9 @@
-﻿using BeatSaberHTTPStatus.Util;
+﻿using BeatSaberHTTPStatus.Interfaces;
+using BeatSaberHTTPStatus.Util;
 using BS_Utils.Gameplay;
+using IPA.Utilities;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -15,38 +18,23 @@ namespace BeatSaberHTTPStatus.Models
     public class GamePlayDataManager : IInitializable, IDisposable
     {
 		[Inject]
+		DiContainer container;
+
 		private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
-		[Inject]
 		private PauseController pauseController;
-		[Inject]
 		private ScoreController scoreController;
-		[Inject]
-		private MultiplayerSessionManager multiplayerSessionManager;
-		[Inject]
-		private MultiplayerController multiplayerController;
-		
-		private MonoBehaviour gameplayManager;
-		[Inject]
-		private GameplayModifiersModelSO gameplayModifiersSO;
-		[Inject]
 		private GameplayModifiers gameplayModifiers;
-		[Inject]
 		private AudioTimeSyncController audioTimeSyncController;
-		[Inject]
 		private BeatmapObjectCallbackController beatmapObjectCallbackController;
-		[Inject]
 		private PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction;
-		[Inject]
 		private GameSongController gameSongController;
-		[Inject]
 		private GameEnergyCounter gameEnergyCounter;
-		
-		private Dictionary<NoteCutInfo, NoteData> noteCutMapping = new Dictionary<NoteCutInfo, NoteData>();
-		[Inject]
-		private StatusManager statusManager;
+		private ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
+		private IStatusManager statusManager;
+		private GameplayModifiersModelSO gameplayModifiersSO;
 
 		/// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
-		private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+		//private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 		/// protected NoteCutInfo CutScoreBuffer._noteCutInfo
 		private FieldInfo noteCutInfoField = typeof(CutScoreBuffer).GetField("_noteCutInfo", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 		/// protected List<CutScoreBuffer> ScoreController._cutScoreBuffers // contains a list of after cut buffers
@@ -54,10 +42,8 @@ namespace BeatSaberHTTPStatus.Models
 		/// private int CutScoreBuffer#_multiplier
 		private FieldInfo cutScoreBufferMultiplierField = typeof(CutScoreBuffer).GetField("_multiplier", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 		/// private static LevelCompletionResults.Rank LevelCompletionResults.GetRankForScore(int score, int maxPossibleScore)
-		private MethodInfo getRankForScoreMethod = typeof(LevelCompletionResults).GetMethod("GetRankForScore", BindingFlags.NonPublic | BindingFlags.Static);
-
+		//private MethodInfo getRankForScoreMethod = typeof(LevelCompletionResults).GetMethod("GetRankForScore", BindingFlags.NonPublic | BindingFlags.Static);
 		private bool headInObstacle = false;
-
 
 		/// <summary>
 		/// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
@@ -73,8 +59,9 @@ namespace BeatSaberHTTPStatus.Models
             if (!disposedValue) {
                 if (disposing) {
 					// TODO: マネージド状態を破棄します (マネージド オブジェクト)
+					Plugin.log.Debug("dispose call");
 					GameStatus gameStatus = statusManager.gameStatus;
-					gameStatus.scene = multiplayerController != null ? "MultiplayerLobby" : "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
+					gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
 
 					gameStatus.ResetMapInfo();
 
@@ -101,7 +88,7 @@ namespace BeatSaberHTTPStatus.Models
 						scoreController.multiplierDidChangeEvent -= OnMultiplierDidChange;
 					}
 
-					CleanUpMultiplayer();
+					//CleanUpMultiplayer();
 
 					if (beatmapObjectCallbackController != null) {
 						beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= OnBeatmapEventDidTrigger;
@@ -130,58 +117,33 @@ namespace BeatSaberHTTPStatus.Models
 
         public async void Initialize()
         {
+			try {
+				gameplayCoreSceneSetupData = container.Resolve<GameplayCoreSceneSetupData>();
+				pauseController = container.Resolve<PauseController>();
+				scoreController = container.Resolve<ScoreController>();
+				gameplayModifiers = container.Resolve<GameplayModifiers>();
+				audioTimeSyncController = container.Resolve<AudioTimeSyncController>();
+				beatmapObjectCallbackController = container.Resolve<BeatmapObjectCallbackController>();
+				playerHeadAndObstacleInteraction = container.Resolve<PlayerHeadAndObstacleInteraction>();
+				gameSongController = container.Resolve<GameSongController>();
+				gameEnergyCounter = container.Resolve<GameEnergyCounter>();
+				statusManager = container.Resolve<IStatusManager>();
+				gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
+			}
+			catch (Exception e) {
+				Plugin.log.Error(e);
+				return;
+			}
 			GameStatus gameStatus = statusManager.gameStatus;
 			Plugin.log.Info("0");
 
 			// Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
-			//multiplayerSessionManager = FindFirstOrDefaultOptional<MultiplayerSessionManager>();
-			//multiplayerController = FindFirstOrDefaultOptional<MultiplayerController>();
-
-			if (multiplayerSessionManager && multiplayerController) {
-				Plugin.log.Info("Multiplayer Level loaded");
-
-				MultiplayerSessionManager multiplayerSessionManager = FindFirstOrDefaultOptional<MultiplayerSessionManager>();
-
-				// Do not do anything if we are just a spectator
-				// XXX: emit multiplayer lobby
-				if (multiplayerSessionManager?.isSpectating == true) return;
-
-				// public event Action<DisconnectedReason> MultiplayerSessionManager#disconnectedEvent;
-				multiplayerSessionManager.disconnectedEvent += OnMultiplayerDisconnected;
-
-				Plugin.log.Info("multiplayer state = " + multiplayerController.state);
-
-				// Do nothing until the next state change to Intro.
-				if (multiplayerController.state != MultiplayerController.State.Intro) {
-					return;
-				}
-			}
-
 			gameStatus.scene = "Song";
 
 			// FIXME: i should probably clean references to all this when song is over
-			//pauseController = FindFirstOrDefaultOptional<PauseController>();
-			//scoreController = FindFirstOrDefault<ScoreController>();
-			//gameplayManager = FindFirstOrDefaultOptional<StandardLevelGameplayManager>() as MonoBehaviour ?? FindFirstOrDefaultOptional<MissionLevelGameplayManager>();
-			//beatmapObjectCallbackController = FindFirstOrDefault<BeatmapObjectCallbackController>();
-			//gameplayModifiersSO = FindFirstOrDefault<GameplayModifiersModelSO>();
-			//audioTimeSyncController = FindFirstOrDefault<AudioTimeSyncController>();
-			//playerHeadAndObstacleInteraction = (PlayerHeadAndObstacleInteraction)scoreControllerHeadAndObstacleInteractionField.GetValue(scoreController);
-			//gameSongController = FindFirstOrDefault<GameSongController>();
-			//gameEnergyCounter = FindFirstOrDefault<GameEnergyCounter>();
 			Plugin.log.Info("1");
-
-			if (multiplayerController) {
-				// NOOP
-			}
-			else if (gameplayManager is StandardLevelGameplayManager) {
-				Plugin.log.Info("Standard Level loaded");
-			}
-			else if (gameplayManager is MissionLevelGameplayManager) {
-				Plugin.log.Info("Mission Level loaded");
-			}
-
 			gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
+
 			Plugin.log.Info("2");
 			Plugin.log.Info("scoreController=" + scoreController);
 
@@ -331,13 +293,13 @@ namespace BeatSaberHTTPStatus.Models
 			statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "songStart");
 		}
 
-		public void CleanUpMultiplayer()
-		{
-			if (multiplayerSessionManager != null) {
-				multiplayerSessionManager.disconnectedEvent -= OnMultiplayerDisconnected;
-				multiplayerSessionManager = null;
-			}
-		}
+		//public void CleanUpMultiplayer()
+		//{
+		//	if (multiplayerSessionManager != null) {
+		//		multiplayerSessionManager.disconnectedEvent -= OnMultiplayerDisconnected;
+		//		multiplayerSessionManager = null;
+		//	}
+		//}
 
 		private static T FindFirstOrDefault<T>() where T : UnityEngine.Object
 		{
@@ -375,13 +337,13 @@ namespace BeatSaberHTTPStatus.Models
 			}
 		}
 
-		public void OnMultiplayerDisconnected(DisconnectedReason reason)
-		{
-			CleanUpMultiplayer();
+		//public void OnMultiplayerDisconnected(DisconnectedReason reason)
+		//{
+		//	CleanUpMultiplayer();
 
-			// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
-			// HandleMenuStart();
-		}
+		//	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
+		//	// HandleMenuStart();
+		//}
 
 		public void OnGamePause()
 		{
@@ -441,10 +403,8 @@ namespace BeatSaberHTTPStatus.Models
 			List<CutScoreBuffer> list = (List<CutScoreBuffer>)afterCutScoreBuffersField.GetValue(scoreController);
 
 			foreach (CutScoreBuffer acsb in list) {
-				if (noteCutInfoField.GetValue(acsb) == noteCutInfo) {
+				if (noteCutInfoField.GetValue(acsb) == noteCutInfo && noteCutMapping.TryAdd(noteCutInfo, noteData)) {
 					// public CutScoreBuffer#didFinishEvent<CutScoreBuffer>
-					noteCutMapping.Add(noteCutInfo, noteData);
-
 					acsb.didFinishEvent += OnNoteWasFullyCut;
 					break;
 				}
@@ -458,12 +418,10 @@ namespace BeatSaberHTTPStatus.Models
 			int cutDistanceScore;
 
 			NoteCutInfo noteCutInfo = (NoteCutInfo)noteCutInfoField.GetValue(acsb);
-			NoteData noteData = noteCutMapping[noteCutInfo];
 
-			noteCutMapping.Remove(noteCutInfo);
-
-			SetNoteCutStatus(noteData, noteCutInfo, false);
-
+            if (noteCutMapping.TryRemove(noteCutInfo, out var noteData)) {
+				SetNoteCutStatus(noteData, noteCutInfo, false);
+			}
 			// public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
 			ScoreModel.RawScoreWithoutMultiplier(noteCutInfo, out beforeCutScore, out afterCutScore, out cutDistanceScore);
 
