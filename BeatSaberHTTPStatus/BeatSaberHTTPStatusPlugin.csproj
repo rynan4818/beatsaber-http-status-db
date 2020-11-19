@@ -12,7 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
-    <Version>3.0.0</Version>
+    <Version>2.0.1</Version>
     <BeatSaberVersion>1.13.0</BeatSaberVersion>
     <!-- <BeatSaberDir>..\libs\beatsaber\</BeatSaberDir> -->
     <SemVerVersion>$(Version)</SemVerVersion>
@@ -119,6 +119,11 @@
       <LogicalName>BeatSaberHTTPStatus.manifest.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="websocket-sharp.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Clean output directories before build -->
   <Target Name="CleanOutputDirs" BeforeTargets="BeforeBuild">
@@ -152,7 +157,10 @@
   <!-- Package built DLLs into a zip -->
   <Target Name="CreateZip" AfterTargets="AfterBuild" Condition=" '$(OutputZip)' != '' And $(OutputZip) ">
     <ItemGroup>
-      <ZipFilesPlugins Include="$(OutDir)\BeatSaberHTTPStatus.dll" />
+      <ZipFilesPlugins Include="$(OutDir)BeatSaberHTTPStatus.dll" />
+    </ItemGroup>
+    <ItemGroup>
+      <ZipFilesLibs Include="$(OutDir)websocket-sharp.dll" />
     </ItemGroup>
     <Exec Command="git rev-parse HEAD &gt; $(IntermediateOutputPath)head" />
     <ReadLinesFromFile File="$(IntermediateOutputPath)head">
