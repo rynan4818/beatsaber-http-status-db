@@ -25,7 +25,7 @@ namespace BeatSaberHTTPStatus {
 		public JSONObject beatmapEventJSON {
 			get {return _beatmapEventJSON;}
 		}
-		public event Action<StatusManager, ChangedProperties, string> statusChange;
+		public event Action<IStatusManager, ChangedProperties, string> statusChange;
 
 		[Inject]
 		void Constractor()

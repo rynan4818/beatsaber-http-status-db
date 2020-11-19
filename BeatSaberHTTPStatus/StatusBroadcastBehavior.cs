@@ -41,7 +41,7 @@ namespace BeatSaberHTTPStatus
 			base.OnClose(e);
 		}
 
-		public void OnStatusChange(StatusManager statusManager, ChangedProperties changedProps, string cause)
+		public void OnStatusChange(IStatusManager statusManager, ChangedProperties changedProps, string cause)
 		{
 			JSONObject eventJSON = new JSONObject();
 			eventJSON["event"] = cause;

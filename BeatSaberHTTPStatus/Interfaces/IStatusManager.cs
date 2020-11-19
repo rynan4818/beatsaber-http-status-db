@@ -13,7 +13,7 @@ namespace BeatSaberHTTPStatus.Interfaces
 		JSONObject statusJSON { get; }
 		JSONObject noteCutJSON { get; }
 		JSONObject beatmapEventJSON { get; }
-		event Action<StatusManager, ChangedProperties, string> statusChange;
+		event Action<IStatusManager, ChangedProperties, string> statusChange;
 		void EmitStatusUpdate(ChangedProperties changedProps, string cause);
 	}
 }

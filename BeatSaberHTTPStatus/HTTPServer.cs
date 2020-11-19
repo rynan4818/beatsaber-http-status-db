@@ -1,3 +1,4 @@
+using BeatSaberHTTPStatus.Interfaces;
 using System;
 using System.Text;
 using WebSocketSharp.Server;
@@ -11,7 +12,7 @@ namespace BeatSaberHTTPStatus
 
         private HttpServer server;
         [Inject]
-        private StatusManager statusManager;
+        private IStatusManager statusManager;
         private bool disposedValue;
 
         public void OnHTTPGet(HttpRequestEventArgs e)
