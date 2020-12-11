@@ -63,7 +63,7 @@ namespace BeatSaberHTTPStatus.Models
             if (!disposedValue) {
                 if (disposing) {
 					// TODO: マネージド状態を破棄します (マネージド オブジェクト)
-					Plugin.log.Debug("dispose call");
+					Plugin.Logger.Debug("dispose call");
                     try {
 						gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
 
@@ -99,7 +99,7 @@ namespace BeatSaberHTTPStatus.Models
 						}
 					}
                     catch (Exception e) {
-						Plugin.log.Error(e);
+						Plugin.Logger.Error(e);
                     }
 				}
 
@@ -138,25 +138,25 @@ namespace BeatSaberHTTPStatus.Models
 				gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
 			}
 			catch (Exception e) {
-				Plugin.log.Error(e);
+				Plugin.Logger.Error(e);
 				return;
 			}
-			Plugin.log.Info("0");
+			Plugin.Logger.Info("0");
 
 			// Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
 			gameStatus.scene = "Song";
 
 			// FIXME: i should probably clean references to all this when song is over
-			Plugin.log.Info("1");
+			Plugin.Logger.Info("1");
 			gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
 
-			Plugin.log.Info("2");
-			Plugin.log.Info("scoreController=" + scoreController);
+			Plugin.Logger.Info("2");
+			Plugin.Logger.Info("scoreController=" + scoreController);
 
 			// Register event listeners
 			// PauseController doesn't exist in multiplayer
 			if (pauseController != null) {
-				Plugin.log.Info("pauseController=" + pauseController);
+				Plugin.Logger.Info("pauseController=" + pauseController);
 				// public event Action PauseController#didPauseEvent;
 				pauseController.didPauseEvent += OnGamePause;
 				// public event Action PauseController#didResumeEvent;
@@ -172,14 +172,14 @@ namespace BeatSaberHTTPStatus.Models
 			scoreController.comboDidChangeEvent += OnComboDidChange;
 			// public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
 			scoreController.multiplierDidChangeEvent += OnMultiplierDidChange;
-			Plugin.log.Info("2.5");
+			Plugin.Logger.Info("2.5");
 			// public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
 			beatmapObjectCallbackController.beatmapEventDidTriggerEvent += OnBeatmapEventDidTrigger;
 			// public event Action GameSongController#songDidFinishEvent;
 			gameSongController.songDidFinishEvent += OnLevelFinished;
 			// public event Action GameEnergyCounter#gameEnergyDidReach0Event;
 			gameEnergyCounter.gameEnergyDidReach0Event += OnLevelFailed;
-			Plugin.log.Info("3");
+			Plugin.Logger.Info("3");
 
 			IDifficultyBeatmap diff = gameplayCoreSceneSetupData.difficultyBeatmap;
 			IBeatmapLevel level = diff.level;
@@ -194,23 +194,23 @@ namespace BeatSaberHTTPStatus.Models
 			float songSpeedMul = gameplayModifiers.songSpeedMul;
 			if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
 			float modifierMultiplier = gameplayModifiersSO.GetTotalMultiplier(gameplayModifiers);
-			Plugin.log.Info("4");
+			Plugin.Logger.Info("4");
 
 			// Generate NoteData to id mappings for backwards compatiblity with <1.12.1
 			noteToIdMapping = new NoteData[diff.beatmapData.cuttableNotesType + diff.beatmapData.bombsCount];
 			lastNoteId = 0;
-			Plugin.log.Info("4.1");
+			Plugin.Logger.Info("4.1");
 
 			int beatmapObjectId = 0;
 			var beatmapObjectsData = diff.beatmapData.beatmapObjectsData;
-			Plugin.log.Info("4.2");
+			Plugin.Logger.Info("4.2");
 
 			foreach (BeatmapObjectData beatmapObjectData in beatmapObjectsData) {
 				if (beatmapObjectData is NoteData noteData) {
 					noteToIdMapping[beatmapObjectId++] = noteData;
 				}
 			}
-			Plugin.log.Info("5");
+			Plugin.Logger.Info("5");
 
 			gameStatus.songName = level.songName;
 			gameStatus.songSubName = level.songSubName;
@@ -234,7 +234,7 @@ namespace BeatSaberHTTPStatus.Models
 
 			gameStatus.maxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(diff.beatmapData.cuttableNotesType), gameplayModifiers, gameplayModifiersSO);
 			gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(gameplayModifiers, gameplayModifiersSO).ToString();
-			Plugin.log.Info("6");
+			Plugin.Logger.Info("6");
 
 			try {
 				// From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
@@ -265,7 +265,7 @@ namespace BeatSaberHTTPStatus.Models
 			catch {
 				gameStatus.songCover = null;
 			}
-			Plugin.log.Info("7");
+			Plugin.Logger.Info("7");
 
 			gameStatus.ResetPerformance();
 
@@ -294,7 +294,7 @@ namespace BeatSaberHTTPStatus.Models
 			gameStatus.noHUD = playerSettings.noTextsAndHuds;
 			gameStatus.advancedHUD = playerSettings.advancedHud;
 			gameStatus.autoRestart = playerSettings.autoRestart;
-			Plugin.log.Info("8");
+			Plugin.Logger.Info("8");
 
 			statusManager.EmitStatusUpdate(ChangedProperties.AllButNoteCut, "songStart");
 		}
@@ -311,7 +311,7 @@ namespace BeatSaberHTTPStatus.Models
 		{
 			T obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
 			if (obj == null) {
-				Plugin.log.Error("Couldn't find " + typeof(T).FullName);
+				Plugin.Logger.Error("Couldn't find " + typeof(T).FullName);
 				throw new InvalidOperationException("Couldn't find " + typeof(T).FullName);
 			}
 			return obj;
@@ -353,15 +353,15 @@ namespace BeatSaberHTTPStatus.Models
 
 		public void OnGamePause()
 		{
-			statusManager.gameStatus.paused = Utility.GetCurrentTime();
+			statusManager.GameStatus.paused = Utility.GetCurrentTime();
 
 			statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "pause");
 		}
 
 		public void OnGameResume()
 		{
-			statusManager.gameStatus.start = Utility.GetCurrentTime() - (long)(audioTimeSyncController.songTime * 1000f / statusManager.gameStatus.songSpeedMultiplier);
-			statusManager.gameStatus.paused = 0;
+			statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(audioTimeSyncController.songTime * 1000f / statusManager.GameStatus.songSpeedMultiplier);
+			statusManager.GameStatus.paused = 0;
 
 			statusManager.EmitStatusUpdate(ChangedProperties.Beatmap, "resume");
 		}
@@ -370,7 +370,7 @@ namespace BeatSaberHTTPStatus.Models
 		{
 			// Event order: combo, multiplier, scoreController.noteWasCut, (LateUpdate) scoreController.scoreDidChange, afterCut, (LateUpdate) scoreController.scoreDidChange
 
-			var gameStatus = statusManager.gameStatus;
+			var gameStatus = statusManager.GameStatus;
 
 			SetNoteCutStatus(noteData, noteCutInfo, true);
 
@@ -433,10 +433,10 @@ namespace BeatSaberHTTPStatus.Models
 
 			int multiplier = (int)cutScoreBufferMultiplierField.GetValue(acsb);
 
-			statusManager.gameStatus.initialScore = beforeCutScore + cutDistanceScore;
-			statusManager.gameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
-			statusManager.gameStatus.cutDistanceScore = cutDistanceScore;
-			statusManager.gameStatus.cutMultiplier = multiplier;
+			statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
+			statusManager.GameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
+			statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
+			statusManager.GameStatus.cutMultiplier = multiplier;
 
 			statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteFullyCut");
 
@@ -445,7 +445,7 @@ namespace BeatSaberHTTPStatus.Models
 
 		private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = null, bool initialCut = true)
 		{
-			GameStatus gameStatus = statusManager.gameStatus;
+			GameStatus gameStatus = statusManager.GameStatus;
 
 			gameStatus.ResetNoteCut();
 
@@ -504,18 +504,18 @@ namespace BeatSaberHTTPStatus.Models
 		{
 			// Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
 
-			statusManager.gameStatus.batteryEnergy = gameEnergyCounter.batteryEnergy;
+			statusManager.GameStatus.batteryEnergy = gameEnergyCounter.batteryEnergy;
 
 			SetNoteCutStatus(noteData);
 
 			if (noteData.colorType == ColorType.None) {
-				statusManager.gameStatus.passedBombs++;
+				statusManager.GameStatus.passedBombs++;
 
 				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "bombMissed");
 			}
 			else {
-				statusManager.gameStatus.passedNotes++;
-				statusManager.gameStatus.missedNotes++;
+				statusManager.GameStatus.passedNotes++;
+				statusManager.GameStatus.missedNotes++;
 
 				statusManager.EmitStatusUpdate(ChangedProperties.PerformanceAndNoteCut, "noteMissed");
 			}
@@ -523,7 +523,7 @@ namespace BeatSaberHTTPStatus.Models
 
 		public void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
 		{
-			GameStatus gameStatus = statusManager.gameStatus;
+			GameStatus gameStatus = statusManager.GameStatus;
 
 			gameStatus.score = scoreAfterMultiplier;
 
@@ -538,15 +538,15 @@ namespace BeatSaberHTTPStatus.Models
 
 		public void OnComboDidChange(int combo)
 		{
-			statusManager.gameStatus.combo = combo;
+			statusManager.GameStatus.combo = combo;
 			// public int ScoreController#maxCombo
-			statusManager.gameStatus.maxCombo = scoreController.maxCombo;
+			statusManager.GameStatus.maxCombo = scoreController.maxCombo;
 		}
 
 		public void OnMultiplierDidChange(int multiplier, float multiplierProgress)
 		{
-			statusManager.gameStatus.multiplier = multiplier;
-			statusManager.gameStatus.multiplierProgress = multiplierProgress;
+			statusManager.GameStatus.multiplier = multiplier;
+			statusManager.GameStatus.multiplierProgress = multiplierProgress;
 		}
 
 		public void OnLevelFinished()
@@ -561,14 +561,10 @@ namespace BeatSaberHTTPStatus.Models
 
 		public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
 		{
-			statusManager.gameStatus.beatmapEventType = (int)beatmapEventData.type;
-			statusManager.gameStatus.beatmapEventValue = beatmapEventData.value;
+			statusManager.GameStatus.beatmapEventType = (int)beatmapEventData.type;
+			statusManager.GameStatus.beatmapEventValue = beatmapEventData.value;
 
 			statusManager.EmitStatusUpdate(ChangedProperties.BeatmapEvent, "beatmapEvent");
 		}
-
-		
-
-		
 	}
 }

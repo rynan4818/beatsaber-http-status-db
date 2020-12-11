@@ -1,5 +1,6 @@
 ﻿using SimpleJSON;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,11 +10,12 @@ namespace BeatSaberHTTPStatus.Interfaces
 {
     public interface IStatusManager
     {
-		GameStatus gameStatus { get; }
-		JSONObject statusJSON { get; }
-		JSONObject noteCutJSON { get; }
-		JSONObject beatmapEventJSON { get; }
-		event StatusChangedEventHandler StatusChanged;
+		GameStatus GameStatus { get; }
+		JSONObject StatusJSON { get; }
+		JSONObject NoteCutJSON { get; }
+		JSONObject BeatmapEventJSON { get; }
+		ConcurrentQueue<JSONObject> JsonQueue { get; }
+		//event StatusChangedEventHandler StatusChanged;
 		void EmitStatusUpdate(ChangedProperties changedProps, string cause);
 	}
 }

@@ -4,30 +4,31 @@ using SimpleJSON;
 using System.Threading.Tasks;
 using BeatSaberHTTPStatus.Interfaces;
 using Zenject;
+using System.Collections.Concurrent;
+using BeatSaberHTTPStatus.Util;
 
 namespace BeatSaberHTTPStatus {
 	public class StatusManager : IStatusManager
 	{
 		[Inject]
-		public GameStatus gameStatus { get; }
+		public GameStatus GameStatus { get; }
 
 		private JSONObject _statusJSON = new JSONObject();
-		public JSONObject statusJSON {
+		public JSONObject StatusJSON {
 			get {return _statusJSON;}
 		}
 
 		private JSONObject _noteCutJSON = new JSONObject();
-		public JSONObject noteCutJSON {
+		public JSONObject NoteCutJSON {
 			get {return _noteCutJSON;}
 		}
 
 		private JSONObject _beatmapEventJSON = new JSONObject();
-		public JSONObject beatmapEventJSON {
+		public JSONObject BeatmapEventJSON {
 			get {return _beatmapEventJSON;}
 		}
 
-        public event StatusChangedEventHandler StatusChanged;
-
+		public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
         [Inject]
 		void Constractor()
         {
@@ -35,7 +36,7 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			gameStatus.updateCause = cause;
+			GameStatus.updateCause = cause;
 			if (changedProps.game) UpdateGameJSON();
 			if (changedProps.beatmap) UpdateBeatmapJSON();
 			if (changedProps.performance) UpdatePerformanceJSON();
@@ -45,8 +46,39 @@ namespace BeatSaberHTTPStatus {
 				UpdatePlayerSettingsJSON();
 			}
 			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
+			this.EnqueueMessage(changedProps, cause);
+		}
 
-			this.StatusChanged?.BeginInvoke(this, new StatusChangedEventArgs(changedProps, cause), null, null);
+		private void EnqueueMessage(ChangedProperties changedProps, string cause)
+        {
+			var eventJSON = new JSONObject();
+			eventJSON["event"] = cause;
+			eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
+
+			if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
+				eventJSON["status"] = this.StatusJSON;
+			}
+			else {
+				var status = new JSONObject();
+
+				if (changedProps.game) status["game"] = this.StatusJSON["game"];
+				if (changedProps.beatmap) status["beatmap"] = this.StatusJSON["beatmap"];
+				if (changedProps.performance) status["performance"] = this.StatusJSON["performance"];
+				if (changedProps.mod) {
+					status["mod"] = this.StatusJSON["mod"];
+					status["playerSettings"] = this.StatusJSON["playerSettings"];
+				}
+				eventJSON["status"] = status;
+			}
+
+			if (changedProps.noteCut) {
+				eventJSON["noteCut"] = this.NoteCutJSON;
+			}
+
+			if (changedProps.beatmapEvent) {
+				eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
+			}
+			this.JsonQueue.Enqueue(eventJSON);
 		}
 
 		private void UpdateAll() {
@@ -60,7 +92,7 @@ namespace BeatSaberHTTPStatus {
 				UpdateBeatmapEventJSON();
 			}
             catch (Exception e) {
-				Plugin.log.Error(e);
+				Plugin.Logger.Error(e);
             }
 		}
 
@@ -70,12 +102,12 @@ namespace BeatSaberHTTPStatus {
 
 			gameJSON["pluginVersion"] = BeatSaberHTTPStatus.Plugin.PluginVersion;
 			gameJSON["gameVersion"] = BeatSaberHTTPStatus.Plugin.GameVersion;
-			gameJSON["scene"] = stringOrNull(gameStatus.scene);
-			gameJSON["mode"] = stringOrNull(gameStatus.mode == null ? null : (gameStatus.partyMode ? "Party" : "Solo") + gameStatus.mode);
+			gameJSON["scene"] = stringOrNull(GameStatus.scene);
+			gameJSON["mode"] = stringOrNull(GameStatus.mode == null ? null : (GameStatus.partyMode ? "Party" : "Solo") + GameStatus.mode);
 		}
 
 		private void UpdateBeatmapJSON() {
-			if (gameStatus.songName == null) {
+			if (GameStatus.songName == null) {
 				_statusJSON["beatmap"] = null;
 				return;
 			}
@@ -83,30 +115,30 @@ namespace BeatSaberHTTPStatus {
 			if (_statusJSON["beatmap"] == null) _statusJSON["beatmap"] = new JSONObject();
 			JSONObject beatmapJSON = (JSONObject) _statusJSON["beatmap"];
 
-			beatmapJSON["songName"] = stringOrNull(gameStatus.songName);
-			beatmapJSON["songSubName"] = stringOrNull(gameStatus.songSubName);
-			beatmapJSON["songAuthorName"] = stringOrNull(gameStatus.songAuthorName);
-			beatmapJSON["levelAuthorName"] = stringOrNull(gameStatus.levelAuthorName);
-			beatmapJSON["songCover"] = String.IsNullOrEmpty(gameStatus.songCover) ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONString(gameStatus.songCover);
-			beatmapJSON["songHash"] = stringOrNull(gameStatus.songHash);
-			beatmapJSON["levelId"] = stringOrNull(gameStatus.levelId);
-			beatmapJSON["songBPM"] = gameStatus.songBPM;
-			beatmapJSON["noteJumpSpeed"] = gameStatus.noteJumpSpeed;
-			beatmapJSON["songTimeOffset"] = new JSONNumber(gameStatus.songTimeOffset);
-			beatmapJSON["start"] = gameStatus.start == 0 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.start);
-			beatmapJSON["paused"] = gameStatus.paused == 0 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.paused);
-			beatmapJSON["length"] = new JSONNumber(gameStatus.length);
-			beatmapJSON["difficulty"] = stringOrNull(gameStatus.difficulty);
-			beatmapJSON["notesCount"] = gameStatus.notesCount;
-			beatmapJSON["bombsCount"] = gameStatus.bombsCount;
-			beatmapJSON["obstaclesCount"] = gameStatus.obstaclesCount;
-			beatmapJSON["maxScore"] = gameStatus.maxScore;
-			beatmapJSON["maxRank"] = gameStatus.maxRank;
-			beatmapJSON["environmentName"] = gameStatus.environmentName;
+			beatmapJSON["songName"] = stringOrNull(GameStatus.songName);
+			beatmapJSON["songSubName"] = stringOrNull(GameStatus.songSubName);
+			beatmapJSON["songAuthorName"] = stringOrNull(GameStatus.songAuthorName);
+			beatmapJSON["levelAuthorName"] = stringOrNull(GameStatus.levelAuthorName);
+			beatmapJSON["songCover"] = String.IsNullOrEmpty(GameStatus.songCover) ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONString(GameStatus.songCover);
+			beatmapJSON["songHash"] = stringOrNull(GameStatus.songHash);
+			beatmapJSON["levelId"] = stringOrNull(GameStatus.levelId);
+			beatmapJSON["songBPM"] = GameStatus.songBPM;
+			beatmapJSON["noteJumpSpeed"] = GameStatus.noteJumpSpeed;
+			beatmapJSON["songTimeOffset"] = new JSONNumber(GameStatus.songTimeOffset);
+			beatmapJSON["start"] = GameStatus.start == 0 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(GameStatus.start);
+			beatmapJSON["paused"] = GameStatus.paused == 0 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(GameStatus.paused);
+			beatmapJSON["length"] = new JSONNumber(GameStatus.length);
+			beatmapJSON["difficulty"] = stringOrNull(GameStatus.difficulty);
+			beatmapJSON["notesCount"] = GameStatus.notesCount;
+			beatmapJSON["bombsCount"] = GameStatus.bombsCount;
+			beatmapJSON["obstaclesCount"] = GameStatus.obstaclesCount;
+			beatmapJSON["maxScore"] = GameStatus.maxScore;
+			beatmapJSON["maxRank"] = GameStatus.maxRank;
+			beatmapJSON["environmentName"] = GameStatus.environmentName;
 		}
 
 		private void UpdatePerformanceJSON() {
-			if (gameStatus.start == 0) {
+			if (GameStatus.start == 0) {
 				_statusJSON["performance"] = null;
 				return;
 			}
@@ -114,95 +146,95 @@ namespace BeatSaberHTTPStatus {
 			if (_statusJSON["performance"] == null) _statusJSON["performance"] = new JSONObject();
 			JSONObject performanceJSON = (JSONObject) _statusJSON["performance"];
 
-			performanceJSON["score"] = gameStatus.score;
-			performanceJSON["currentMaxScore"] = gameStatus.currentMaxScore;
-			performanceJSON["rank"] = gameStatus.rank;
-			performanceJSON["passedNotes"] = gameStatus.passedNotes;
-			performanceJSON["hitNotes"] = gameStatus.hitNotes;
-			performanceJSON["missedNotes"] = gameStatus.missedNotes;
-			performanceJSON["lastNoteScore"] = gameStatus.lastNoteScore;
-			performanceJSON["passedBombs"] = gameStatus.passedBombs;
-			performanceJSON["hitBombs"] = gameStatus.hitBombs;
-			performanceJSON["combo"] = gameStatus.combo;
-			performanceJSON["maxCombo"] = gameStatus.maxCombo;
-			performanceJSON["multiplier"] = gameStatus.multiplier;
-			performanceJSON["multiplierProgress"] = gameStatus.multiplierProgress;
-			performanceJSON["batteryEnergy"] = gameStatus.modBatteryEnergy || gameStatus.modInstaFail ? (JSONNode) new JSONNumber(gameStatus.batteryEnergy) : (JSONNode) JSONNull.CreateOrGet();
+			performanceJSON["score"] = GameStatus.score;
+			performanceJSON["currentMaxScore"] = GameStatus.currentMaxScore;
+			performanceJSON["rank"] = GameStatus.rank;
+			performanceJSON["passedNotes"] = GameStatus.passedNotes;
+			performanceJSON["hitNotes"] = GameStatus.hitNotes;
+			performanceJSON["missedNotes"] = GameStatus.missedNotes;
+			performanceJSON["lastNoteScore"] = GameStatus.lastNoteScore;
+			performanceJSON["passedBombs"] = GameStatus.passedBombs;
+			performanceJSON["hitBombs"] = GameStatus.hitBombs;
+			performanceJSON["combo"] = GameStatus.combo;
+			performanceJSON["maxCombo"] = GameStatus.maxCombo;
+			performanceJSON["multiplier"] = GameStatus.multiplier;
+			performanceJSON["multiplierProgress"] = GameStatus.multiplierProgress;
+			performanceJSON["batteryEnergy"] = GameStatus.modBatteryEnergy || GameStatus.modInstaFail ? (JSONNode) new JSONNumber(GameStatus.batteryEnergy) : (JSONNode) JSONNull.CreateOrGet();
 		}
 
 		private void UpdateNoteCutJSON() {
-			_noteCutJSON["noteID"] = gameStatus.noteID;
-			_noteCutJSON["noteType"] = stringOrNull(gameStatus.noteType);
-			_noteCutJSON["noteCutDirection"] = stringOrNull(gameStatus.noteCutDirection);
-			_noteCutJSON["noteLine"] = gameStatus.noteLine;
-			_noteCutJSON["noteLayer"] = gameStatus.noteLayer;
-			_noteCutJSON["speedOK"] = gameStatus.speedOK;
-			_noteCutJSON["directionOK"] = gameStatus.noteType == "Bomb" ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONBool(gameStatus.directionOK);
-			_noteCutJSON["saberTypeOK"] = gameStatus.noteType == "Bomb" ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONBool(gameStatus.saberTypeOK);
-			_noteCutJSON["wasCutTooSoon"] = gameStatus.wasCutTooSoon;
-			_noteCutJSON["initialScore"] = gameStatus.initialScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.initialScore);
-			_noteCutJSON["finalScore"] = gameStatus.finalScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.finalScore);
-			_noteCutJSON["cutDistanceScore"] = gameStatus.cutDistanceScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(gameStatus.cutDistanceScore);
-			_noteCutJSON["swingRating"] = gameStatus.swingRating;
-			_noteCutJSON["multiplier"] = gameStatus.cutMultiplier;
-			_noteCutJSON["saberSpeed"] = gameStatus.saberSpeed;
+			_noteCutJSON["noteID"] = GameStatus.noteID;
+			_noteCutJSON["noteType"] = stringOrNull(GameStatus.noteType);
+			_noteCutJSON["noteCutDirection"] = stringOrNull(GameStatus.noteCutDirection);
+			_noteCutJSON["noteLine"] = GameStatus.noteLine;
+			_noteCutJSON["noteLayer"] = GameStatus.noteLayer;
+			_noteCutJSON["speedOK"] = GameStatus.speedOK;
+			_noteCutJSON["directionOK"] = GameStatus.noteType == "Bomb" ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONBool(GameStatus.directionOK);
+			_noteCutJSON["saberTypeOK"] = GameStatus.noteType == "Bomb" ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONBool(GameStatus.saberTypeOK);
+			_noteCutJSON["wasCutTooSoon"] = GameStatus.wasCutTooSoon;
+			_noteCutJSON["initialScore"] = GameStatus.initialScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(GameStatus.initialScore);
+			_noteCutJSON["finalScore"] = GameStatus.finalScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(GameStatus.finalScore);
+			_noteCutJSON["cutDistanceScore"] = GameStatus.cutDistanceScore == -1 ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONNumber(GameStatus.cutDistanceScore);
+			_noteCutJSON["swingRating"] = GameStatus.swingRating;
+			_noteCutJSON["multiplier"] = GameStatus.cutMultiplier;
+			_noteCutJSON["saberSpeed"] = GameStatus.saberSpeed;
 			if (!_noteCutJSON["saberDir"].IsArray) _noteCutJSON["saberDir"] = new JSONArray();
-			_noteCutJSON["saberDir"][0] = gameStatus.saberDirX;
-			_noteCutJSON["saberDir"][1] = gameStatus.saberDirY;
-			_noteCutJSON["saberDir"][2] = gameStatus.saberDirZ;
-			_noteCutJSON["saberType"] = stringOrNull(gameStatus.saberType);
-			_noteCutJSON["timeDeviation"] = gameStatus.timeDeviation;
-			_noteCutJSON["cutDirectionDeviation"] = gameStatus.cutDirectionDeviation;
+			_noteCutJSON["saberDir"][0] = GameStatus.saberDirX;
+			_noteCutJSON["saberDir"][1] = GameStatus.saberDirY;
+			_noteCutJSON["saberDir"][2] = GameStatus.saberDirZ;
+			_noteCutJSON["saberType"] = stringOrNull(GameStatus.saberType);
+			_noteCutJSON["timeDeviation"] = GameStatus.timeDeviation;
+			_noteCutJSON["cutDirectionDeviation"] = GameStatus.cutDirectionDeviation;
 			if (!_noteCutJSON["cutPoint"].IsArray) _noteCutJSON["cutPoint"] = new JSONArray();
-			_noteCutJSON["cutPoint"][0] = gameStatus.cutPointX;
-			_noteCutJSON["cutPoint"][1] = gameStatus.cutPointY;
-			_noteCutJSON["cutPoint"][2] = gameStatus.cutPointZ;
+			_noteCutJSON["cutPoint"][0] = GameStatus.cutPointX;
+			_noteCutJSON["cutPoint"][1] = GameStatus.cutPointY;
+			_noteCutJSON["cutPoint"][2] = GameStatus.cutPointZ;
 			if (!_noteCutJSON["cutNormal"].IsArray) _noteCutJSON["cutNormal"] = new JSONArray();
-			_noteCutJSON["cutNormal"][0] = gameStatus.cutNormalX;
-			_noteCutJSON["cutNormal"][1] = gameStatus.cutNormalY;
-			_noteCutJSON["cutNormal"][2] = gameStatus.cutNormalZ;
-			_noteCutJSON["cutDistanceToCenter"] = gameStatus.cutDistanceToCenter;
-			_noteCutJSON["timeToNextBasicNote"] = gameStatus.timeToNextBasicNote;
+			_noteCutJSON["cutNormal"][0] = GameStatus.cutNormalX;
+			_noteCutJSON["cutNormal"][1] = GameStatus.cutNormalY;
+			_noteCutJSON["cutNormal"][2] = GameStatus.cutNormalZ;
+			_noteCutJSON["cutDistanceToCenter"] = GameStatus.cutDistanceToCenter;
+			_noteCutJSON["timeToNextBasicNote"] = GameStatus.timeToNextBasicNote;
 		}
 
 		private void UpdateModJSON() {
 			if (_statusJSON["mod"] == null) _statusJSON["mod"] = new JSONObject();
 			JSONObject modJSON = (JSONObject) _statusJSON["mod"];
 
-			modJSON["multiplier"] = gameStatus.modifierMultiplier;
-			modJSON["obstacles"] = gameStatus.modObstacles == null || gameStatus.modObstacles == "NoObstacles" ? (JSONNode) new JSONBool(false) : (JSONNode) new JSONString(gameStatus.modObstacles);
-			modJSON["instaFail"] = gameStatus.modInstaFail;
-			modJSON["noFail"] = gameStatus.modNoFail;
-			modJSON["batteryEnergy"] = gameStatus.modBatteryEnergy;
-			modJSON["batteryLives"] = gameStatus.modBatteryEnergy || gameStatus.modInstaFail ? (JSONNode) new JSONNumber(gameStatus.batteryLives) : (JSONNode) JSONNull.CreateOrGet();
-			modJSON["disappearingArrows"] = gameStatus.modDisappearingArrows;
-			modJSON["noBombs"] = gameStatus.modNoBombs;
-			modJSON["songSpeed"] = gameStatus.modSongSpeed;
-			modJSON["songSpeedMultiplier"] = gameStatus.songSpeedMultiplier;
-			modJSON["noArrows"] = gameStatus.modNoArrows;
-			modJSON["ghostNotes"] = gameStatus.modGhostNotes;
-			modJSON["failOnSaberClash"] = gameStatus.modFailOnSaberClash;
-			modJSON["strictAngles"] = gameStatus.modStrictAngles;
-			modJSON["fastNotes"] = gameStatus.modFastNotes;
+			modJSON["multiplier"] = GameStatus.modifierMultiplier;
+			modJSON["obstacles"] = GameStatus.modObstacles == null || GameStatus.modObstacles == "NoObstacles" ? (JSONNode) new JSONBool(false) : (JSONNode) new JSONString(GameStatus.modObstacles);
+			modJSON["instaFail"] = GameStatus.modInstaFail;
+			modJSON["noFail"] = GameStatus.modNoFail;
+			modJSON["batteryEnergy"] = GameStatus.modBatteryEnergy;
+			modJSON["batteryLives"] = GameStatus.modBatteryEnergy || GameStatus.modInstaFail ? (JSONNode) new JSONNumber(GameStatus.batteryLives) : (JSONNode) JSONNull.CreateOrGet();
+			modJSON["disappearingArrows"] = GameStatus.modDisappearingArrows;
+			modJSON["noBombs"] = GameStatus.modNoBombs;
+			modJSON["songSpeed"] = GameStatus.modSongSpeed;
+			modJSON["songSpeedMultiplier"] = GameStatus.songSpeedMultiplier;
+			modJSON["noArrows"] = GameStatus.modNoArrows;
+			modJSON["ghostNotes"] = GameStatus.modGhostNotes;
+			modJSON["failOnSaberClash"] = GameStatus.modFailOnSaberClash;
+			modJSON["strictAngles"] = GameStatus.modStrictAngles;
+			modJSON["fastNotes"] = GameStatus.modFastNotes;
 		}
 
 		private void UpdatePlayerSettingsJSON() {
 			if (_statusJSON["playerSettings"] == null) _statusJSON["playerSettings"] = new JSONObject();
 			JSONObject playerSettingsJSON = (JSONObject) _statusJSON["playerSettings"];
 
-			playerSettingsJSON["staticLights"] = gameStatus.staticLights;
-			playerSettingsJSON["leftHanded"] = gameStatus.leftHanded;
-			playerSettingsJSON["playerHeight"] = gameStatus.playerHeight;
-			playerSettingsJSON["sfxVolume"] = gameStatus.sfxVolume;
-			playerSettingsJSON["reduceDebris"] = gameStatus.reduceDebris;
-			playerSettingsJSON["noHUD"] = gameStatus.noHUD;
-			playerSettingsJSON["advancedHUD"] = gameStatus.advancedHUD;
-			playerSettingsJSON["autoRestart"] = gameStatus.autoRestart;
+			playerSettingsJSON["staticLights"] = GameStatus.staticLights;
+			playerSettingsJSON["leftHanded"] = GameStatus.leftHanded;
+			playerSettingsJSON["playerHeight"] = GameStatus.playerHeight;
+			playerSettingsJSON["sfxVolume"] = GameStatus.sfxVolume;
+			playerSettingsJSON["reduceDebris"] = GameStatus.reduceDebris;
+			playerSettingsJSON["noHUD"] = GameStatus.noHUD;
+			playerSettingsJSON["advancedHUD"] = GameStatus.advancedHUD;
+			playerSettingsJSON["autoRestart"] = GameStatus.autoRestart;
 		}
 
 		private void UpdateBeatmapEventJSON() {
-			_beatmapEventJSON["type"] = gameStatus.beatmapEventType;
-			_beatmapEventJSON["value"] = gameStatus.beatmapEventValue;
+			_beatmapEventJSON["type"] = GameStatus.beatmapEventType;
+			_beatmapEventJSON["value"] = GameStatus.beatmapEventValue;
 		}
 
 		private JSONNode stringOrNull(string str) {

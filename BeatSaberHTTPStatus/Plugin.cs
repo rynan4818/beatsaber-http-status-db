@@ -34,12 +34,12 @@ namespace BeatSaberHTTPStatus {
 			get {return PluginVersion;}
 		}
 
-		public static IPALogger log;
+		public static IPALogger Logger { get; private set; }
 
 		[Init]
 		public void Init(IPALogger logger, Zenjector zenjector) {
-			log = logger;
-			log.Debug("Logger Initialized.");
+			Logger = logger;
+			Logger.Debug("Logger Initialized.");
 			zenjector.OnGame<HttpGameInstaller>();
 			zenjector.OnApp<HttpAppInstaller>();
 		}

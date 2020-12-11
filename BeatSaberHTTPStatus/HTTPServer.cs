@@ -25,7 +25,7 @@ namespace BeatSaberHTTPStatus
                 res.ContentType = "application/json";
                 res.ContentEncoding = Encoding.UTF8;
 
-                var stringifiedStatus = Encoding.UTF8.GetBytes(statusManager.statusJSON.ToString());
+                var stringifiedStatus = Encoding.UTF8.GetBytes(statusManager.StatusJSON.ToString());
 
                 res.ContentLength64 = stringifiedStatus.Length;
                 res.Close(stringifiedStatus, false);
@@ -36,13 +36,27 @@ namespace BeatSaberHTTPStatus
             res.StatusCode = 404;
             res.Close();
         }
+        public void Initialize()
+        {
+            server = new HttpServer(this.ServerPort);
+
+            server.OnGet += (sender, e) =>
+            {
+                OnHTTPGet(e);
+            };
+
+            server.AddWebSocketService<StatusBroadcastBehavior>("/socket", initializer => initializer.SetStatusManager(this.statusManager));
+
+            BeatSaberHTTPStatus.Plugin.Logger.Info("Starting HTTP server on port " + this.ServerPort);
+            server.Start();
+        }
 
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue) {
                 if (disposing) {
                     // TODO: マネージド状態を破棄します (マネージド オブジェクト)
-                    BeatSaberHTTPStatus.Plugin.log.Info("Stopping HTTP server");
+                    BeatSaberHTTPStatus.Plugin.Logger.Info("Stopping HTTP server");
                     server.Stop();
                 }
 
@@ -64,21 +78,6 @@ namespace BeatSaberHTTPStatus
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
-        }
-
-        public void Initialize()
-        {
-            server = new HttpServer(this.ServerPort);
-
-            server.OnGet += (sender, e) =>
-            {
-                OnHTTPGet(e);
-            };
-
-            server.AddWebSocketService<StatusBroadcastBehavior>("/socket", initializer => initializer.SetStatusManager(this.statusManager));
-
-            BeatSaberHTTPStatus.Plugin.log.Info("Starting HTTP server on port " + this.ServerPort);
-            server.Start();
         }
     }
 }
