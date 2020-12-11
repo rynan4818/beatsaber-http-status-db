@@ -23,7 +23,11 @@ Next you will need to [get additional software](https://github.com/opl-/beatsabe
 
 	- BS Utils from [BeatMods](https://beatmods.com/#/mods)
 
-5. [Get additional software](https://github.com/opl-/beatsaber-http-status/wiki/Software-using-this-plugin) that makes use of this plugin. This mod does nothing on its own; it simply exposes information for other programs to use.
+5. [Get additional software](https://github.com/opl-/beatsaber-http-status/wiki/Software-using-this-plugin) that makes use of this plugin. This mod does nothing on its own; it simply exposes information for other programs to use.  
+  
+## Dependency
+[SiraUtil](https://github.com/Auros/SiraUtil)  
+[websocket-sharp](https://github.com/sta/websocket-sharp)  
 
 
 ## Developers
