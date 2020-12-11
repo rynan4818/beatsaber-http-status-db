@@ -20,7 +20,7 @@ namespace BeatSaberHTTPStatus
 		public void SetStatusManager(IStatusManager statusManager)
         {
 			this.statusManager = statusManager;
-			this.statusManager.statusChange += OnStatusChange;
+			this.statusManager.StatusChanged += this.OnStatusChange;
         }
 
 		protected override void OnOpen()
@@ -37,41 +37,45 @@ namespace BeatSaberHTTPStatus
 
 		protected override void OnClose(CloseEventArgs e)
 		{
-			statusManager.statusChange -= OnStatusChange;
+			statusManager.StatusChanged -= this.OnStatusChange;
 			base.OnClose(e);
 		}
 
-		public void OnStatusChange(IStatusManager statusManager, ChangedProperties changedProps, string cause)
+		public void OnStatusChange(object sender, StatusChangedEventArgs e)
 		{
-			JSONObject eventJSON = new JSONObject();
-			eventJSON["event"] = cause;
-			eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
+            if (sender is IStatusManager statusManager) {
+				var changedProps = e.ChangedProperties;
 
-			if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
-				eventJSON["status"] = statusManager.statusJSON;
-			}
-			else {
-				JSONObject status = new JSONObject();
-				eventJSON["status"] = status;
+				JSONObject eventJSON = new JSONObject();
+				eventJSON["event"] = e.Cause;
+				eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
 
-				if (changedProps.game) status["game"] = statusManager.statusJSON["game"];
-				if (changedProps.beatmap) status["beatmap"] = statusManager.statusJSON["beatmap"];
-				if (changedProps.performance) status["performance"] = statusManager.statusJSON["performance"];
-				if (changedProps.mod) {
-					status["mod"] = statusManager.statusJSON["mod"];
-					status["playerSettings"] = statusManager.statusJSON["playerSettings"];
+				if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
+					eventJSON["status"] = statusManager.statusJSON;
 				}
-			}
+				else {
+					JSONObject status = new JSONObject();
+					eventJSON["status"] = status;
 
-			if (changedProps.noteCut) {
-				eventJSON["noteCut"] = statusManager.noteCutJSON;
-			}
+					if (changedProps.game) status["game"] = statusManager.statusJSON["game"];
+					if (changedProps.beatmap) status["beatmap"] = statusManager.statusJSON["beatmap"];
+					if (changedProps.performance) status["performance"] = statusManager.statusJSON["performance"];
+					if (changedProps.mod) {
+						status["mod"] = statusManager.statusJSON["mod"];
+						status["playerSettings"] = statusManager.statusJSON["playerSettings"];
+					}
+				}
 
-			if (changedProps.beatmapEvent) {
-				eventJSON["beatmapEvent"] = statusManager.beatmapEventJSON;
-			}
+				if (changedProps.noteCut) {
+					eventJSON["noteCut"] = statusManager.noteCutJSON;
+				}
 
-			SendAsync(eventJSON.ToString(), null);
+				if (changedProps.beatmapEvent) {
+					eventJSON["beatmapEvent"] = statusManager.beatmapEventJSON;
+				}
+
+				Send(eventJSON.ToString());
+			}
 		}
     }
 }

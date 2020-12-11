@@ -12,7 +12,7 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
-    <Version>2.0.1</Version>
+    <Version>2.1.0</Version>
     <BeatSaberVersion>1.13.0</BeatSaberVersion>
     <!-- <BeatSaberDir>..\libs\beatsaber\</BeatSaberDir> -->
     <SemVerVersion>$(Version)</SemVerVersion>
@@ -95,9 +95,9 @@
       <HintPath>$(BeatSaberDir)Plugins\BS_Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="websocket-sharp, Version=1.0.2.39861, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
+    <Reference Include="websocket-sharp, Version=1.0.2.1803, Culture=neutral, PublicKeyToken=5660b08a1845a91e, processorArchitecture=MSIL">
       <Private>False</Private>
-      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\websocket-sharp.dll</HintPath>
+      <HintPath>$(BeatSaberDir)\Libs\websocket-sharp.dll</HintPath>
       <SpecificVersion>False</SpecificVersion>
     </Reference>
     <Reference Include="Zenject, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -118,11 +118,6 @@
     <EmbeddedResource Include="obj\Release\src/manifest.json">
       <LogicalName>BeatSaberHTTPStatus.manifest.json</LogicalName>
     </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="websocket-sharp.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- Clean output directories before build -->
@@ -158,9 +153,6 @@
   <Target Name="CreateZip" AfterTargets="AfterBuild" Condition=" '$(OutputZip)' != '' And $(OutputZip) ">
     <ItemGroup>
       <ZipFilesPlugins Include="$(OutDir)BeatSaberHTTPStatus.dll" />
-    </ItemGroup>
-    <ItemGroup>
-      <ZipFilesLibs Include="$(OutDir)websocket-sharp.dll" />
     </ItemGroup>
     <Exec Command="git rev-parse HEAD &gt; $(IntermediateOutputPath)head" />
     <ReadLinesFromFile File="$(IntermediateOutputPath)head">
