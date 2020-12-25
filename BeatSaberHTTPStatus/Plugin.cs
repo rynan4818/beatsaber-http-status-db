@@ -622,8 +622,12 @@ namespace BeatSaberHTTPStatus {
 			return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 		}
 
-		public static bool NoteDataEquals(NoteData a, NoteData b) {
-			return a.time == b.time && a.lineIndex == b.lineIndex && a.noteLineLayer == b.noteLineLayer && a.colorType == b.colorType && a.cutDirection == b.cutDirection && a.duration == b.duration;
+		public bool NoteDataEquals(NoteData a, NoteData b) {
+			if (statusManager.gameStatus.modNoArrows) {
+				return a.time == b.time && a.lineIndex == b.lineIndex && a.noteLineLayer == b.noteLineLayer && a.colorType == b.colorType && a.duration == b.duration;
+			} else {
+				return a.time == b.time && a.lineIndex == b.lineIndex && a.noteLineLayer == b.noteLineLayer && a.colorType == b.colorType && a.cutDirection == b.cutDirection && a.duration == b.duration;
+            }
 		}
 
 		public class PluginTickerScript : PersistentSingleton<PluginTickerScript> {
