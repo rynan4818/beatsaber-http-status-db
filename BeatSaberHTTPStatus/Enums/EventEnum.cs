@@ -81,7 +81,7 @@ namespace BeatSaberHTTPStatus
 		NoteCut = 1 << 3,
 		Mod = 1 << 4,
 		BeatmapEvent = 1 << 5,
-		AllButNoteCut = Game | BeatmapEvent | Performance | Mod,
+		AllButNoteCut = Game | Beatmap | Performance | Mod,
 		PerformanceAndNoteCut = Performance | NoteCut
 	}
 }

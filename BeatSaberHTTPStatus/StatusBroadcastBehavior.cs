@@ -28,7 +28,7 @@ namespace BeatSaberHTTPStatus
 					try {
 						while (this.statusManager.JsonQueue.TryDequeue(out var json)) {
 							json["time"] = new JSONNumber(Utility.GetCurrentTime());
-							this.Send(json.ToString());
+                            this.Send(json.ToString());
 						}
 					}
 					catch (Exception e) {

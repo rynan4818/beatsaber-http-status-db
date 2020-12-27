@@ -36,6 +36,7 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e) {
+			Plugin.Logger.Debug($"{changedProps}");
 			GameStatus.updateCause = e.GetDescription();
 			if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) UpdateGameJSON();
 			if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) UpdateBeatmapJSON();
@@ -46,6 +47,7 @@ namespace BeatSaberHTTPStatus {
 				UpdatePlayerSettingsJSON();
 			}
 			if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) UpdateBeatmapEventJSON();
+			
 			this.EnqueueMessage(changedProps, e);
 		}
 
@@ -70,14 +72,13 @@ namespace BeatSaberHTTPStatus {
 				}
 				eventJSON["status"] = status;
 			}
-
 			if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut) {
 				eventJSON["noteCut"] = this.NoteCutJSON;
 			}
-
 			if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
 				eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
 			}
+			
 			this.JsonQueue.Enqueue(eventJSON);
 		}
 
@@ -160,7 +161,7 @@ namespace BeatSaberHTTPStatus {
 			performanceJSON["multiplier"] = GameStatus.multiplier;
 			performanceJSON["multiplierProgress"] = GameStatus.multiplierProgress;
 			performanceJSON["batteryEnergy"] = GameStatus.modBatteryEnergy || GameStatus.modInstaFail ? (JSONNode) new JSONNumber(GameStatus.batteryEnergy) : (JSONNode) JSONNull.CreateOrGet();
-			performanceJSON["energy"] = this.GameStatus.energy;
+			performanceJSON["energy"] = new JSONNumber(this.GameStatus.energy);
 		}
 
 		private void UpdateNoteCutJSON() {
