@@ -36,7 +36,6 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e) {
-			Plugin.Logger.Debug($"{changedProps}");
 			GameStatus.updateCause = e.GetDescription();
 			if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) UpdateGameJSON();
 			if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) UpdateBeatmapJSON();
