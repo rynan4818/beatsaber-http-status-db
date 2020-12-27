@@ -340,7 +340,6 @@ namespace BeatSaberHTTPStatus.Models
 					}
 					else if (this.headInObstacle && currentHeadInObstacle != true) {
 						this.headInObstacle = false;
-
 						this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
 					}
 				}
