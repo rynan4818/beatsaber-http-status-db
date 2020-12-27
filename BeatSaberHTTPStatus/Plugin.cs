@@ -1,15 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using BS_Utils.Gameplay;
-using IPA;
-using IPALogger = IPA.Logging.Logger;
-using SiraUtil.Zenject;
 using BeatSaberHTTPStatus.Installer;
+using IPA;
+using SiraUtil.Zenject;
+using UnityEngine;
+using IPALogger = IPA.Logging.Logger;
 
 // Interesting props and methods:
 // protected const int ScoreController.kMaxCutScore // 110
@@ -19,40 +12,45 @@ using BeatSaberHTTPStatus.Installer;
 // public int ScoreController.prevFrameScore
 // protected ScoreController._baseScore
 
-namespace BeatSaberHTTPStatus {
-	[Plugin(RuntimeOptions.SingleStartInit)]
-	internal class Plugin
-	{
-		public static readonly string PluginVersion = "$SEMVER_VERSION$"; // Populated by MSBuild
-		public static readonly string GameVersion = "$BS_VERSION$"; // Populated by MSBuild
+namespace BeatSaberHTTPStatus
+{
+    [Plugin(RuntimeOptions.SingleStartInit)]
+    internal class Plugin
+    {
+        public static readonly string PluginVersion = "$SEMVER_VERSION$"; // Populated by MSBuild
+        public static readonly string GameVersion = "$BS_VERSION$"; // Populated by MSBuild
 
-		public string Name {
-			get {return "HTTP Status";}
-		}
+        public string Name
+        {
+            get { return "HTTP Status"; }
+        }
 
-		public string Version {
-			get {return PluginVersion;}
-		}
+        public string Version
+        {
+            get { return PluginVersion; }
+        }
 
-		public static IPALogger Logger { get; private set; }
+        public static IPALogger Logger { get; private set; }
 
-		[Init]
-		public void Init(IPALogger logger, Zenjector zenjector) {
-			Logger = logger;
-			Logger.Debug("Logger Initialized.");
-			zenjector.OnGame<HttpGameInstaller>();
-			zenjector.OnApp<HttpAppInstaller>();
-		}
+        [Init]
+        public void Init(IPALogger logger, Zenjector zenjector)
+        {
+            Logger = logger;
+            Logger.Debug("Logger Initialized.");
+            zenjector.OnGame<HttpGameInstaller>();
+            zenjector.OnApp<HttpAppInstaller>();
+        }
 
-		[OnStart]
-		public void OnApplicationStart()
-		{
+        [OnStart]
+        public void OnApplicationStart()
+        {
 
-		}
+        }
 
-		[OnExit]
-		public void OnApplicationQuit() {
-			
-		}
-	}
+        [OnExit]
+        public void OnApplicationQuit()
+        {
+
+        }
+    }
 }

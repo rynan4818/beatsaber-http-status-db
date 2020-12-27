@@ -35,47 +35,47 @@ namespace BeatSaberHTTPStatus {
 			UpdateAll();
 		}
 
-		public void EmitStatusUpdate(ChangedProperties changedProps, string cause) {
-			GameStatus.updateCause = cause;
-			if (changedProps.game) UpdateGameJSON();
-			if (changedProps.beatmap) UpdateBeatmapJSON();
-			if (changedProps.performance) UpdatePerformanceJSON();
-			if (changedProps.noteCut) UpdateNoteCutJSON();
-			if (changedProps.mod) {
+		public void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e) {
+			GameStatus.updateCause = e.GetDescription();
+			if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) UpdateGameJSON();
+			if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) UpdateBeatmapJSON();
+			if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance) UpdatePerformanceJSON();
+			if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut) UpdateNoteCutJSON();
+			if ((changedProps & ChangedProperty.Mod) == ChangedProperty.Mod) {
 				UpdateModJSON();
 				UpdatePlayerSettingsJSON();
 			}
-			if (changedProps.beatmapEvent) UpdateBeatmapEventJSON();
-			this.EnqueueMessage(changedProps, cause);
+			if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) UpdateBeatmapEventJSON();
+			this.EnqueueMessage(changedProps, e);
 		}
 
-		private void EnqueueMessage(ChangedProperties changedProps, string cause)
+		private void EnqueueMessage(ChangedProperty changedProps, BeatSaberEvent e)
         {
 			var eventJSON = new JSONObject();
-			eventJSON["event"] = cause;
-			eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
+			eventJSON["event"] = e.GetDescription();
 
-			if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
+			if ((changedProps & (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod))
+				== (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod)) {
 				eventJSON["status"] = this.StatusJSON;
 			}
 			else {
 				var status = new JSONObject();
 
-				if (changedProps.game) status["game"] = this.StatusJSON["game"];
-				if (changedProps.beatmap) status["beatmap"] = this.StatusJSON["beatmap"];
-				if (changedProps.performance) status["performance"] = this.StatusJSON["performance"];
-				if (changedProps.mod) {
+				if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) status["game"] = this.StatusJSON["game"];
+				if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) status["beatmap"] = this.StatusJSON["beatmap"];
+				if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance) status["performance"] = this.StatusJSON["performance"];
+				if ((changedProps & ChangedProperty.Mod) == ChangedProperty.Mod) {
 					status["mod"] = this.StatusJSON["mod"];
 					status["playerSettings"] = this.StatusJSON["playerSettings"];
 				}
 				eventJSON["status"] = status;
 			}
 
-			if (changedProps.noteCut) {
+			if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut) {
 				eventJSON["noteCut"] = this.NoteCutJSON;
 			}
 
-			if (changedProps.beatmapEvent) {
+			if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
 				eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
 			}
 			this.JsonQueue.Enqueue(eventJSON);
@@ -160,6 +160,7 @@ namespace BeatSaberHTTPStatus {
 			performanceJSON["multiplier"] = GameStatus.multiplier;
 			performanceJSON["multiplierProgress"] = GameStatus.multiplierProgress;
 			performanceJSON["batteryEnergy"] = GameStatus.modBatteryEnergy || GameStatus.modInstaFail ? (JSONNode) new JSONNumber(GameStatus.batteryEnergy) : (JSONNode) JSONNull.CreateOrGet();
+			performanceJSON["energy"] = this.GameStatus.energy;
 		}
 
 		private void UpdateNoteCutJSON() {
@@ -241,30 +242,4 @@ namespace BeatSaberHTTPStatus {
 			return str == null ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONString(str);
 		}
 	}
-
-	public class ChangedProperties {
-		public static readonly ChangedProperties AllButNoteCut = new ChangedProperties(true, true, true, false, true, false);
-		public static readonly ChangedProperties Game = new ChangedProperties(true, false, false, false, false, false);
-		public static readonly ChangedProperties Beatmap = new ChangedProperties(false, true, false, false, false, false);
-		public static readonly ChangedProperties Performance = new ChangedProperties(false, false, true, false, false, false);
-		public static readonly ChangedProperties PerformanceAndNoteCut = new ChangedProperties(false, false, true, true, false, false);
-		public static readonly ChangedProperties Mod = new ChangedProperties(false, false, false, false, true, false);
-		public static readonly ChangedProperties BeatmapEvent = new ChangedProperties(false, false, false, false, false, true);
-
-		public readonly bool game;
-		public readonly bool beatmap;
-		public readonly bool performance;
-		public readonly bool noteCut;
-		public readonly bool mod;
-		public readonly bool beatmapEvent;
-
-		public ChangedProperties(bool game, bool beatmap, bool performance, bool noteCut, bool mod, bool beatmapEvent) {
-			this.game = game;
-			this.beatmap = beatmap;
-			this.performance = performance;
-			this.noteCut = noteCut;
-			this.mod = mod;
-			this.beatmapEvent = beatmapEvent;
-		}
-	};
 }
