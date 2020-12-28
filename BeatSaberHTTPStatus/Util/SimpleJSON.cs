@@ -969,20 +969,28 @@ namespace SimpleJSON
             bool first = true;
             if (inline)
                 aMode = JSONTextMode.Compact;
-            foreach (var k in m_Dict) {
-                if (!first)
-                    aSB.Append(',');
-                first = false;
-                if (aMode == JSONTextMode.Indent)
-                    aSB.AppendLine();
-                if (aMode == JSONTextMode.Indent)
-                    aSB.Append(' ', aIndent + aIndentInc);
-                aSB.Append('\"').Append(Escape(k.Key)).Append('\"');
-                if (aMode == JSONTextMode.Compact)
-                    aSB.Append(':');
-                else
-                    aSB.Append(" : ");
-                k.Value.WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
+            try {
+                foreach (var k in m_Dict) {
+                    if (!first)
+                        aSB.Append(',');
+                    first = false;
+                    if (aMode == JSONTextMode.Indent)
+                        aSB.AppendLine();
+                    if (aMode == JSONTextMode.Indent)
+                        aSB.Append(' ', aIndent + aIndentInc);
+                    aSB.Append('\"').Append(Escape(k.Key)).Append('\"');
+                    if (aMode == JSONTextMode.Compact)
+                        aSB.Append(':');
+                    else
+                        aSB.Append(" : ");
+                    k.Value.WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
+                }
+            }
+            catch (Exception e) {
+                BeatSaberHTTPStatus.Plugin.Logger.Error(e);
+                BeatSaberHTTPStatus.Plugin.Logger.Error(aSB.ToString());
+                aSB.Clear();
+                return;
             }
             if (aMode == JSONTextMode.Indent)
                 aSB.AppendLine().Append(' ', aIndent);

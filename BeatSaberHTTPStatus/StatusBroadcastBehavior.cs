@@ -37,13 +37,16 @@ namespace BeatSaberHTTPStatus
 					Thread.Sleep(1);
 				}
 			}));
-			this.thread.Start();
 		}
 
 		protected override void OnOpen()
 		{
 			base.OnOpen();
 			Plugin.Logger.Debug("OnOpen call.");
+            if (!this.thread.IsAlive) {
+				Plugin.Logger.Debug("Thread Start.");
+				this.thread.Start();
+			}
 			JSONObject eventJSON = new JSONObject();
 
 			eventJSON["event"] = "hello";

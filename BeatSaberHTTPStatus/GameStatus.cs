@@ -3,7 +3,7 @@ using System;
 namespace BeatSaberHTTPStatus {
 	[Serializable]
 	public class GameStatus {
-		public string updateCause;
+		//public string updateCause { get; set; }
 
 		public string scene = "Menu";
 		public bool partyMode = false;

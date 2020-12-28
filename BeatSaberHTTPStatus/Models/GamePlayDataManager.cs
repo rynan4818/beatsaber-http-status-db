@@ -103,6 +103,10 @@ namespace BeatSaberHTTPStatus.Models
 						if (beatmapObjectCallbackController != null) {
 							beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= OnBeatmapEventDidTrigger;
 						}
+
+                        if (this.gameEnergyCounter != null) {
+							this.gameEnergyCounter.gameEnergyDidChangeEvent -= this.OnEnergyChanged;
+                        }
 					}
                     catch (Exception e) {
 						Plugin.Logger.Error(e);
