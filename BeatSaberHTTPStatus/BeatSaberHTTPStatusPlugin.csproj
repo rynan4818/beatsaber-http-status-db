@@ -12,8 +12,8 @@
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
-    <Version>1.11.3</Version>
-    <BeatSaberVersion>1.11.0</BeatSaberVersion>
+    <Version>1.12.0</Version>
+    <BeatSaberVersion>1.12.1</BeatSaberVersion>
     <GameDirPath>..\libs\beatsaber\</GameDirPath>
     <SemVerVersion>$(Version)</SemVerVersion>
     <CopyToPlugins Condition=" '$(CopyToPlugins)' == '' ">true</CopyToPlugins>
@@ -56,6 +56,18 @@
       <HintPath>$(GameDirPath)\Beat Saber_Data\Managed\Main.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="BeatmapCore">
+      <HintPath>$(GameDirPath)\Beat Saber_Data\Managed\BeatmapCore.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="GameplayCore">
+      <HintPath>$(GameDirPath)\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="BGNet">
+      <HintPath>$(GameDirPath)\Beat Saber_Data\Managed\BGNet.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -83,10 +95,10 @@
       <HintPath>$(GameDirPath)Plugins\BS_Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <ProjectReference Include="..\libs\websocket-sharp\websocket-sharp\websocket-sharp.csproj">
-      <Project>{B357BAC7-529E-4D81-A0D2-71041B19C8DE}</Project>
-      <Name>websocket-sharp</Name>
-    </ProjectReference>
+    <Reference Include="websocket-sharp, Culture=neutral">
+      <HintPath>$(GameDirPath)Libs\websocket-sharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="**\*.cs" Exclude="bin\**\*;obj\**\*" />
@@ -128,16 +140,11 @@
   <Target Name="CopyToPlugins" AfterTargets="AfterBuild" Condition=" '$(CopyToPlugins)' != '' And $(CopyToPlugins) ">
     <Message Text="Copying $(OutDir)BeatSaberHTTPStatus.dll to Plugins folder" Importance="high"/>
     <Copy SourceFiles="$(OutDir)BeatSaberHTTPStatus.dll" DestinationFiles="$(GameDirPath)Plugins\BeatSaberHTTPStatus.dll"/>
-    <Message Text="Copying $(OutDir)websocket-sharp.dll to Beat Saber_Data folder" Importance="high"/>
-    <Copy SourceFiles="$(OutDir)websocket-sharp.dll" DestinationFiles="$(GameDirPath)Beat Saber_Data\Managed\websocket-sharp.dll"/>
   </Target>
   <!-- Package built DLLs into a zip -->
   <Target Name="CreateZip" AfterTargets="AfterBuild" Condition=" '$(OutputZip)' != '' And $(OutputZip) ">
     <ItemGroup>
       <ZipFilesPlugins Include="$(OutDir)\BeatSaberHTTPStatus.dll" />
-    </ItemGroup>
-    <ItemGroup>
-      <ZipFilesLibs Include="$(OutDir)\websocket-sharp.dll" />
     </ItemGroup>
     <Exec Command="git rev-parse HEAD &gt; $(IntermediateOutputPath)head" />
     <ReadLinesFromFile File="$(IntermediateOutputPath)head">
@@ -148,7 +155,6 @@
       <CommitHash>$(FullCommitHash.Substring(0, 8))</CommitHash>
     </PropertyGroup>
     <Copy SourceFiles="@(ZipFilesPlugins)" DestinationFolder="$(IntermediateOutputPath)\zip\Plugins" />
-    <Copy SourceFiles="@(ZipFilesLibs)" DestinationFolder="$(IntermediateOutputPath)\zip\Beat Saber_Data\Managed" />
     <ZipDir ZipFileName="$(OutDir)\BeatSaberHTTPStatus-$(SemVerVersion)-bs$(BeatSaberVersion)-$(CommitHash).zip" DirectoryName="$(IntermediateOutputPath)\zip" />
   </Target>
   <!-- Source: https://stackoverflow.com/a/38127938 -->

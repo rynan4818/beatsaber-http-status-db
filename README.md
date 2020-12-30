@@ -26,10 +26,16 @@ Since the function of HTTP Status is the same, it is assumed to be used as a rep
 4. 一度Beat Saberを起動すると、`UserData` フォルダに下記内容の `movie_cut_record.json` ファイルが作成されます。
 必要に応じて設定値を変更して下さい。[BS Movie Cut](https://github.com/rynan4818/bs-movie-cut)を使用すれば、GUI画面で設定可能です。
 
+<<<<<<< HEAD
 5. ModAssistant を使用されている場合は、オリジナルのHTTP Statusに更新されてしまうため HTTP Status のチェックを外しておいて下さい。
 ---
 1. Follow the [Beat Saber HTTP Status](https://github.com/opl-/beatsaber-http-status) installation instructions to install HTTP Status.
 Verify that HTTP Status is working properly.
+=======
+	- websocket-sharp from [BeatMods](https://beatmods.com/#/mods)
+
+5. [Get additional software](https://github.com/opl-/beatsaber-http-status/wiki/Software-using-this-plugin) that makes use of this plugin. This mod does nothing on its own; it simply exposes information for other programs to use.
+>>>>>>> master
 
 2. You can then download the latest release from the [release page](https://github.com/rynan4818/beatsaber-http-status-db/releases). As of 6/7/2020, it supports versions of BeatSaber 1.3.0 - 1.10.0 and is available in Please download and install it according to your environment.
 
@@ -147,8 +153,6 @@ We have created a [guide(Japanese)](https://drive.google.com/open?id=1g2XpANHnpl
 
 Before opening a pull request, please read the [contributing guide](CONTRIBUTING.md).
 
-This project uses the `websocket-sharp` library included as a git submodule. To download it, use `git submodule update --init` or clone the repository with the `--recursive` flag.
-
 To build this project you will need to create a `BeatSaberHTTPStatus/BeatSaberHTTPStatusPlugin.csproj.user` file specifying where the game is located on your disk:
 
 ```xml
@@ -187,7 +191,7 @@ The following properties can be specified either in the `.csproj.user` file or t
 
 - `OutputZip` = `true`/`false`: Enable/disable generating the .zip file. Can be used to get a zip for the `Debug` configuration.
 
-- `CopyToPlugins` = `true`/`false`: Enable/disable copying of the websocket library and HTTP Status DLLs to the Beat Saber installation. Depends on `GameDirPath`.
+- `CopyToPlugins` = `true`/`false`: Enable/disable copying of HTTP Status DLLs to the Beat Saber installation. Depends on `GameDirPath`.
 
 We also use the [System.Data.SQLite.Core](https://system.data.sqlite.org/) library. Installation is done through VisualStudio's NuGet package manager Please do.
 
