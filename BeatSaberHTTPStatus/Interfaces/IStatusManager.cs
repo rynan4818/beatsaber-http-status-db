@@ -15,7 +15,7 @@ namespace BeatSaberHTTPStatus.Interfaces
 		JSONObject NoteCutJSON { get; }
 		JSONObject BeatmapEventJSON { get; }
 		ConcurrentQueue<JSONObject> JsonQueue { get; }
-		//event StatusChangedEventHandler StatusChanged;
+		event SendEventHandler SendEvent;
 		void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e);
 	}
 }

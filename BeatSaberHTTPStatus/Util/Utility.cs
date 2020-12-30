@@ -16,7 +16,16 @@ namespace BeatSaberHTTPStatus.Util
 
         public static bool NoteDataEquals(NoteData a, NoteData b)
         {
-            return a.time == b.time && a.lineIndex == b.lineIndex && a.noteLineLayer == b.noteLineLayer && a.colorType == b.colorType && a.cutDirection == b.cutDirection && a.duration == b.duration;
+            if (a == null || b == null) {
+				return false;
+            }
+
+            return a.time == b.time
+				&& a.lineIndex == b.lineIndex
+				&& a.noteLineLayer == b.noteLineLayer
+				&& a.colorType == b.colorType
+				&& a.cutDirection == b.cutDirection
+				&& a.duration == b.duration;
         }
 
 

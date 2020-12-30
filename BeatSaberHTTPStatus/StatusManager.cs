@@ -6,31 +6,34 @@ using BeatSaberHTTPStatus.Interfaces;
 using Zenject;
 using System.Collections.Concurrent;
 using BeatSaberHTTPStatus.Util;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace BeatSaberHTTPStatus {
-	public class StatusManager : IStatusManager
+	public class StatusManager : IStatusManager, IDisposable
 	{
 		[Inject]
 		public GameStatus GameStatus { get; }
-
-		
 		public JSONObject StatusJSON { get; } = new JSONObject();
-
-
 		public JSONObject NoteCutJSON { get; } = new JSONObject();
-
-
 		public JSONObject BeatmapEventJSON { get; } = new JSONObject();
-
 		public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
+
+		public event SendEventHandler SendEvent;
+
+		private Thread thread;
+        private bool disposedValue;
+
         [Inject]
 		void Constractor()
         {
 			UpdateAll();
+			this.thread = new Thread(new ThreadStart(this.RaiseSendEvent));
+			this.thread.Start();
 		}
 
 		public void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e) {
-			// GameStatus.updateCause = e.GetDescription();
+			GameStatus.updateCause = e.GetDescription();
 			if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) UpdateGameJSON();
 			if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) UpdateBeatmapJSON();
 			if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance) UpdatePerformanceJSON();
@@ -71,9 +74,23 @@ namespace BeatSaberHTTPStatus {
 			if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
 				eventJSON["beatmapEvent"] = this.BeatmapEventJSON.Clone();
 			}
-			
 			this.JsonQueue.Enqueue(eventJSON);
 		}
+
+		private void RaiseSendEvent()
+        {
+            while (true) {
+                try {
+					while (this.JsonQueue.TryDequeue(out var json)) {
+						this.SendEvent?.Invoke(this, new SendEventArgs(json.Clone()));
+					}
+				}
+                catch (Exception e) {
+					Plugin.Logger.Error(e);
+                }
+				Thread.Sleep(1);
+            }
+        }
 
 		private void UpdateAll() {
             try {
@@ -235,5 +252,33 @@ namespace BeatSaberHTTPStatus {
 		private JSONNode StringOrNull(string str) {
 			return str == null ? (JSONNode) JSONNull.CreateOrGet() : (JSONNode) new JSONString(str);
 		}
-	}
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue) {
+                if (disposing) {
+					// TODO: マネージド状態を破棄します (マネージド オブジェクト)
+					this.thread?.Abort();
+                }
+
+                // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
+                // TODO: 大きなフィールドを null に設定します
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
+        // ~StatusManager()
+        // {
+        //     // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
 }

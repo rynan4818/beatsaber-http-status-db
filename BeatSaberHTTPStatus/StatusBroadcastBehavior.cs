@@ -17,36 +17,22 @@ namespace BeatSaberHTTPStatus
     public class StatusBroadcastBehavior : WebSocketBehavior
     {
 		private IStatusManager statusManager;
-		private Thread thread;
 		public void SetStatusManager(IStatusManager statusManager)
         {
 			this.statusManager = statusManager;
-			//this.statusManager.StatusChanged += this.OnStatusChange;
-			this.thread = new Thread(new ThreadStart(() =>
-			{
-				while (true) {
-					try {
-						while (this.statusManager.JsonQueue.TryDequeue(out var json)) {
-							json["time"] = new JSONNumber(Utility.GetCurrentTime());
-                            this.Send(json.ToString());
-						}
-					}
-					catch (Exception e) {
-						Plugin.Logger.Error(e);
-					}
-					Thread.Sleep(1);
-				}
-			}));
+            this.statusManager.SendEvent += this.OnSendEvent;
 		}
 
-		protected override void OnOpen()
+        private void OnSendEvent(object sender, SendEventArgs e)
+        {
+			e.JsonNode["time"] = new JSONNumber(Utility.GetCurrentTime());
+			this.Send(e.JsonNode.ToString());
+        }
+
+        protected override void OnOpen()
 		{
 			base.OnOpen();
 			Plugin.Logger.Debug("OnOpen call.");
-            if (!this.thread.IsAlive) {
-				Plugin.Logger.Debug("Thread Start.");
-				this.thread.Start();
-			}
 			JSONObject eventJSON = new JSONObject();
 
 			eventJSON["event"] = "hello";
@@ -59,8 +45,7 @@ namespace BeatSaberHTTPStatus
 		protected override void OnClose(CloseEventArgs e)
 		{
 			Plugin.Logger.Debug("OnClose call.");
-			//statusManager.StatusChanged -= this.OnStatusChange;
-			this.thread.Abort();
+			this.statusManager.SendEvent -= this.OnSendEvent;
 			base.OnClose(e);
 		}
 
