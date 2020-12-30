@@ -47,6 +47,7 @@ namespace BeatSaberHTTPStatus {
 		public int multiplier = 0;
 		public float multiplierProgress = 0;
 		public int batteryEnergy = 1;
+		public float energy = 0;
 
 		// Note cut
 		public int noteID = -1;
@@ -147,6 +148,7 @@ namespace BeatSaberHTTPStatus {
 			this.multiplier = 0;
 			this.multiplierProgress = 0;
 			this.batteryEnergy = 1;
+			this.energy = 0;
 		}
 
 		public void ResetNoteCut() {

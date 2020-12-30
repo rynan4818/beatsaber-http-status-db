@@ -88,6 +88,7 @@ namespace BeatSaberHTTPStatus
 		// Default setting
 		private const int obstacleEventCount = 100; 					//obstacleイベント分
 		private const int initNoteScoreSize  = 2000;					//noteScore配列初期化サイズ (必要な配列サイズはノーツ数＋爆弾数＋obstacleイベント数)
+		private const int addArraySize = 100;                           //配列追加時余裕分
 		private static readonly string defaultDbFile = System.IO.Path.Combine(IPA.Utilities.UnityGame.UserDataPath, "beatsaber.db");  //データベースファイル初期値
 		private string dbFile;											//データベースファイル名
 
@@ -271,8 +272,8 @@ namespace BeatSaberHTTPStatus
 				if (notesCount + bombsCount + obstacleEventCount > noteScores.Length)
 				{
 					Array.Resize(ref noteScores, notesCount + bombsCount + obstacleEventCount);
-					Array.Resize(ref noteCutTime, notesCount + bombsCount);
-					Array.Resize(ref cutSwingRating, notesCount + bombsCount);
+					Array.Resize(ref noteCutTime, notesCount + bombsCount + addArraySize);
+					Array.Resize(ref cutSwingRating, notesCount + bombsCount + addArraySize);
 				}
 				// notescore 配列初期化
 				while (initSize < noteScores.Length)
@@ -589,12 +590,12 @@ namespace BeatSaberHTTPStatus
 			}
 			if (bs_event == noteCut_event_name && db_notes_score)
 			{
-				noteCutTimeIdx = gameStatus.noteID;
+				noteCutTimeIdx = gameStatus.noteID + 1;
 				// noteCutTime 配列サイズチェック
 				if (noteCutTimeIdx + 1 >= noteCutTime.Length)
 				{
-					Array.Resize(ref noteCutTime, noteCutTimeIdx + 100);
-					Array.Resize(ref cutSwingRating, noteCutTimeIdx + 100);
+					Array.Resize(ref noteCutTime, noteCutTimeIdx + addArraySize);
+					Array.Resize(ref cutSwingRating, noteCutTimeIdx + addArraySize);
 				}
 				noteCutTime[noteCutTimeIdx] = Plugin.GetCurrentTime();
 				cutSwingRating[noteCutTimeIdx] = gameStatus.swingRating;
@@ -603,7 +604,7 @@ namespace BeatSaberHTTPStatus
 			{
 				// notescores 配列サイズチェック
 				if (noteScoresIdx + 1 >= noteScores.Length)
-					Array.Resize(ref noteScores, noteScoresIdx + 100);
+					Array.Resize(ref noteScores, noteScoresIdx + addArraySize);
 				// notescore 配列初期化
 				while (initSize < noteScores.Length)
 				{
@@ -614,7 +615,7 @@ namespace BeatSaberHTTPStatus
 				noteScores[noteScoresIdx].time = Plugin.GetCurrentTime();
 				if (bs_event == noteFullyCut_event_name)
 				{
-					noteScores[noteScoresIdx].cutTime = noteCutTime[gameStatus.noteID];
+					noteScores[noteScoresIdx].cutTime = noteCutTime[gameStatus.noteID + 1];
 				}
 				else
 				{
@@ -657,7 +658,7 @@ namespace BeatSaberHTTPStatus
 					noteScores[noteScoresIdx].saberDirY = gameStatus.saberDirY;
 					noteScores[noteScoresIdx].saberDirZ = gameStatus.saberDirZ;
 					noteScores[noteScoresIdx].saberType = gameStatus.saberType;
-					noteScores[noteScoresIdx].swingRating = cutSwingRating[gameStatus.noteID];
+					noteScores[noteScoresIdx].swingRating = cutSwingRating[gameStatus.noteID + 1];
 					if (bs_event == noteFullyCut_event_name || bs_event == bombCut_event_name)
 						noteScores[noteScoresIdx].swingRatingFullyCut = gameStatus.swingRating;
 					else

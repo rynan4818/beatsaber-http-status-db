@@ -138,6 +138,10 @@ namespace BeatSaberHTTPStatus {
 				gameplayManager = null;
 			}
 
+			if (gameEnergyCounter != null) {
+				gameEnergyCounter.gameEnergyDidChangeEvent -= OnEnergyDidChange;
+			}
+
 			if (beatmapObjectCallbackController != null) {
 				beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= OnBeatmapEventDidTrigger;
 				beatmapObjectCallbackController = null;
@@ -285,6 +289,8 @@ namespace BeatSaberHTTPStatus {
 			scoreController.comboDidChangeEvent += OnComboDidChange;
 			// public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
 			scoreController.multiplierDidChangeEvent += OnMultiplierDidChange;
+			// public GameEnergyCounter#gameEnergyDidChangeEvent<float> // energy
+			gameEnergyCounter.gameEnergyDidChangeEvent += OnEnergyDidChange;
 			log.Info("2.5");
 			// public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
 			beatmapObjectCallbackController.beatmapEventDidTriggerEvent += OnBeatmapEventDidTrigger;
@@ -647,6 +653,11 @@ namespace BeatSaberHTTPStatus {
 			statusManager.gameStatus.combo = combo;
 			// public int ScoreController#maxCombo
 			statusManager.gameStatus.maxCombo = scoreController.maxCombo;
+		}
+
+		public void OnEnergyDidChange(float energy) {
+			statusManager.gameStatus.energy = energy;
+			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "energyChanged");
 		}
 
 		public void OnMultiplierDidChange(int multiplier, float multiplierProgress) {

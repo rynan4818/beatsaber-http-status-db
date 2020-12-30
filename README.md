@@ -26,16 +26,10 @@ Since the function of HTTP Status is the same, it is assumed to be used as a rep
 4. 一度Beat Saberを起動すると、`UserData` フォルダに下記内容の `movie_cut_record.json` ファイルが作成されます。
 必要に応じて設定値を変更して下さい。[BS Movie Cut](https://github.com/rynan4818/bs-movie-cut)を使用すれば、GUI画面で設定可能です。
 
-<<<<<<< HEAD
 5. ModAssistant を使用されている場合は、オリジナルのHTTP Statusに更新されてしまうため HTTP Status のチェックを外しておいて下さい。
 ---
 1. Follow the [Beat Saber HTTP Status](https://github.com/opl-/beatsaber-http-status) installation instructions to install HTTP Status.
 Verify that HTTP Status is working properly.
-=======
-	- websocket-sharp from [BeatMods](https://beatmods.com/#/mods)
-
-5. [Get additional software](https://github.com/opl-/beatsaber-http-status/wiki/Software-using-this-plugin) that makes use of this plugin. This mod does nothing on its own; it simply exposes information for other programs to use.
->>>>>>> master
 
 2. You can then download the latest release from the [release page](https://github.com/rynan4818/beatsaber-http-status-db/releases). As of 6/7/2020, it supports versions of BeatSaber 1.3.0 - 1.10.0 and is available in Please download and install it according to your environment.
 
@@ -143,8 +137,6 @@ HTTP Statusのプロコトルのドキュメントは[protocol.md](protocol.md)�
 
 pull request をする前に、[投稿ガイド](CONTRIBUTING.md)を読んで下さい。
 
-このプロジェクトは、`websocket-sharp` ライブラリをGitのサブモジュールとして使用します。`websocket-sharp` ライブラリも含めてダウンロードするには、`git submodule update --init --recursive` を使用するか、`--recursive`　フラグを付けてリポジトリをクローンして下さい。
-
 このプロジェクトをビルドするには、 `BeatSaberHTTPStatus/BeatSaberHTTPStatusPlugin.csproj.user` ファイルを作成し、Beat Saberがインストールされた場所を指定する必要があります。
 
 ---
@@ -176,8 +168,8 @@ To build this project you will need to create a `BeatSaberHTTPStatus/BeatSaberHT
 - `OutputZip` = `true`/`false`: .zipファイルの生成を有効にするかどうかを指定します。これは `Debug` 設定用のzipを取得するために使用することができます。
 (`OutputZip` = `true`/`false`: Enable/disable generating the .zip file. Can be used to get a zip for the `Debug` configuration.)
 
-- `CopyToPlugins` = `true`/`false`: websocketライブラリとHTTP Status DLLをBeat Saberのインストールにコピーするかどうかを指定します。`GameDirPath`に依存します。
-(`CopyToPlugins` = `true`/`false`: Enable/disable copying of the websocket library and HTTP Status DLLs to the Beat Saber installation. Depends on `GameDirPath`.)
+- `CopyToPlugins` = `true`/`false`: HTTP Status DLLをBeat Saberのインストールにコピーするかどうかを指定します。`GameDirPath`に依存します。
+(`CopyToPlugins` = `true`/`false`: Enable/disable copying of the HTTP Status DLLs to the Beat Saber installation. Depends on `GameDirPath`.)
 
 また、[System.Data.SQLite.Core](https://system.data.sqlite.org/)ライブラリも使用しています。インストールはVisualStudioのNuGetパッケージマネージャからインストールして下さい。
 
