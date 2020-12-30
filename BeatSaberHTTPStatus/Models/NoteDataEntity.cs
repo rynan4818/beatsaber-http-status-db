@@ -12,6 +12,8 @@ namespace BeatSaberHTTPStatus.Models
     public class NoteDataEntity
     {
         public NoteData NoteData { get; private set; }
+        public bool NoArrow { get; private set; }
+
         public override bool Equals(object obj)
         {
             return this.Equals((NoteDataEntity)obj);
@@ -26,7 +28,7 @@ namespace BeatSaberHTTPStatus.Models
                 && this.NoteData.lineIndex == entity.NoteData.lineIndex
                 && this.NoteData.noteLineLayer == entity.NoteData.noteLineLayer
                 && this.NoteData.colorType == entity.NoteData.colorType
-                && this.NoteData.cutDirection == entity.NoteData.cutDirection
+                && (this.NoteData.cutDirection == entity.NoteData.cutDirection || this.NoArrow)
                 && this.NoteData.duration == entity.NoteData.duration;
         }
         public override int GetHashCode()
@@ -35,12 +37,13 @@ namespace BeatSaberHTTPStatus.Models
                 + this.NoteData.lineIndex
                 + (int)this.NoteData.noteLineLayer
                 + (int)this.NoteData.colorType
-                + (int)this.NoteData.cutDirection
+                + (this.NoArrow ? (int)NoteCutDirection.Any : (int)this.NoteData.cutDirection)
                 + this.NoteData.duration).GetHashCode();
         }
-        public NoteDataEntity(NoteData note)
+        public NoteDataEntity(NoteData note, bool noArrow)
         {
             this.NoteData = note;
+            this.NoArrow = noArrow;
         }
     }
 }

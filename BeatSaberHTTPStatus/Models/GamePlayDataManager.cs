@@ -214,7 +214,7 @@ namespace BeatSaberHTTPStatus.Models
 			lastNoteId = 0;
 			Plugin.Logger.Info("4.1");
             foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i})) {
-				this.noteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData), note.index);
+				this.noteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
             }
 			Plugin.Logger.Info("5");
 
@@ -460,7 +460,7 @@ namespace BeatSaberHTTPStatus.Models
 			// Backwards compatibility for <1.12.1
 			gameStatus.noteID = -1;
 			// Check the near notes first for performance
-			if (this.noteToIdMapping.TryRemove(new NoteDataEntity(noteData), out var noteID)) {
+			if (this.noteToIdMapping.TryRemove(new NoteDataEntity(noteData, this.gameplayModifiers.noArrows), out var noteID)) {
 				gameStatus.noteID = noteID;
                 if (lastNoteId < noteID) {
 					lastNoteId = noteID;
