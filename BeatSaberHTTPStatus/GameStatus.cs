@@ -7,6 +7,7 @@ namespace BeatSaberHTTPStatus {
 
 		public string scene = "Menu";
 		public bool partyMode = false;
+		public bool multiplayer = false;
 		public string mode = null;
 
 		// Beatmap
