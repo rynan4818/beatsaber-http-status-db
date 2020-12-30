@@ -5,6 +5,7 @@ using IPA.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -57,7 +58,7 @@ namespace BeatSaberHTTPStatus.Models
 		/// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
 		/// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
 		/// </summary>
-		private List<NoteDataEntity> noteToIdMapping { get; } = new List<NoteDataEntity>();
+		private ConcurrentDictionary<NoteDataEntity, int> noteToIdMapping { get; } = new ConcurrentDictionary<NoteDataEntity, int>();
 		private int lastNoteId = 0;
 
 		private bool disposedValue;
@@ -212,7 +213,9 @@ namespace BeatSaberHTTPStatus.Models
 			
 			lastNoteId = 0;
 			Plugin.Logger.Info("4.1");
-			noteToIdMapping.AddRange(diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new NoteDataEntity(i, x as NoteData)));
+            foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i})) {
+				this.noteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData), note.index);
+            }
 			Plugin.Logger.Info("5");
 
 			gameStatus.songName = level.songName;
@@ -457,19 +460,17 @@ namespace BeatSaberHTTPStatus.Models
 			// Backwards compatibility for <1.12.1
 			gameStatus.noteID = -1;
 			// Check the near notes first for performance
-			var max = Math.Max(0, lastNoteId - 10);
-			var currentNote = noteToIdMapping.Where(x => max <= x.Index).FirstOrDefault(x => Utility.NoteDataEquals(x.NoteData, noteData));
-            if (currentNote != null) {
-				gameStatus.noteID = currentNote.Index;
-				if (currentNote.Index > lastNoteId) lastNoteId = currentNote.Index;
+			if (this.noteToIdMapping.TryRemove(new NoteDataEntity(noteData), out var noteID)) {
+				gameStatus.noteID = noteID;
+                if (lastNoteId < noteID) {
+					lastNoteId = noteID;
+                }
             }
             else {
-				lastNoteId++;
 				gameStatus.noteID = lastNoteId;
             }
-			
-			// Backwards compatibility for <1.12.1
-			gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
+            // Backwards compatibility for <1.12.1
+            gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
 			gameStatus.noteCutDirection = noteData.cutDirection.ToString();
 			gameStatus.noteLine = noteData.lineIndex;
 			gameStatus.noteLayer = (int)noteData.noteLineLayer;
