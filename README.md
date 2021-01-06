@@ -19,7 +19,6 @@ Since the function of HTTP Status is the same, it is assumed to be used as a rep
 1. [Beat Saber HTTP Status](https://github.com/opl-/beatsaber-http-status)のインストール手順によって、HTTP Statusをインストールします。そして、HTTP Statusが正しく動作するか一度確認して下さい。
 
 2. 次に[リリースページ](https://github.com/rynan4818/beatsaber-http-status-db/releases)から最新のリリースをダウンロードします。
-2020/6/7現在、BeatSaber 1.3.0～1.10.0 の各バージョンに対応したプラグインを用意しました、環境に合わせてダウンロード＆インストールして下さい。
 
 3. zipをBeat Saberフォルダに解凍します。(`SQLite.Interop.dll` と `System.Data.SQLite.dll` を `Beat Saber\Beat Saber_Data\Managed` フォルダにコピーし、`Beat Saber\Plugins` フォルダの `BeatSaberHTTPStatus.dll` を、本リリースのファイルと差し替えて下さい。)
 
@@ -31,7 +30,7 @@ Since the function of HTTP Status is the same, it is assumed to be used as a rep
 1. Follow the [Beat Saber HTTP Status](https://github.com/opl-/beatsaber-http-status) installation instructions to install HTTP Status.
 Verify that HTTP Status is working properly.
 
-2. You can then download the latest release from the [release page](https://github.com/rynan4818/beatsaber-http-status-db/releases). As of 6/7/2020, it supports versions of BeatSaber 1.3.0 - 1.10.0 and is available in Please download and install it according to your environment.
+2. You can then download the latest release from the [release page](https://github.com/rynan4818/beatsaber-http-status-db/releases).
 
 3. Extract the zip to your Beat Saber folder. (`SQLite.Interop.dll` and `System.Data.SQLite.dll` to Copy to the `Beat Saber\Beat Saber_Data\Managed` folder. `BeatSaberHTTPStatus.dll` to `Beat Saber\Plugins` overwrite the same file in the folder.)
 
