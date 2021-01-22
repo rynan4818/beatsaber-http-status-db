@@ -205,7 +205,7 @@ namespace BeatSaberHTTPStatus.Models
 
 			float songSpeedMul = gameplayModifiers.songSpeedMul;
 			if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
-			float modifierMultiplier = gameplayModifiersSO.GetTotalMultiplier(gameplayModifiers);
+			float modifierMultiplier = gameplayModifiersSO.GetTotalMultiplier(gameplayModifiers, gameEnergyCounter.energy);
 			Plugin.Logger.Info("4");
 
 			// Generate NoteData to id mappings for backwards compatiblity with <1.12.1
@@ -238,8 +238,8 @@ namespace BeatSaberHTTPStatus.Models
 			gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
 			gameStatus.environmentName = level.environmentInfo.sceneInfo.sceneName;
 
-			gameStatus.maxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(diff.beatmapData.cuttableNotesType), gameplayModifiers, gameplayModifiersSO);
-			gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(gameplayModifiers, gameplayModifiersSO).ToString();
+			gameStatus.maxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(diff.beatmapData.cuttableNotesType), gameplayModifiers, gameplayModifiersSO, gameEnergyCounter.energy);
+			gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(gameplayModifiers, gameplayModifiersSO, gameEnergyCounter.energy).ToString();
 			Plugin.Logger.Info("6");
 
 			try {
@@ -281,7 +281,7 @@ namespace BeatSaberHTTPStatus.Models
 
 			gameStatus.modObstacles = gameplayModifiers.enabledObstacleType.ToString();
 			gameStatus.modInstaFail = gameplayModifiers.instaFail;
-			gameStatus.modNoFail = gameplayModifiers.noFail;
+			gameStatus.modNoFail = gameplayModifiers.noFailOn0Energy;
 			gameStatus.modBatteryEnergy = gameplayModifiers.energyType == GameplayModifiers.EnergyType.Battery;
 			gameStatus.modDisappearingArrows = gameplayModifiers.disappearingArrows;
 			gameStatus.modNoBombs = gameplayModifiers.noBombs;
@@ -529,7 +529,7 @@ namespace BeatSaberHTTPStatus.Models
 			gameStatus.score = scoreAfterMultiplier;
 
 			int currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
-			gameStatus.currentMaxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, gameplayModifiers, gameplayModifiersSO);
+			gameStatus.currentMaxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, gameplayModifiers, gameplayModifiersSO, gameEnergyCounter.energy);
 
 			RankModel.Rank rank = RankModel.GetRankForScore(scoreBeforeMultiplier, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
 			gameStatus.rank = RankModel.GetRankName(rank);

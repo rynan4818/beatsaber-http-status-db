@@ -12,8 +12,8 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
-    <Version>2.2.2</Version>
-    <BeatSaberVersion>1.13.0</BeatSaberVersion>
+    <Version>3.0.0</Version>
+    <BeatSaberVersion>1.13.2</BeatSaberVersion>
     <!-- <BeatSaberDir>..\libs\beatsaber\</BeatSaberDir> -->
     <SemVerVersion>$(Version)</SemVerVersion>
     <CopyToPlugins Condition=" '$(CopyToPlugins)' == '' ">true</CopyToPlugins>
