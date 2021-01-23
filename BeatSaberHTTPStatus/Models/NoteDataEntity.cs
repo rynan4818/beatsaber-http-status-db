@@ -34,7 +34,7 @@ namespace BeatSaberHTTPStatus.Models
         public override int GetHashCode()
         {
             var enumTmp = ((int)this.NoteData.noteLineLayer
-                | (int)this.NoteData.colorType + 1 << 2
+                | ((int)this.NoteData.colorType + 1) << 2
                 | (this.NoArrow ? (int)NoteCutDirection.Any : (int)this.NoteData.cutDirection) << 4);
             return (this.NoteData.time
                 + this.NoteData.lineIndex
