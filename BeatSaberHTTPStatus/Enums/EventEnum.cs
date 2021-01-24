@@ -65,7 +65,9 @@ namespace BeatSaberHTTPStatus
 		[Description("beatmapEvent")]
 		BeatmapEvent,
 		[Description("energyChanged")]
-		EnergyChanged
+		EnergyChanged,
+		[Description("softFailed")]
+		SoftFailed
 	}
 
 	/// <summary>
@@ -82,6 +84,7 @@ namespace BeatSaberHTTPStatus
 		Mod = 1 << 4,
 		BeatmapEvent = 1 << 5,
 		AllButNoteCut = Game | Beatmap | Performance | Mod,
-		PerformanceAndNoteCut = Performance | NoteCut
+		PerformanceAndNoteCut = Performance | NoteCut,
+		BeatmapAndPerformanceAndMod = Beatmap | Performance | Mod
 	}
 }

@@ -157,6 +157,7 @@ namespace BeatSaberHTTPStatus {
 			if (StatusJSON["performance"] == null) StatusJSON["performance"] = new JSONObject();
 			var performanceJSON = StatusJSON["performance"].AsObject;
 
+			performanceJSON["rawScore"] = GameStatus.rawScore;
 			performanceJSON["score"] = GameStatus.score;
 			performanceJSON["currentMaxScore"] = GameStatus.currentMaxScore;
 			performanceJSON["rank"] = GameStatus.rank;

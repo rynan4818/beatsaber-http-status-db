@@ -33,6 +33,7 @@ namespace BeatSaberHTTPStatus {
 		public string environmentName = null;
 
 		// Performance
+		public int rawScore = 0;
 		public int score = 0;
 		public int currentMaxScore = 0;
 		public string rank = "E";
@@ -48,6 +49,7 @@ namespace BeatSaberHTTPStatus {
 		public float multiplierProgress = 0;
 		public int batteryEnergy = 1;
 		public float energy = 0;
+		public bool softFailed = false;
 
 		// Note cut
 		public int noteID = -1;
@@ -134,6 +136,7 @@ namespace BeatSaberHTTPStatus {
 		}
 
 		public void ResetPerformance() {
+			this.rawScore = 0;
 			this.score = 0;
 			this.currentMaxScore = 0;
 			this.rank = "E";
@@ -149,6 +152,7 @@ namespace BeatSaberHTTPStatus {
 			this.multiplierProgress = 0;
 			this.batteryEnergy = 1;
 			this.energy = 0;
+			this.softFailed = false;
 		}
 
 		public void ResetNoteCut() {
