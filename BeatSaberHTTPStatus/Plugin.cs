@@ -32,6 +32,7 @@ namespace BeatSaberHTTPStatus {
 		private ScoreController scoreController;
 		private MultiplayerSessionManager multiplayerSessionManager;
 		private MultiplayerController multiplayerController;
+		private MultiplayerLocalActivePlayerFacade multiplayerLocalActivePlayerFacade;
 		private MonoBehaviour gameplayManager;
 		private GameplayModifiersModelSO gameplayModifiersSO;
 		private GameplayModifiers gameplayModifiers;
@@ -135,6 +136,10 @@ namespace BeatSaberHTTPStatus {
 			}
 
 			if (gameplayManager != null) {
+				if (gameplayManager is ILevelEndActions levelEndActions) {
+					// event Action levelFailedEvent;
+					levelEndActions.levelFailedEvent += OnLevelFailed;
+				}
 				gameplayManager = null;
 			}
 
@@ -165,7 +170,8 @@ namespace BeatSaberHTTPStatus {
 			}
 
 			if (gameEnergyCounter != null) {
-				gameEnergyCounter.gameEnergyDidReach0Event -= OnLevelFailed;
+				gameEnergyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0Event;
+				gameEnergyCounter = null;
 			}
 
 			if (gameplayCoreSceneSetupData != null) {
@@ -186,6 +192,11 @@ namespace BeatSaberHTTPStatus {
 			if (multiplayerController != null) {
 				multiplayerController.stateChangedEvent -= OnMultiplayerStateChanged;
 				multiplayerController = null;
+			}
+
+			if (multiplayerLocalActivePlayerFacade != null) {
+				multiplayerLocalActivePlayerFacade.playerDidFinishEvent -= OnMultiplayerLevelFinished;
+				multiplayerLocalActivePlayerFacade = null;
 			}
 		}
 
@@ -224,7 +235,7 @@ namespace BeatSaberHTTPStatus {
 			multiplayerController = FindFirstOrDefaultOptional<MultiplayerController>();
 
 			if (multiplayerSessionManager && multiplayerController) {
-				Plugin.log.Info("Multiplayer Level loaded");
+				Plugin.log.Debug("Multiplayer Level loaded");
 
 				// public event Action<DisconnectedReason> MultiplayerSessionManager#disconnectedEvent;
 				multiplayerSessionManager.disconnectedEvent += OnMultiplayerDisconnected;
@@ -235,6 +246,12 @@ namespace BeatSaberHTTPStatus {
 				// Do nothing until the next state change to Gameplay.
 				if (multiplayerController.state != MultiplayerController.State.Gameplay) {
 					return;
+				}
+
+				multiplayerLocalActivePlayerFacade = FindFirstOrDefaultOptional<MultiplayerLocalActivePlayerFacade>();
+
+				if (multiplayerLocalActivePlayerFacade != null) {
+					multiplayerLocalActivePlayerFacade.playerDidFinishEvent += OnMultiplayerLevelFinished;
 				}
 			} else if (!doDelayedSongStart) {
 				doDelayedSongStart = true;
@@ -259,9 +276,9 @@ namespace BeatSaberHTTPStatus {
 			if (multiplayerController) {
 				// NOOP
 			} else if (gameplayManager is StandardLevelGameplayManager) {
-				Plugin.log.Info("Standard Level loaded");
+				Plugin.log.Debug("Standard Level loaded");
 			} else if (gameplayManager is MissionLevelGameplayManager) {
-				Plugin.log.Info("Mission Level loaded");
+				Plugin.log.Debug("Mission Level loaded");
 			}
 
 			gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
@@ -291,7 +308,11 @@ namespace BeatSaberHTTPStatus {
 			// public event Action GameSongController#songDidFinishEvent;
 			gameSongController.songDidFinishEvent += OnLevelFinished;
 			// public event Action GameEnergyCounter#gameEnergyDidReach0Event;
-			gameEnergyCounter.gameEnergyDidReach0Event += OnLevelFailed;
+			gameEnergyCounter.gameEnergyDidReach0Event += OnEnergyDidReach0Event;
+			if (gameplayManager is ILevelEndActions levelEndActions) {
+				// event Action levelFailedEvent;
+				levelEndActions.levelFailedEvent += OnLevelFailed;
+			}
 
 			IDifficultyBeatmap diff = gameplayCoreSceneSetupData.difficultyBeatmap;
 			IBeatmapLevel level = diff.level;
@@ -305,7 +326,6 @@ namespace BeatSaberHTTPStatus {
 
 			float songSpeedMul = gameplayModifiers.songSpeedMul;
 			if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
-			float modifierMultiplier = gameplayModifiersSO.GetTotalMultiplier(gameplayModifiers);
 
 			// Generate NoteData to id mappings for backwards compatiblity with <1.12.1
 			noteToIdMapping = new NoteData[diff.beatmapData.cuttableNotesType + diff.beatmapData.bombsCount];
@@ -340,9 +360,6 @@ namespace BeatSaberHTTPStatus {
 			gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
 			gameStatus.environmentName = level.environmentInfo.sceneInfo.sceneName;
 
-			gameStatus.maxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(diff.beatmapData.cuttableNotesType), gameplayModifiers, gameplayModifiersSO);
-			gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(gameplayModifiers, gameplayModifiersSO).ToString();
-
 			try {
 				// From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
 				var texture = (await level.GetCoverImageAsync(CancellationToken.None)).texture;
@@ -374,13 +391,14 @@ namespace BeatSaberHTTPStatus {
 
 			gameStatus.ResetPerformance();
 
-			gameStatus.modifierMultiplier = modifierMultiplier;
+			UpdateModMultiplier();
+
 			gameStatus.songSpeedMultiplier = songSpeedMul;
 			gameStatus.batteryLives = gameEnergyCounter.batteryLives;
 
 			gameStatus.modObstacles = gameplayModifiers.enabledObstacleType.ToString();
 			gameStatus.modInstaFail = gameplayModifiers.instaFail;
-			gameStatus.modNoFail = gameplayModifiers.noFail;
+			gameStatus.modNoFail = gameplayModifiers.noFailOn0Energy;
 			gameStatus.modBatteryEnergy = gameplayModifiers.energyType == GameplayModifiers.EnergyType.Battery;
 			gameStatus.modDisappearingArrows = gameplayModifiers.disappearingArrows;
 			gameStatus.modNoBombs = gameplayModifiers.noBombs;
@@ -415,6 +433,17 @@ namespace BeatSaberHTTPStatus {
 		private static T FindFirstOrDefaultOptional<T>() where T: UnityEngine.Object {
 			T obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
 			return obj;
+		}
+
+		public void UpdateModMultiplier() {
+			GameStatus gameStatus = statusManager.gameStatus;
+
+			float energy = gameEnergyCounter.energy;
+
+			gameStatus.modifierMultiplier = gameplayModifiersSO.GetTotalMultiplier(gameplayModifiers, energy);
+
+			gameStatus.maxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesType), gameplayModifiers, gameplayModifiersSO, energy);
+			gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(gameplayModifiers, gameplayModifiersSO, energy).ToString();
 		}
 
 		public void OnUpdate() {
@@ -622,15 +651,22 @@ namespace BeatSaberHTTPStatus {
 		public void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier) {
 			GameStatus gameStatus = statusManager.gameStatus;
 
+			gameStatus.rawScore = scoreBeforeMultiplier;
 			gameStatus.score = scoreAfterMultiplier;
 
-			int currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
-			gameStatus.currentMaxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, gameplayModifiers, gameplayModifiersSO);
-
-			RankModel.Rank rank = RankModel.GetRankForScore(scoreBeforeMultiplier, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
-			gameStatus.rank = RankModel.GetRankName(rank);
+			UpdateCurrentMaxScore();
 
 			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "scoreChanged");
+		}
+
+		public void UpdateCurrentMaxScore() {
+			GameStatus gameStatus = statusManager.gameStatus;
+
+			int currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
+			gameStatus.currentMaxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, gameplayModifiers, gameplayModifiersSO, gameEnergyCounter.energy);
+
+			RankModel.Rank rank = RankModel.GetRankForScore(gameStatus.rawScore, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
+			gameStatus.rank = RankModel.GetRankName(rank);
 		}
 
 		public void OnComboDidChange(int combo) {
@@ -655,6 +691,25 @@ namespace BeatSaberHTTPStatus {
 
 		public void OnLevelFailed() {
 			statusManager.EmitStatusUpdate(ChangedProperties.Performance, "failed");
+		}
+
+		public void OnMultiplayerLevelFinished(LevelCompletionResults results) {
+			if (results.levelEndStateType == LevelCompletionResults.LevelEndStateType.Cleared) {
+				OnLevelFinished();
+			} else if (results.levelEndStateType == LevelCompletionResults.LevelEndStateType.Failed) {
+				OnLevelFailed();
+			}
+		}
+
+		public void OnEnergyDidReach0Event() {
+			if (statusManager.gameStatus.modNoFail) {
+				statusManager.gameStatus.softFailed = true;
+
+				UpdateModMultiplier();
+				UpdateCurrentMaxScore();
+
+				statusManager.EmitStatusUpdate(ChangedProperties.BeatmapAndPerformanceAndMod, "softFailed");
+			}
 		}
 
 		public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData) {
