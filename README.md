@@ -1,10 +1,14 @@
-# Beat Saber HTTP Status +Database
-**BeatSaber1.13.0対応までで本ツールは開発終了します。BeatSaber1.13.2以降は [DataRecorder](https://github.com/rynan4818/DataRecorder)を使用して下さい**
+BeatSaber1.13.0対応までで本ツールは開発終了します
 
-**The development of this tool will be finished by BeatSaber1.13.0. Please use [DataRecorder](https://github.com/rynan4818/DataRecorder) for BeatSaber1.13.2 or later.**
+BeatSaber1.13.2以降は [DataRecorder](https://github.com/rynan4818/DataRecorder)を使用して下さい
+---
+**The development of this tool will be finished by BeatSaber1.13.0.**
+
+Please use [DataRecorder](https://github.com/rynan4818/DataRecorder) for BeatSaber1.13.2 or later.
 
 ---
-
+# Beat Saber HTTP Status +Database
+---
 このプラグインは、opl氏が製作の[Beat Saber HTTP Status](https://github.com/opl-/beatsaber-http-status)の機能に、SQLite ver3 形式でのデータベース記録機能を追加したものです。
 
 拙作のBeat Saber プレイ動画カットツール（[BS Movie Cut](https://github.com/rynan4818/bs-movie-cut)）で使用するために製作しました。
