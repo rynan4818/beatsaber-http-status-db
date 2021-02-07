@@ -202,7 +202,7 @@ namespace BeatSaberHTTPStatus.Models
 			// public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
 			beatmapObjectCallbackController.beatmapEventDidTriggerEvent += OnBeatmapEventDidTrigger;
 			// public event Action GameSongController#songDidFinishEvent;
-			gameSongController.songDidFinishEvent += OnLevelFinished;
+			//gameSongController.songDidFinishEvent += OnLevelFinished;
 			// public event Action GameEnergyCounter#gameEnergyDidReach0Event;
 			gameEnergyCounter.gameEnergyDidReach0Event += OnEnergyDidReach0Event;
             gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
@@ -416,7 +416,7 @@ namespace BeatSaberHTTPStatus.Models
 			statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(audioTimeSyncController.songTime * 1000f / statusManager.GameStatus.songSpeedMultiplier);
 			statusManager.GameStatus.paused = 0;
 
-			statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Resume);
+			statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
 		}
 
 		public void OnNoteWasCut(NoteData noteData, NoteCutInfo noteCutInfo, int multiplier)
