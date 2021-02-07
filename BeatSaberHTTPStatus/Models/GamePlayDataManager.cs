@@ -32,7 +32,6 @@ namespace BeatSaberHTTPStatus.Models
 		private AudioTimeSyncController audioTimeSyncController;
 		private BeatmapObjectCallbackController beatmapObjectCallbackController;
 		private PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction;
-		private GameSongController gameSongController;
 		private GameEnergyCounter gameEnergyCounter;
 		private MultiplayerLocalActivePlayerFacade multiplayerLocalActivePlayerFacade;
 		private ILevelEndActions levelEndActions;
@@ -107,7 +106,7 @@ namespace BeatSaberHTTPStatus.Models
 						}
 
 						if (levelEndActions != null) {
-							levelEndActions.levelFailedEvent -= OnLevelFinished;
+							levelEndActions.levelFinishedEvent -= OnLevelFinished;
 							levelEndActions.levelFailedEvent -= OnLevelFailed;
 						}
 						//CleanUpMultiplayer();
@@ -156,7 +155,6 @@ namespace BeatSaberHTTPStatus.Models
 				audioTimeSyncController = container.Resolve<AudioTimeSyncController>();
 				beatmapObjectCallbackController = container.Resolve<BeatmapObjectCallbackController>();
 				playerHeadAndObstacleInteraction = container.Resolve<PlayerHeadAndObstacleInteraction>();
-				gameSongController = container.Resolve<GameSongController>();
 				gameEnergyCounter = container.Resolve<GameEnergyCounter>();
 				gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
 			}
@@ -201,8 +199,6 @@ namespace BeatSaberHTTPStatus.Models
 			Plugin.Logger.Info("2.5");
 			// public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
 			beatmapObjectCallbackController.beatmapEventDidTriggerEvent += OnBeatmapEventDidTrigger;
-			// public event Action GameSongController#songDidFinishEvent;
-			//gameSongController.songDidFinishEvent += OnLevelFinished;
 			// public event Action GameEnergyCounter#gameEnergyDidReach0Event;
 			gameEnergyCounter.gameEnergyDidReach0Event += OnEnergyDidReach0Event;
             gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
