@@ -211,7 +211,7 @@ namespace BeatSaberHTTPStatus.Models
 				multiplayerLocalActivePlayerFacade.playerDidFinishEvent += OnMultiplayerLevelFinished;
 			}
             if (levelEndActions != null) {
-				levelEndActions.levelFailedEvent += OnLevelFinished;
+				levelEndActions.levelFinishedEvent += OnLevelFinished;
 				levelEndActions.levelFailedEvent += OnLevelFailed;
             }
 			Plugin.Logger.Info("3");
