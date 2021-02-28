@@ -37,7 +37,8 @@ namespace BeatSaberHTTPStatus
         {
             Logger = logger;
             Logger.Debug("Logger Initialized.");
-            zenjector.OnGame<HttpGameInstaller>();
+            zenjector.OnGame<HttpGameInstaller>(true).OnlyForStandard();
+            zenjector.OnGame<HttpGameInstaller>(false).OnlyForMultiplayer();
             zenjector.OnApp<HttpAppInstaller>();
         }
 
