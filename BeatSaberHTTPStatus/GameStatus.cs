@@ -108,6 +108,7 @@ namespace BeatSaberHTTPStatus {
 		public bool noHUD = false;
 		public bool advancedHUD = false;
 		public bool autoRestart = false;
+		public int environmentEffectsFilterPreset = 0;
 
 		// Beatmap event
 		public int beatmapEventType = 0;
