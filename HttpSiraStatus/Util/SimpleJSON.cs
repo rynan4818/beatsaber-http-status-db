@@ -33,6 +33,7 @@
  * SOFTWARE.
  * 
  * * * * */
+#pragma warning disable IDE0044,IDE0034,IDE0059,IDE0018,IDE0031,IDE0075,IDE0041,IDE0019,IDE0038
 using System;
 using System.Collections;
 using System.Collections.Generic;
