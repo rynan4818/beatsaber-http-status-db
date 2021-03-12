@@ -138,8 +138,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Enums\EventEnum.cs" />
-    <Compile Include="GameStatus.cs" />
-    <Compile Include="HTTPServer.cs" />
+    <Compile Include="Models\GameStatus.cs" />
+    <Compile Include="Models\HTTPServer.cs" />
     <Compile Include="Installer\HttpAppInstaller.cs" />
     <Compile Include="Installer\HttpGameInstaller.cs" />
     <Compile Include="Interfaces\IHTTPServer.cs" />
@@ -150,9 +150,9 @@
     <Compile Include="Plugin.cs" />
     <Compile Include="Configuration\PluginConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SendEventArgs.cs" />
-    <Compile Include="StatusBroadcastBehavior.cs" />
-    <Compile Include="StatusManager.cs" />
+    <Compile Include="Models\SendEventArgs.cs" />
+    <Compile Include="Models\StatusBroadcastBehavior.cs" />
+    <Compile Include="Models\StatusManager.cs" />
     <Compile Include="Util\SimpleJSON.cs" />
     <Compile Include="Util\Utility.cs" />
   </ItemGroup>
@@ -171,8 +171,6 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Extentions\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
