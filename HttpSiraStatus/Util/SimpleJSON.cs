@@ -997,14 +997,6 @@ namespace HttpSiraStatus.Util
                 aSB.AppendLine().Append(' ', aIndent);
             aSB.Append('}');
         }
-
-        public class JsonObjectPool : MemoryPool<JSONObject>
-        {
-            protected override void Reinitialize(JSONObject item)
-            {
-                item.Clear();
-            }
-        }
     }
     // End of JSONObject
 

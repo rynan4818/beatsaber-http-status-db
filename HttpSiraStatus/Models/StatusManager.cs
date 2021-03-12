@@ -15,21 +15,14 @@ namespace HttpSiraStatus
         public JSONObject NoteCutJSON { get; } = new JSONObject();
         public JSONObject BeatmapEventJSON { get; } = new JSONObject();
         public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
-
-        [Inject]
-        private readonly MemoryPool<JSONObject> memoryPool;
-        private MemoryPoolContainer<JSONObject> memoryPoolContainer;
-
         public event SendEventHandler SendEvent;
-
         private Thread thread;
         private bool disposedValue;
 
         [Inject]
 #pragma warning disable IDE0051 // 使用されていないプライベート メンバーを削除する
-        private void Constractor()        {
-            this.memoryPoolContainer = new MemoryPoolContainer<JSONObject>(this.memoryPool);
-
+        private void Constractor()
+        {
             this.UpdateAll();
             this.thread = new Thread(new ThreadStart(this.RaiseSendEvent));
             this.thread.Start();
@@ -53,7 +46,7 @@ namespace HttpSiraStatus
 
         private void EnqueueMessage(ChangedProperty changedProps, BeatSaberEvent e)
         {
-            var eventJSON = this.memoryPoolContainer.Spawn();
+            var eventJSON = new JSONObject();
             eventJSON["event"] = e.GetDescription();
 
             if ((changedProps & (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod))
@@ -87,7 +80,6 @@ namespace HttpSiraStatus
                 try {
                     while (this.JsonQueue.TryDequeue(out var json)) {
                         this.SendEvent?.Invoke(this, new SendEventArgs(json.Clone()));
-                        this.memoryPoolContainer.Despawn(json);
                     }
                 }
                 catch (Exception e) {
