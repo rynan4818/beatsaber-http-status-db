@@ -27,8 +27,6 @@ namespace BeatSaberHTTPStatus.Models
 		[Inject]
 		CustomCutBuffer.Pool pool;
 
-
-		private MemoryPoolContainer<CustomCutBuffer> _customCutBufferMemoryPoolContainer;
 		private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
 		private PauseController pauseController;
 		private ScoreController scoreController;
@@ -42,6 +40,8 @@ namespace BeatSaberHTTPStatus.Models
 		private ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
 
 		private GameplayModifiersModelSO gameplayModifiersSO;
+
+		private LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
 
 		/// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
 		//private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -169,7 +169,6 @@ namespace BeatSaberHTTPStatus.Models
 			pauseController = container.TryResolve<PauseController>();
 			levelEndActions = container.TryResolve<ILevelEndActions>();
 			multiplayerLocalActivePlayerFacade = container.TryResolve<MultiplayerLocalActivePlayerFacade>();
-			this._customCutBufferMemoryPoolContainer = new MemoryPoolContainer<CustomCutBuffer>(pool);
 			Plugin.Logger.Info("0");
 
 			// Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
@@ -466,9 +465,7 @@ namespace BeatSaberHTTPStatus.Models
 			statusManager.GameStatus.cutMultiplier = multiplier;
 			statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
             if (noteCutInfo.allIsOK && noteCutMapping.TryAdd(noteCutInfo, noteData)) {
-				var cutBuff = this._customCutBufferMemoryPoolContainer.Spawn();
-				cutBuff.Init(noteCutInfo, multiplier);
-				cutBuff.didFinishEvent.Add(this);
+				this.activeItems.Add(this.pool.Spawn(noteCutInfo, multiplier, this));
             }
 		}
 
@@ -496,7 +493,8 @@ namespace BeatSaberHTTPStatus.Models
 				statusManager.GameStatus.cutMultiplier = multiplier;
 
 				statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
-				this._customCutBufferMemoryPoolContainer.Despawn(customCutBuffer);
+				this.activeItems.Remove(customCutBuffer);
+				this.pool.Despawn(customCutBuffer);
 			}
 		}
 		private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default(NoteCutInfo) , bool initialCut = true)

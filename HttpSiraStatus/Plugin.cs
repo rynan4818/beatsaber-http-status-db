@@ -1,6 +1,7 @@
 using BeatSaberHTTPStatus.Installer;
 using IPA;
 using SiraUtil.Zenject;
+using System.Reflection;
 using UnityEngine;
 using IPALogger = IPA.Logging.Logger;
 
@@ -17,8 +18,8 @@ namespace BeatSaberHTTPStatus
     [Plugin(RuntimeOptions.SingleStartInit)]
     internal class Plugin
     {
-        public static readonly string PluginVersion = "$SEMVER_VERSION$"; // Populated by MSBuild
-        public static readonly string GameVersion = "$BS_VERSION$"; // Populated by MSBuild
+        public static string PluginVersion => Assembly.GetExecutingAssembly().GetName().Version.ToString(); // Populated by MSBuild
+        public static string GameVersion => "1.13.4";
 
         public string Name
         {
