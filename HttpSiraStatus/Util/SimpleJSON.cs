@@ -39,8 +39,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using Zenject;
 
-namespace SimpleJSON
+namespace HttpSiraStatus.Util
 {
     public enum JSONNodeType
     {
@@ -695,7 +696,6 @@ namespace SimpleJSON
                 return ParseElement(Token.ToString(), TokenIsQuoted);
             return ctx;
         }
-
     }
     // End of JSONNode
 
@@ -997,6 +997,13 @@ namespace SimpleJSON
             aSB.Append('}');
         }
 
+        public class JsonObjectPool : MemoryPool<JSONObject>
+        {
+            protected override void Reinitialize(JSONObject item)
+            {
+                item.Clear();
+            }
+        }
     }
     // End of JSONObject
 
