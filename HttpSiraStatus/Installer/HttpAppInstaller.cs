@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BeatSaberHTTPStatus.Installer
+namespace HttpSiraStatus.Installer
 {
     public class HttpAppInstaller : Zenject.Installer
     {

@@ -1,5 +1,5 @@
-﻿using BeatSaberHTTPStatus.Interfaces;
-using BeatSaberHTTPStatus.Util;
+﻿using HttpSiraStatus.Interfaces;
+using HttpSiraStatus.Util;
 using SimpleJSON;
 using System;
 using System.Collections.Concurrent;
@@ -12,7 +12,7 @@ using WebSocketSharp;
 using WebSocketSharp.Server;
 using Zenject;
 
-namespace BeatSaberHTTPStatus
+namespace HttpSiraStatus
 {
     public class StatusBroadcastBehavior : WebSocketBehavior
     {

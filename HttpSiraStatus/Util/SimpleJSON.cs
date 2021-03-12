@@ -987,8 +987,8 @@ namespace SimpleJSON
                 }
             }
             catch (Exception e) {
-                BeatSaberHTTPStatus.Plugin.Logger.Error(e);
-                BeatSaberHTTPStatus.Plugin.Logger.Error(aSB.ToString());
+                HttpSiraStatus.Plugin.Logger.Error(e);
+                HttpSiraStatus.Plugin.Logger.Error(aSB.ToString());
                 aSB.Clear();
                 return;
             }

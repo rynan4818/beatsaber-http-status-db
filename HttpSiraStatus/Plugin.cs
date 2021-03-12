@@ -1,4 +1,4 @@
-using BeatSaberHTTPStatus.Installer;
+using HttpSiraStatus.Installer;
 using IPA;
 using SiraUtil.Zenject;
 using System.Reflection;
@@ -13,7 +13,7 @@ using IPALogger = IPA.Logging.Logger;
 // public int ScoreController.prevFrameScore
 // protected ScoreController._baseScore
 
-namespace BeatSaberHTTPStatus
+namespace HttpSiraStatus
 {
     [Plugin(RuntimeOptions.SingleStartInit)]
     internal class Plugin

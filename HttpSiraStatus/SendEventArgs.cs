@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BeatSaberHTTPStatus
+namespace HttpSiraStatus
 {
     public class SendEventArgs
     {

@@ -1,5 +1,5 @@
-﻿using BeatSaberHTTPStatus.Interfaces;
-using BeatSaberHTTPStatus.Util;
+﻿using HttpSiraStatus.Interfaces;
+using HttpSiraStatus.Util;
 using BS_Utils.Gameplay;
 using IPA.Utilities;
 using System;
@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
-namespace BeatSaberHTTPStatus.Models
+namespace HttpSiraStatus.Models
 {
     public class GamePlayDataManager : IInitializable, IDisposable, ICutScoreBufferDidFinishEvent
 	{

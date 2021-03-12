@@ -2,14 +2,14 @@ using System;
 using UnityEngine;
 using SimpleJSON;
 using System.Threading.Tasks;
-using BeatSaberHTTPStatus.Interfaces;
+using HttpSiraStatus.Interfaces;
 using Zenject;
 using System.Collections.Concurrent;
-using BeatSaberHTTPStatus.Util;
+using HttpSiraStatus.Util;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace BeatSaberHTTPStatus {
+namespace HttpSiraStatus {
 	public class StatusManager : IStatusManager, IDisposable
 	{
 		[Inject]
@@ -111,8 +111,8 @@ namespace BeatSaberHTTPStatus {
 			if (StatusJSON["game"] == null) StatusJSON["game"] = new JSONObject();
 			var gameJSON = StatusJSON["game"].AsObject;
 
-			gameJSON["pluginVersion"] = BeatSaberHTTPStatus.Plugin.PluginVersion;
-			gameJSON["gameVersion"] = BeatSaberHTTPStatus.Plugin.GameVersion;
+			gameJSON["pluginVersion"] = HttpSiraStatus.Plugin.PluginVersion;
+			gameJSON["gameVersion"] = HttpSiraStatus.Plugin.GameVersion;
 			gameJSON["scene"] = StringOrNull(GameStatus.scene);
 			gameJSON["mode"] = StringOrNull(GameStatus.mode == null ? null : (GameStatus.multiplayer ? "Multiplayer" : GameStatus.partyMode ? "Party" : "Solo") + GameStatus.mode);
 		}

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BeatSaberHTTPStatus
+namespace HttpSiraStatus
 {
 	/// <summary>
 	/// 拡張メソッド用クラス

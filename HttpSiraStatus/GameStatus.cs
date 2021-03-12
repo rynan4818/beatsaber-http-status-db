@@ -1,6 +1,6 @@
 using System;
 
-namespace BeatSaberHTTPStatus {
+namespace HttpSiraStatus {
 	[Serializable]
 	public class GameStatus {
 		public string updateCause;

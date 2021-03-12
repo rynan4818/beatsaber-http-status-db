@@ -1,10 +1,10 @@
-using BeatSaberHTTPStatus.Interfaces;
+using HttpSiraStatus.Interfaces;
 using System;
 using System.Text;
 using WebSocketSharp.Server;
 using Zenject;
 
-namespace BeatSaberHTTPStatus
+namespace HttpSiraStatus
 {
     public class HTTPServer : IInitializable, IDisposable
     {
@@ -47,7 +47,7 @@ namespace BeatSaberHTTPStatus
 
             server.AddWebSocketService<StatusBroadcastBehavior>("/socket", initializer => initializer.SetStatusManager(this.statusManager));
 
-            BeatSaberHTTPStatus.Plugin.Logger.Info("Starting HTTP server on port " + this.ServerPort);
+            HttpSiraStatus.Plugin.Logger.Info("Starting HTTP server on port " + this.ServerPort);
             server.Start();
         }
 
@@ -56,7 +56,7 @@ namespace BeatSaberHTTPStatus
             if (!disposedValue) {
                 if (disposing) {
                     // TODO: マネージド状態を破棄します (マネージド オブジェクト)
-                    BeatSaberHTTPStatus.Plugin.Logger.Info("Stopping HTTP server");
+                    HttpSiraStatus.Plugin.Logger.Info("Stopping HTTP server");
                     server.Stop();
                 }
 

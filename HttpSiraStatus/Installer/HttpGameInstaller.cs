@@ -1,11 +1,11 @@
-﻿using BeatSaberHTTPStatus.Models;
+﻿using HttpSiraStatus.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BeatSaberHTTPStatus.Installer
+namespace HttpSiraStatus.Installer
 {
     public class HttpGameInstaller : Zenject.Installer
     {
