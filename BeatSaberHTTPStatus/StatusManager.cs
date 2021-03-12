@@ -187,6 +187,9 @@ namespace BeatSaberHTTPStatus {
 			modJSON["failOnSaberClash"] = gameStatus.modFailOnSaberClash;
 			modJSON["strictAngles"] = gameStatus.modStrictAngles;
 			modJSON["fastNotes"] = gameStatus.modFastNotes;
+			modJSON["smallNotes"] = gameStatus.modSmallNotes;
+			modJSON["proMode"] = gameStatus.modProMode;
+			modJSON["zenMode"] = gameStatus.modZenMode;
 		}
 
 		private void UpdatePlayerSettingsJSON() {
@@ -201,6 +204,9 @@ namespace BeatSaberHTTPStatus {
 			playerSettingsJSON["noHUD"] = gameStatus.noHUD;
 			playerSettingsJSON["advancedHUD"] = gameStatus.advancedHUD;
 			playerSettingsJSON["autoRestart"] = gameStatus.autoRestart;
+			playerSettingsJSON["saberTrailIntensity"] = gameStatus.saberTrailIntensity;
+			playerSettingsJSON["environmentEffects"] = gameStatus.environmentEffects;
+			playerSettingsJSON["hideNoteSpawningEffect"] = gameStatus.hideNoteSpawningEffect;
 		}
 
 		private void UpdateBeatmapEventJSON() {
