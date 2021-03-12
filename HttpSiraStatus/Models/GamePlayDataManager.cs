@@ -306,8 +306,10 @@ namespace HttpSiraStatus.Models
             this.gameStatus.modFailOnSaberClash = this.gameplayModifiers.failOnSaberClash;
             this.gameStatus.modStrictAngles = this.gameplayModifiers.strictAngles;
             this.gameStatus.modFastNotes = this.gameplayModifiers.fastNotes;
+            this.gameStatus.modSmallNotes = this.gameplayModifiers.smallCubes;
+            this.gameStatus.modProMode = this.gameplayModifiers.proMode;
+            this.gameStatus.modZenMode = this.gameplayModifiers.zenMode;
 
-            this.gameStatus.environmentEffectsFilterPreset = (int)playerSettings.environmentEffectsFilterPreset;
             this.gameStatus.leftHanded = playerSettings.leftHanded;
             this.gameStatus.playerHeight = playerSettings.playerHeight;
             this.gameStatus.sfxVolume = playerSettings.sfxVolume;
@@ -315,6 +317,9 @@ namespace HttpSiraStatus.Models
             this.gameStatus.noHUD = playerSettings.noTextsAndHuds;
             this.gameStatus.advancedHUD = playerSettings.advancedHud;
             this.gameStatus.autoRestart = playerSettings.autoRestart;
+            this.gameStatus.saberTrailIntensity = playerSettings.saberTrailIntensity;
+            this.gameStatus.environmentEffects = playerSettings.environmentEffectsFilterPreset.ToString();
+            this.gameStatus.hideNoteSpawningEffect = playerSettings.hideNoteSpawnEffect;
             Plugin.Logger.Info("8");
 
             this._thread = new Thread(new ThreadStart(this.OnObstacleInteraction));

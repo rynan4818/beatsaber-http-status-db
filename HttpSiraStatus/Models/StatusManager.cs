@@ -241,6 +241,9 @@ namespace HttpSiraStatus
             modJSON["failOnSaberClash"] = this.GameStatus.modFailOnSaberClash;
             modJSON["strictAngles"] = this.GameStatus.modStrictAngles;
             modJSON["fastNotes"] = this.GameStatus.modFastNotes;
+            modJSON["smallNotes"] = this.GameStatus.modSmallNotes;
+            modJSON["proMode"] = this.GameStatus.modProMode;
+            modJSON["zenMode"] = this.GameStatus.modZenMode;
         }
 
         private void UpdatePlayerSettingsJSON()
@@ -256,6 +259,9 @@ namespace HttpSiraStatus
             playerSettingsJSON["noHUD"] = this.GameStatus.noHUD;
             playerSettingsJSON["advancedHUD"] = this.GameStatus.advancedHUD;
             playerSettingsJSON["autoRestart"] = this.GameStatus.autoRestart;
+            playerSettingsJSON["saberTrailIntensity"] = this.GameStatus.saberTrailIntensity;
+            playerSettingsJSON["environmentEffects"] = this.GameStatus.environmentEffects;
+            playerSettingsJSON["hideNoteSpawningEffect"] = this.GameStatus.hideNoteSpawningEffect;
         }
 
         private void UpdateBeatmapEventJSON()

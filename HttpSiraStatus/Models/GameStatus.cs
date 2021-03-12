@@ -100,6 +100,9 @@ namespace HttpSiraStatus
         public bool modFailOnSaberClash = false;
         public bool modStrictAngles = false;
         public bool modFastNotes = false;
+        public bool modSmallNotes = false;
+        public bool modProMode = false;
+        public bool modZenMode = false;
 
         // Player settings
         public bool staticLights = false;
@@ -110,7 +113,9 @@ namespace HttpSiraStatus
         public bool noHUD = false;
         public bool advancedHUD = false;
         public bool autoRestart = false;
-        public int environmentEffectsFilterPreset = 0;
+        public float saberTrailIntensity = 0.5f;
+        public string environmentEffects = EnvironmentEffectsFilterPreset.AllEffects.ToString();
+        public bool hideNoteSpawningEffect = false;
 
         // Beatmap event
         public int beatmapEventType = 0;
