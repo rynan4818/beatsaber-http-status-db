@@ -69,36 +69,36 @@ namespace HttpSiraStatus.Util
             private Type type;
             private Dictionary<string, JSONNode>.Enumerator m_Object;
             private List<JSONNode>.Enumerator m_Array;
-            public bool IsValid { get { return type != Type.None; } }
+            public bool IsValid { get { return this.type != Type.None; } }
             public Enumerator(List<JSONNode>.Enumerator aArrayEnum)
             {
-                type = Type.Array;
-                m_Object = default(Dictionary<string, JSONNode>.Enumerator);
-                m_Array = aArrayEnum;
+                this.type = Type.Array;
+                this.m_Object = default(Dictionary<string, JSONNode>.Enumerator);
+                this.m_Array = aArrayEnum;
             }
             public Enumerator(Dictionary<string, JSONNode>.Enumerator aDictEnum)
             {
-                type = Type.Object;
-                m_Object = aDictEnum;
-                m_Array = default(List<JSONNode>.Enumerator);
+                this.type = Type.Object;
+                this.m_Object = aDictEnum;
+                this.m_Array = default(List<JSONNode>.Enumerator);
             }
             public KeyValuePair<string, JSONNode> Current
             {
                 get
                 {
-                    if (type == Type.Array)
-                        return new KeyValuePair<string, JSONNode>(string.Empty, m_Array.Current);
-                    else if (type == Type.Object)
-                        return m_Object.Current;
+                    if (this.type == Type.Array)
+                        return new KeyValuePair<string, JSONNode>(string.Empty, this.m_Array.Current);
+                    else if (this.type == Type.Object)
+                        return this.m_Object.Current;
                     return new KeyValuePair<string, JSONNode>(string.Empty, null);
                 }
             }
             public bool MoveNext()
             {
-                if (type == Type.Array)
-                    return m_Array.MoveNext();
-                else if (type == Type.Object)
-                    return m_Object.MoveNext();
+                if (this.type == Type.Array)
+                    return this.m_Array.MoveNext();
+                else if (this.type == Type.Object)
+                    return this.m_Object.MoveNext();
                 return false;
             }
         }
@@ -107,9 +107,9 @@ namespace HttpSiraStatus.Util
             private Enumerator m_Enumerator;
             public ValueEnumerator(List<JSONNode>.Enumerator aArrayEnum) : this(new Enumerator(aArrayEnum)) { }
             public ValueEnumerator(Dictionary<string, JSONNode>.Enumerator aDictEnum) : this(new Enumerator(aDictEnum)) { }
-            public ValueEnumerator(Enumerator aEnumerator) { m_Enumerator = aEnumerator; }
-            public JSONNode Current { get { return m_Enumerator.Current.Value; } }
-            public bool MoveNext() { return m_Enumerator.MoveNext(); }
+            public ValueEnumerator(Enumerator aEnumerator) { this.m_Enumerator = aEnumerator; }
+            public JSONNode Current { get { return this.m_Enumerator.Current.Value; } }
+            public bool MoveNext() { return this.m_Enumerator.MoveNext(); }
             public ValueEnumerator GetEnumerator() { return this; }
         }
         public struct KeyEnumerator
@@ -117,9 +117,9 @@ namespace HttpSiraStatus.Util
             private Enumerator m_Enumerator;
             public KeyEnumerator(List<JSONNode>.Enumerator aArrayEnum) : this(new Enumerator(aArrayEnum)) { }
             public KeyEnumerator(Dictionary<string, JSONNode>.Enumerator aDictEnum) : this(new Enumerator(aDictEnum)) { }
-            public KeyEnumerator(Enumerator aEnumerator) { m_Enumerator = aEnumerator; }
-            public string Current { get { return m_Enumerator.Current.Key; } }
-            public bool MoveNext() { return m_Enumerator.MoveNext(); }
+            public KeyEnumerator(Enumerator aEnumerator) { this.m_Enumerator = aEnumerator; }
+            public string Current { get { return this.m_Enumerator.Current.Key; } }
+            public bool MoveNext() { return this.m_Enumerator.MoveNext(); }
             public KeyEnumerator GetEnumerator() { return this; }
         }
 
@@ -129,34 +129,34 @@ namespace HttpSiraStatus.Util
             private Enumerator m_Enumerator;
             internal LinqEnumerator(JSONNode aNode)
             {
-                m_Node = aNode;
-                if (m_Node != null)
-                    m_Enumerator = m_Node.GetEnumerator();
+                this.m_Node = aNode;
+                if (this.m_Node != null)
+                    this.m_Enumerator = this.m_Node.GetEnumerator();
             }
-            public KeyValuePair<string, JSONNode> Current { get { return m_Enumerator.Current; } }
-            object IEnumerator.Current { get { return m_Enumerator.Current; } }
-            public bool MoveNext() { return m_Enumerator.MoveNext(); }
+            public KeyValuePair<string, JSONNode> Current { get { return this.m_Enumerator.Current; } }
+            object IEnumerator.Current { get { return this.m_Enumerator.Current; } }
+            public bool MoveNext() { return this.m_Enumerator.MoveNext(); }
 
             public void Dispose()
             {
-                m_Node = null;
-                m_Enumerator = new Enumerator();
+                this.m_Node = null;
+                this.m_Enumerator = new Enumerator();
             }
 
             public IEnumerator<KeyValuePair<string, JSONNode>> GetEnumerator()
             {
-                return new LinqEnumerator(m_Node);
+                return new LinqEnumerator(this.m_Node);
             }
 
             public void Reset()
             {
-                if (m_Node != null)
-                    m_Enumerator = m_Node.GetEnumerator();
+                if (this.m_Node != null)
+                    this.m_Enumerator = this.m_Node.GetEnumerator();
             }
 
             IEnumerator IEnumerable.GetEnumerator()
             {
-                return new LinqEnumerator(m_Node);
+                return new LinqEnumerator(this.m_Node);
             }
         }
 
@@ -192,7 +192,7 @@ namespace HttpSiraStatus.Util
         }
         public virtual void Add(JSONNode aItem)
         {
-            Add("", aItem);
+            this.Add("", aItem);
         }
 
         public virtual JSONNode Remove(string aKey)
@@ -228,7 +228,7 @@ namespace HttpSiraStatus.Util
         {
             get
             {
-                foreach (var C in Children)
+                foreach (var C in this.Children)
                     foreach (var D in C.DeepChildren)
                         yield return D;
             }
@@ -247,22 +247,22 @@ namespace HttpSiraStatus.Util
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            WriteToStringBuilder(sb, 0, 0, JSONTextMode.Compact);
+            this.WriteToStringBuilder(sb, 0, 0, JSONTextMode.Compact);
             return sb.ToString();
         }
 
         public virtual string ToString(int aIndent)
         {
             StringBuilder sb = new StringBuilder();
-            WriteToStringBuilder(sb, 0, aIndent, JSONTextMode.Indent);
+            this.WriteToStringBuilder(sb, 0, aIndent, JSONTextMode.Indent);
             return sb.ToString();
         }
         internal abstract void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode);
 
         public abstract Enumerator GetEnumerator();
         public IEnumerable<KeyValuePair<string, JSONNode>> Linq { get { return new LinqEnumerator(this); } }
-        public KeyEnumerator Keys { get { return new KeyEnumerator(GetEnumerator()); } }
-        public ValueEnumerator Values { get { return new ValueEnumerator(GetEnumerator()); } }
+        public KeyEnumerator Keys { get { return new KeyEnumerator(this.GetEnumerator()); } }
+        public ValueEnumerator Values { get { return new ValueEnumerator(this.GetEnumerator()); } }
 
         #endregion common interface
 
@@ -274,26 +274,26 @@ namespace HttpSiraStatus.Util
             get
             {
                 double v = 0.0;
-                if (double.TryParse(Value, NumberStyles.Float, CultureInfo.InvariantCulture, out v))
+                if (double.TryParse(this.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out v))
                     return v;
                 return 0.0;
             }
             set
             {
-                Value = value.ToString(CultureInfo.InvariantCulture);
+                this.Value = value.ToString(CultureInfo.InvariantCulture);
             }
         }
 
         public virtual int AsInt
         {
-            get { return (int)AsDouble; }
-            set { AsDouble = value; }
+            get { return (int)this.AsDouble; }
+            set { this.AsDouble = value; }
         }
 
         public virtual float AsFloat
         {
-            get { return (float)AsDouble; }
-            set { AsDouble = value; }
+            get { return (float)this.AsDouble; }
+            set { this.AsDouble = value; }
         }
 
         public virtual bool AsBool
@@ -301,13 +301,13 @@ namespace HttpSiraStatus.Util
             get
             {
                 bool v = false;
-                if (bool.TryParse(Value, out v))
+                if (bool.TryParse(this.Value, out v))
                     return v;
-                return !string.IsNullOrEmpty(Value);
+                return !string.IsNullOrEmpty(this.Value);
             }
             set
             {
-                Value = (value) ? "true" : "false";
+                this.Value = (value) ? "true" : "false";
             }
         }
 
@@ -316,13 +316,13 @@ namespace HttpSiraStatus.Util
             get
             {
                 long val = 0;
-                if (long.TryParse(Value, out val))
+                if (long.TryParse(this.Value, out val))
                     return val;
                 return 0L;
             }
             set
             {
-                Value = value.ToString();
+                this.Value = value.ToString();
             }
         }
 
@@ -331,13 +331,13 @@ namespace HttpSiraStatus.Util
             get
             {
                 ulong val = 0;
-                if (ulong.TryParse(Value, out val))
+                if (ulong.TryParse(this.Value, out val))
                     return val;
                 return 0;
             }
             set
             {
-                Value = value.ToString();
+                this.Value = value.ToString();
             }
         }
 
@@ -705,30 +705,30 @@ namespace HttpSiraStatus.Util
         private bool inline = false;
         public override bool Inline
         {
-            get { return inline; }
-            set { inline = value; }
+            get { return this.inline; }
+            set { this.inline = value; }
         }
 
         public override JSONNodeType Tag { get { return JSONNodeType.Array; } }
         public override bool IsArray { get { return true; } }
-        public override Enumerator GetEnumerator() { return new Enumerator(m_List.GetEnumerator()); }
+        public override Enumerator GetEnumerator() { return new Enumerator(this.m_List.GetEnumerator()); }
 
         public override JSONNode this[int aIndex]
         {
             get
             {
-                if (aIndex < 0 || aIndex >= m_List.Count)
+                if (aIndex < 0 || aIndex >= this.m_List.Count)
                     return new JSONLazyCreator(this);
-                return m_List[aIndex];
+                return this.m_List[aIndex];
             }
             set
             {
                 if (value == null)
                     value = JSONNull.CreateOrGet();
-                if (aIndex < 0 || aIndex >= m_List.Count)
-                    m_List.Add(value);
+                if (aIndex < 0 || aIndex >= this.m_List.Count)
+                    this.m_List.Add(value);
                 else
-                    m_List[aIndex] = value;
+                    this.m_List[aIndex] = value;
             }
         }
 
@@ -739,47 +739,47 @@ namespace HttpSiraStatus.Util
             {
                 if (value == null)
                     value = JSONNull.CreateOrGet();
-                m_List.Add(value);
+                this.m_List.Add(value);
             }
         }
 
         public override int Count
         {
-            get { return m_List.Count; }
+            get { return this.m_List.Count; }
         }
 
         public override void Add(string aKey, JSONNode aItem)
         {
             if (aItem == null)
                 aItem = JSONNull.CreateOrGet();
-            m_List.Add(aItem);
+            this.m_List.Add(aItem);
         }
 
         public override JSONNode Remove(int aIndex)
         {
-            if (aIndex < 0 || aIndex >= m_List.Count)
+            if (aIndex < 0 || aIndex >= this.m_List.Count)
                 return null;
-            JSONNode tmp = m_List[aIndex];
-            m_List.RemoveAt(aIndex);
+            JSONNode tmp = this.m_List[aIndex];
+            this.m_List.RemoveAt(aIndex);
             return tmp;
         }
 
         public override JSONNode Remove(JSONNode aNode)
         {
-            m_List.Remove(aNode);
+            this.m_List.Remove(aNode);
             return aNode;
         }
 
         public override void Clear()
         {
-            m_List.Clear();
+            this.m_List.Clear();
         }
 
         public override JSONNode Clone()
         {
             var node = new JSONArray();
-            node.m_List.Capacity = m_List.Capacity;
-            foreach (var n in m_List) {
+            node.m_List.Capacity = this.m_List.Capacity;
+            foreach (var n in this.m_List) {
                 if (n != null)
                     node.Add(n.Clone());
                 else
@@ -792,7 +792,7 @@ namespace HttpSiraStatus.Util
         {
             get
             {
-                foreach (JSONNode N in m_List)
+                foreach (JSONNode N in this.m_List)
                     yield return N;
             }
         }
@@ -801,8 +801,8 @@ namespace HttpSiraStatus.Util
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
             aSB.Append('[');
-            int count = m_List.Count;
-            if (inline)
+            int count = this.m_List.Count;
+            if (this.inline)
                 aMode = JSONTextMode.Compact;
             for (int i = 0; i < count; i++) {
                 if (i > 0)
@@ -812,7 +812,7 @@ namespace HttpSiraStatus.Util
 
                 if (aMode == JSONTextMode.Indent)
                     aSB.Append(' ', aIndent + aIndentInc);
-                m_List[i].WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
+                this.m_List[i].WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
             }
             if (aMode == JSONTextMode.Indent)
                 aSB.AppendLine().Append(' ', aIndent);
@@ -828,22 +828,22 @@ namespace HttpSiraStatus.Util
         private bool inline = false;
         public override bool Inline
         {
-            get { return inline; }
-            set { inline = value; }
+            get { return this.inline; }
+            set { this.inline = value; }
         }
 
         public override JSONNodeType Tag { get { return JSONNodeType.Object; } }
         public override bool IsObject { get { return true; } }
 
-        public override Enumerator GetEnumerator() { return new Enumerator(m_Dict.GetEnumerator()); }
+        public override Enumerator GetEnumerator() { return new Enumerator(this.m_Dict.GetEnumerator()); }
 
 
         public override JSONNode this[string aKey]
         {
             get
             {
-                if (m_Dict.ContainsKey(aKey))
-                    return m_Dict[aKey];
+                if (this.m_Dict.ContainsKey(aKey))
+                    return this.m_Dict[aKey];
                 else
                     return new JSONLazyCreator(this, aKey);
             }
@@ -851,10 +851,10 @@ namespace HttpSiraStatus.Util
             {
                 if (value == null)
                     value = JSONNull.CreateOrGet();
-                if (m_Dict.ContainsKey(aKey))
-                    m_Dict[aKey] = value;
+                if (this.m_Dict.ContainsKey(aKey))
+                    this.m_Dict[aKey] = value;
                 else
-                    m_Dict.Add(aKey, value);
+                    this.m_Dict.Add(aKey, value);
             }
         }
 
@@ -862,24 +862,24 @@ namespace HttpSiraStatus.Util
         {
             get
             {
-                if (aIndex < 0 || aIndex >= m_Dict.Count)
+                if (aIndex < 0 || aIndex >= this.m_Dict.Count)
                     return null;
-                return m_Dict.ElementAt(aIndex).Value;
+                return this.m_Dict.ElementAt(aIndex).Value;
             }
             set
             {
                 if (value == null)
                     value = JSONNull.CreateOrGet();
-                if (aIndex < 0 || aIndex >= m_Dict.Count)
+                if (aIndex < 0 || aIndex >= this.m_Dict.Count)
                     return;
-                string key = m_Dict.ElementAt(aIndex).Key;
-                m_Dict[key] = value;
+                string key = this.m_Dict.ElementAt(aIndex).Key;
+                this.m_Dict[key] = value;
             }
         }
 
         public override int Count
         {
-            get { return m_Dict.Count; }
+            get { return this.m_Dict.Count; }
         }
 
         public override void Add(string aKey, JSONNode aItem)
@@ -888,38 +888,38 @@ namespace HttpSiraStatus.Util
                 aItem = JSONNull.CreateOrGet();
 
             if (aKey != null) {
-                if (m_Dict.ContainsKey(aKey))
-                    m_Dict[aKey] = aItem;
+                if (this.m_Dict.ContainsKey(aKey))
+                    this.m_Dict[aKey] = aItem;
                 else
-                    m_Dict.Add(aKey, aItem);
+                    this.m_Dict.Add(aKey, aItem);
             }
             else
-                m_Dict.Add(Guid.NewGuid().ToString(), aItem);
+                this.m_Dict.Add(Guid.NewGuid().ToString(), aItem);
         }
 
         public override JSONNode Remove(string aKey)
         {
-            if (!m_Dict.ContainsKey(aKey))
+            if (!this.m_Dict.ContainsKey(aKey))
                 return null;
-            JSONNode tmp = m_Dict[aKey];
-            m_Dict.Remove(aKey);
+            JSONNode tmp = this.m_Dict[aKey];
+            this.m_Dict.Remove(aKey);
             return tmp;
         }
 
         public override JSONNode Remove(int aIndex)
         {
-            if (aIndex < 0 || aIndex >= m_Dict.Count)
+            if (aIndex < 0 || aIndex >= this.m_Dict.Count)
                 return null;
-            var item = m_Dict.ElementAt(aIndex);
-            m_Dict.Remove(item.Key);
+            var item = this.m_Dict.ElementAt(aIndex);
+            this.m_Dict.Remove(item.Key);
             return item.Value;
         }
 
         public override JSONNode Remove(JSONNode aNode)
         {
             try {
-                var item = m_Dict.Where(k => k.Value == aNode).First();
-                m_Dict.Remove(item.Key);
+                var item = this.m_Dict.Where(k => k.Value == aNode).First();
+                this.m_Dict.Remove(item.Key);
                 return aNode;
             }
             catch {
@@ -929,13 +929,13 @@ namespace HttpSiraStatus.Util
 
         public override void Clear()
         {
-            m_Dict.Clear();
+            this.m_Dict.Clear();
         }
 
         public override JSONNode Clone()
         {
             var node = new JSONObject();
-            foreach (var n in m_Dict) {
+            foreach (var n in this.m_Dict) {
                 node.Add(n.Key, n.Value.Clone());
             }
             return node;
@@ -943,13 +943,13 @@ namespace HttpSiraStatus.Util
 
         public override bool HasKey(string aKey)
         {
-            return m_Dict.ContainsKey(aKey);
+            return this.m_Dict.ContainsKey(aKey);
         }
 
         public override JSONNode GetValueOrDefault(string aKey, JSONNode aDefault)
         {
             JSONNode res;
-            if (m_Dict.TryGetValue(aKey, out res))
+            if (this.m_Dict.TryGetValue(aKey, out res))
                 return res;
             return aDefault;
         }
@@ -958,7 +958,7 @@ namespace HttpSiraStatus.Util
         {
             get
             {
-                foreach (KeyValuePair<string, JSONNode> N in m_Dict)
+                foreach (KeyValuePair<string, JSONNode> N in this.m_Dict)
                     yield return N.Value;
             }
         }
@@ -967,10 +967,10 @@ namespace HttpSiraStatus.Util
         {
             aSB.Append('{');
             bool first = true;
-            if (inline)
+            if (this.inline)
                 aMode = JSONTextMode.Compact;
             try {
-                foreach (var k in m_Dict) {
+                foreach (var k in this.m_Dict) {
                     if (!first)
                         aSB.Append(',');
                     first = false;
@@ -1019,25 +1019,25 @@ namespace HttpSiraStatus.Util
 
         public override string Value
         {
-            get { return m_Data; }
+            get { return this.m_Data; }
             set
             {
-                m_Data = value;
+                this.m_Data = value;
             }
         }
 
         public JSONString(string aData)
         {
-            m_Data = aData;
+            this.m_Data = aData;
         }
         public override JSONNode Clone()
         {
-            return new JSONString(m_Data);
+            return new JSONString(this.m_Data);
         }
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
-            aSB.Append('\"').Append(Escape(m_Data)).Append('\"');
+            aSB.Append('\"').Append(Escape(this.m_Data)).Append('\"');
         }
         public override bool Equals(object obj)
         {
@@ -1045,19 +1045,19 @@ namespace HttpSiraStatus.Util
                 return true;
             string s = obj as string;
             if (s != null)
-                return m_Data == s;
+                return this.m_Data == s;
             JSONString s2 = obj as JSONString;
             if (s2 != null)
-                return m_Data == s2.m_Data;
+                return this.m_Data == s2.m_Data;
             return false;
         }
         public override int GetHashCode()
         {
-            return m_Data.GetHashCode();
+            return this.m_Data.GetHashCode();
         }
         public override void Clear()
         {
-            m_Data = "";
+            this.m_Data = "";
         }
     }
     // End of JSONString
@@ -1072,49 +1072,49 @@ namespace HttpSiraStatus.Util
 
         public override string Value
         {
-            get { return m_Data.ToString(CultureInfo.InvariantCulture); }
+            get { return this.m_Data.ToString(CultureInfo.InvariantCulture); }
             set
             {
                 double v;
                 if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out v))
-                    m_Data = v;
+                    this.m_Data = v;
             }
         }
 
         public override double AsDouble
         {
-            get { return m_Data; }
-            set { m_Data = value; }
+            get { return this.m_Data; }
+            set { this.m_Data = value; }
         }
         public override long AsLong
         {
-            get { return (long)m_Data; }
-            set { m_Data = value; }
+            get { return (long)this.m_Data; }
+            set { this.m_Data = value; }
         }
         public override ulong AsULong
         {
-            get { return (ulong)m_Data; }
-            set { m_Data = value; }
+            get { return (ulong)this.m_Data; }
+            set { this.m_Data = value; }
         }
 
         public JSONNumber(double aData)
         {
-            m_Data = aData;
+            this.m_Data = aData;
         }
 
         public JSONNumber(string aData)
         {
-            Value = aData;
+            this.Value = aData;
         }
 
         public override JSONNode Clone()
         {
-            return new JSONNumber(m_Data);
+            return new JSONNumber(this.m_Data);
         }
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
-            aSB.Append(Value);
+            aSB.Append(this.Value);
         }
         private static bool IsNumeric(object value)
         {
@@ -1133,18 +1133,18 @@ namespace HttpSiraStatus.Util
                 return true;
             JSONNumber s2 = obj as JSONNumber;
             if (s2 != null)
-                return m_Data == s2.m_Data;
+                return this.m_Data == s2.m_Data;
             if (IsNumeric(obj))
-                return Convert.ToDouble(obj) == m_Data;
+                return Convert.ToDouble(obj) == this.m_Data;
             return false;
         }
         public override int GetHashCode()
         {
-            return m_Data.GetHashCode();
+            return this.m_Data.GetHashCode();
         }
         public override void Clear()
         {
-            m_Data = 0;
+            this.m_Data = 0;
         }
     }
     // End of JSONNumber
@@ -1159,54 +1159,54 @@ namespace HttpSiraStatus.Util
 
         public override string Value
         {
-            get { return m_Data.ToString(); }
+            get { return this.m_Data.ToString(); }
             set
             {
                 bool v;
                 if (bool.TryParse(value, out v))
-                    m_Data = v;
+                    this.m_Data = v;
             }
         }
         public override bool AsBool
         {
-            get { return m_Data; }
-            set { m_Data = value; }
+            get { return this.m_Data; }
+            set { this.m_Data = value; }
         }
 
         public JSONBool(bool aData)
         {
-            m_Data = aData;
+            this.m_Data = aData;
         }
 
         public JSONBool(string aData)
         {
-            Value = aData;
+            this.Value = aData;
         }
 
         public override JSONNode Clone()
         {
-            return new JSONBool(m_Data);
+            return new JSONBool(this.m_Data);
         }
 
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {
-            aSB.Append((m_Data) ? "true" : "false");
+            aSB.Append((this.m_Data) ? "true" : "false");
         }
         public override bool Equals(object obj)
         {
             if (obj == null)
                 return false;
             if (obj is bool)
-                return m_Data == (bool)obj;
+                return this.m_Data == (bool)obj;
             return false;
         }
         public override int GetHashCode()
         {
-            return m_Data.GetHashCode();
+            return this.m_Data.GetHashCode();
         }
         public override void Clear()
         {
-            m_Data = false;
+            this.m_Data = false;
         }
     }
     // End of JSONBool
@@ -1270,46 +1270,46 @@ namespace HttpSiraStatus.Util
 
         public JSONLazyCreator(JSONNode aNode)
         {
-            m_Node = aNode;
-            m_Key = null;
+            this.m_Node = aNode;
+            this.m_Key = null;
         }
 
         public JSONLazyCreator(JSONNode aNode, string aKey)
         {
-            m_Node = aNode;
-            m_Key = aKey;
+            this.m_Node = aNode;
+            this.m_Key = aKey;
         }
 
         private T Set<T>(T aVal) where T : JSONNode
         {
-            if (m_Key == null)
-                m_Node.Add(aVal);
+            if (this.m_Key == null)
+                this.m_Node.Add(aVal);
             else
-                m_Node.Add(m_Key, aVal);
-            m_Node = null; // Be GC friendly.
+                this.m_Node.Add(this.m_Key, aVal);
+            this.m_Node = null; // Be GC friendly.
             return aVal;
         }
 
         public override JSONNode this[int aIndex]
         {
             get { return new JSONLazyCreator(this); }
-            set { Set(new JSONArray()).Add(value); }
+            set { this.Set(new JSONArray()).Add(value); }
         }
 
         public override JSONNode this[string aKey]
         {
             get { return new JSONLazyCreator(this, aKey); }
-            set { Set(new JSONObject()).Add(aKey, value); }
+            set { this.Set(new JSONObject()).Add(aKey, value); }
         }
 
         public override void Add(JSONNode aItem)
         {
-            Set(new JSONArray()).Add(aItem);
+            this.Set(new JSONArray()).Add(aItem);
         }
 
         public override void Add(string aKey, JSONNode aItem)
         {
-            Set(new JSONObject()).Add(aKey, aItem);
+            this.Set(new JSONObject()).Add(aKey, aItem);
         }
 
         public static bool operator ==(JSONLazyCreator a, object b)
@@ -1338,20 +1338,20 @@ namespace HttpSiraStatus.Util
 
         public override int AsInt
         {
-            get { Set(new JSONNumber(0)); return 0; }
-            set { Set(new JSONNumber(value)); }
+            get { this.Set(new JSONNumber(0)); return 0; }
+            set { this.Set(new JSONNumber(value)); }
         }
 
         public override float AsFloat
         {
-            get { Set(new JSONNumber(0.0f)); return 0.0f; }
-            set { Set(new JSONNumber(value)); }
+            get { this.Set(new JSONNumber(0.0f)); return 0.0f; }
+            set { this.Set(new JSONNumber(value)); }
         }
 
         public override double AsDouble
         {
-            get { Set(new JSONNumber(0.0)); return 0.0; }
-            set { Set(new JSONNumber(value)); }
+            get { this.Set(new JSONNumber(0.0)); return 0.0; }
+            set { this.Set(new JSONNumber(value)); }
         }
 
         public override long AsLong
@@ -1359,17 +1359,17 @@ namespace HttpSiraStatus.Util
             get
             {
                 if (longAsString)
-                    Set(new JSONString("0"));
+                    this.Set(new JSONString("0"));
                 else
-                    Set(new JSONNumber(0.0));
+                    this.Set(new JSONNumber(0.0));
                 return 0L;
             }
             set
             {
                 if (longAsString)
-                    Set(new JSONString(value.ToString()));
+                    this.Set(new JSONString(value.ToString()));
                 else
-                    Set(new JSONNumber(value));
+                    this.Set(new JSONNumber(value));
             }
         }
 
@@ -1378,34 +1378,34 @@ namespace HttpSiraStatus.Util
             get
             {
                 if (longAsString)
-                    Set(new JSONString("0"));
+                    this.Set(new JSONString("0"));
                 else
-                    Set(new JSONNumber(0.0));
+                    this.Set(new JSONNumber(0.0));
                 return 0L;
             }
             set
             {
                 if (longAsString)
-                    Set(new JSONString(value.ToString()));
+                    this.Set(new JSONString(value.ToString()));
                 else
-                    Set(new JSONNumber(value));
+                    this.Set(new JSONNumber(value));
             }
         }
 
         public override bool AsBool
         {
-            get { Set(new JSONBool(false)); return false; }
-            set { Set(new JSONBool(value)); }
+            get { this.Set(new JSONBool(false)); return false; }
+            set { this.Set(new JSONBool(value)); }
         }
 
         public override JSONArray AsArray
         {
-            get { return Set(new JSONArray()); }
+            get { return this.Set(new JSONArray()); }
         }
 
         public override JSONObject AsObject
         {
-            get { return Set(new JSONObject()); }
+            get { return this.Set(new JSONObject()); }
         }
         internal override void WriteToStringBuilder(StringBuilder aSB, int aIndent, int aIndentInc, JSONTextMode aMode)
         {

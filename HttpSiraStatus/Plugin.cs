@@ -18,19 +18,13 @@ namespace HttpSiraStatus
     [Plugin(RuntimeOptions.SingleStartInit)]
     internal class Plugin
     {
-        public static string PluginVersion => Assembly.GetExecutingAssembly().GetName().Version.ToString(); // Populated by MSBuild
+        /// <summary>
+        /// Populated by MSBuild
+        /// </summary>
+        public static string PluginVersion => Assembly.GetExecutingAssembly().GetName().Version.ToString();
         public static string GameVersion => "1.13.4";
 
-        public string Name
-        {
-            get { return "HTTP Status"; }
-        }
-
-        public string Version
-        {
-            get { return PluginVersion; }
-        }
-
+        public string Name => Assembly.GetExecutingAssembly().GetName().Name;
         public static IPALogger Logger { get; private set; }
 
         [Init]

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Zenject;
+﻿using Zenject;
 
 namespace HttpSiraStatus.Models
 {
@@ -13,14 +8,14 @@ namespace HttpSiraStatus.Models
         public void Initialize(NoteCutInfo noteCutInfo, int m, ICutScoreBufferDidFinishEvent e)
         {
             this._initialized = true;
-            this._multiplier = multiplier;
+            this._multiplier = m;
             this._saberSwingRatingCounter = noteCutInfo.swingRatingCounter;
             this._cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
             noteCutInfo.swingRatingCounter.RegisterDidChangeReceiver(this);
             noteCutInfo.swingRatingCounter.RegisterDidFinishReceiver(this);
             this.NoteCutInfo = noteCutInfo;
             this.RefreshScores();
-            didFinishEvent.Add(e);
+            this.didFinishEvent.Add(e);
         }
 
         public new class Pool : MemoryPool<NoteCutInfo, int, ICutScoreBufferDidFinishEvent, CustomCutBuffer>

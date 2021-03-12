@@ -1,137 +1,133 @@
-﻿using HttpSiraStatus.Interfaces;
+﻿using BS_Utils.Gameplay;
+using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
-using BS_Utils.Gameplay;
 using IPA.Utilities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
 namespace HttpSiraStatus.Models
 {
     public class GamePlayDataManager : IInitializable, IDisposable, ICutScoreBufferDidFinishEvent
-	{
-		[Inject]
-		DiContainer container;
-		[Inject]
-		private IStatusManager statusManager;
-		[Inject]
-		GameStatus gameStatus;
-		[Inject]
-		CustomCutBuffer.Pool pool;
+    {
+        [Inject]
+        private readonly DiContainer container;
+        [Inject]
+        private readonly IStatusManager statusManager;
+        [Inject]
+        private readonly GameStatus gameStatus;
+        [Inject]
+        private readonly CustomCutBuffer.Pool pool;
 
-		private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
-		private PauseController pauseController;
-		private ScoreController scoreController;
-		private GameplayModifiers gameplayModifiers;
-		private AudioTimeSyncController audioTimeSyncController;
-		private BeatmapObjectCallbackController beatmapObjectCallbackController;
-		private PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction;
-		private GameEnergyCounter gameEnergyCounter;
-		private MultiplayerLocalActivePlayerFacade multiplayerLocalActivePlayerFacade;
-		private ILevelEndActions levelEndActions;
-		private ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
+        private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
+        private PauseController pauseController;
+        private ScoreController scoreController;
+        private GameplayModifiers gameplayModifiers;
+        private AudioTimeSyncController audioTimeSyncController;
+        private BeatmapObjectCallbackController beatmapObjectCallbackController;
+        private PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction;
+        private GameEnergyCounter gameEnergyCounter;
+        private MultiplayerLocalActivePlayerFacade multiplayerLocalActivePlayerFacade;
+        private ILevelEndActions levelEndActions;
+        private readonly ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
 
-		private GameplayModifiersModelSO gameplayModifiersSO;
+        private GameplayModifiersModelSO gameplayModifiersSO;
 
-		private LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
+        private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
 
-		/// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
-		//private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-		/// protected NoteCutInfo CutScoreBuffer._noteCutInfo
-		private FieldInfo noteCutInfoField = typeof(CutScoreBuffer).GetField("_noteCutInfo", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-		/// protected List<CutScoreBuffer> ScoreController._cutScoreBuffers // contains a list of after cut buffers
-		private FieldInfo afterCutScoreBuffersField = typeof(ScoreController).GetField("_cutScoreBuffers", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-		/// private int CutScoreBuffer#_multiplier
-		private FieldInfo cutScoreBufferMultiplierField = typeof(CutScoreBuffer).GetField("_multiplier", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-		/// private static LevelCompletionResults.Rank LevelCompletionResults.GetRankForScore(int score, int maxPossibleScore)
-		//private MethodInfo getRankForScoreMethod = typeof(LevelCompletionResults).GetMethod("GetRankForScore", BindingFlags.NonPublic | BindingFlags.Static);
+        /// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
+        //private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        /// protected NoteCutInfo CutScoreBuffer._noteCutInfo
+        //private readonly FieldInfo noteCutInfoField = typeof(CutScoreBuffer).GetField("_noteCutInfo", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        /// protected List<CutScoreBuffer> ScoreController._cutScoreBuffers // contains a list of after cut buffers
+        //private FieldInfo afterCutScoreBuffersField = typeof(ScoreController).GetField("_cutScoreBuffers", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        /// private int CutScoreBuffer#_multiplier
+        //private FieldInfo cutScoreBufferMultiplierField = typeof(CutScoreBuffer).GetField("_multiplier", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+        /// private static LevelCompletionResults.Rank LevelCompletionResults.GetRankForScore(int score, int maxPossibleScore)
+        //private MethodInfo getRankForScoreMethod = typeof(LevelCompletionResults).GetMethod("GetRankForScore", BindingFlags.NonPublic | BindingFlags.Static);
 
-		// こいつはどうもオブジェクトと頭がどうたらこうたら言ってるけど重いだけの不要メンバ変数っぽい
-		private bool headInObstacle = false;
+        // こいつはどうもオブジェクトと頭がどうたらこうたら言ってるけど重いだけの不要メンバ変数っぽい
+        private bool headInObstacle = false;
 
-		private Thread _thread;
+        private Thread _thread;
 
-		/// <summary>
-		/// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
-		/// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
-		/// </summary>
-		private ConcurrentDictionary<NoteDataEntity, int> noteToIdMapping { get; } = new ConcurrentDictionary<NoteDataEntity, int>();
-		private int lastNoteId = 0;
+        /// <summary>
+        /// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
+        /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
+        /// </summary>
+        private ConcurrentDictionary<NoteDataEntity, int> NoteToIdMapping { get; } = new ConcurrentDictionary<NoteDataEntity, int>();
+        private int lastNoteId = 0;
 
-		private bool disposedValue;
+        private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue) {
+            if (!this.disposedValue) {
                 if (disposing) {
-					// TODO: マネージド状態を破棄します (マネージド オブジェクト)
-					Plugin.Logger.Debug("dispose call");
+                    // TODO: マネージド状態を破棄します (マネージド オブジェクト)
+                    Plugin.Logger.Debug("dispose call");
                     try {
-						gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
+                        this.gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
 
-						gameStatus?.ResetMapInfo();
+                        this.gameStatus?.ResetMapInfo();
 
-						gameStatus?.ResetPerformance();
+                        this.gameStatus?.ResetPerformance();
 
-						// Release references for AfterCutScoreBuffers that don't resolve due to player leaving the map before finishing.
-						noteCutMapping?.Clear();
+                        // Release references for AfterCutScoreBuffers that don't resolve due to player leaving the map before finishing.
+                        this.noteCutMapping?.Clear();
 
-						// Clear note id mappings.
-						noteToIdMapping?.Clear();
+                        // Clear note id mappings.
+                        this.NoteToIdMapping?.Clear();
 
-						statusManager?.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.Menu);
+                        this.statusManager?.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.Menu);
 
-						this._thread?.Abort();
+                        this._thread?.Abort();
 
-						if (pauseController != null) {
-							pauseController.didPauseEvent -= OnGamePause;
-							pauseController.didResumeEvent -= OnGameResume;
-						}
+                        if (this.pauseController != null) {
+                            this.pauseController.didPauseEvent -= this.OnGamePause;
+                            this.pauseController.didResumeEvent -= this.OnGameResume;
+                        }
 
-						if (scoreController != null) {
-							scoreController.noteWasCutEvent -= OnNoteWasCut;
-							scoreController.noteWasMissedEvent -= OnNoteWasMissed;
-							scoreController.scoreDidChangeEvent -= OnScoreDidChange;
-							scoreController.comboDidChangeEvent -= OnComboDidChange;
-							scoreController.multiplierDidChangeEvent -= OnMultiplierDidChange;
-						}
+                        if (this.scoreController != null) {
+                            this.scoreController.noteWasCutEvent -= this.OnNoteWasCut;
+                            this.scoreController.noteWasMissedEvent -= this.OnNoteWasMissed;
+                            this.scoreController.scoreDidChangeEvent -= this.OnScoreDidChange;
+                            this.scoreController.comboDidChangeEvent -= this.OnComboDidChange;
+                            this.scoreController.multiplierDidChangeEvent -= this.OnMultiplierDidChange;
+                        }
 
-						if (multiplayerLocalActivePlayerFacade != null) {
-							multiplayerLocalActivePlayerFacade.playerDidFinishEvent -= OnMultiplayerLevelFinished;
-							multiplayerLocalActivePlayerFacade = null;
-						}
+                        if (this.multiplayerLocalActivePlayerFacade != null) {
+                            this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent -= this.OnMultiplayerLevelFinished;
+                            this.multiplayerLocalActivePlayerFacade = null;
+                        }
 
-						if (levelEndActions != null) {
-							levelEndActions.levelFinishedEvent -= OnLevelFinished;
-							levelEndActions.levelFailedEvent -= OnLevelFailed;
-						}
-						//CleanUpMultiplayer();
+                        if (this.levelEndActions != null) {
+                            this.levelEndActions.levelFinishedEvent -= this.OnLevelFinished;
+                            this.levelEndActions.levelFailedEvent -= this.OnLevelFailed;
+                        }
+                        //CleanUpMultiplayer();
 
-						if (beatmapObjectCallbackController != null) {
-							beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= OnBeatmapEventDidTrigger;
-						}
+                        if (this.beatmapObjectCallbackController != null) {
+                            this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= this.OnBeatmapEventDidTrigger;
+                        }
 
                         if (this.gameEnergyCounter != null) {
-							this.gameEnergyCounter.gameEnergyDidChangeEvent -= this.OnEnergyChanged;
-							this.gameEnergyCounter.gameEnergyDidReach0Event -= OnEnergyDidReach0Event;
-						}
-					}
-                    catch (Exception e) {
-						Plugin.Logger.Error(e);
+                            this.gameEnergyCounter.gameEnergyDidChangeEvent -= this.OnEnergyChanged;
+                            this.gameEnergyCounter.gameEnergyDidReach0Event -= this.OnEnergyDidReach0Event;
+                        }
                     }
-				}
+                    catch (Exception e) {
+                        Plugin.Logger.Error(e);
+                    }
+                }
 
                 // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
                 // TODO: 大きなフィールドを null に設定します
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
@@ -145,205 +141,205 @@ namespace HttpSiraStatus.Models
         public void Dispose()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-            Dispose(disposing: true);
+            this.Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
         public async void Initialize()
         {
-			try {
-				gameplayCoreSceneSetupData = container.Resolve<GameplayCoreSceneSetupData>();
-				
-				scoreController = container.Resolve<ScoreController>();
-				gameplayModifiers = container.Resolve<GameplayModifiers>();
-				audioTimeSyncController = container.Resolve<AudioTimeSyncController>();
-				beatmapObjectCallbackController = container.Resolve<BeatmapObjectCallbackController>();
-				playerHeadAndObstacleInteraction = container.Resolve<PlayerHeadAndObstacleInteraction>();
-				gameEnergyCounter = container.Resolve<GameEnergyCounter>();
-				gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
-			}
-			catch (Exception e) {
-				Plugin.Logger.Error(e);
-				return;
-			}
-			pauseController = container.TryResolve<PauseController>();
-			levelEndActions = container.TryResolve<ILevelEndActions>();
-			multiplayerLocalActivePlayerFacade = container.TryResolve<MultiplayerLocalActivePlayerFacade>();
-			Plugin.Logger.Info("0");
+            try {
+                this.gameplayCoreSceneSetupData = this.container.Resolve<GameplayCoreSceneSetupData>();
 
-			// Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
-			gameStatus.scene = "Song";
-
-			// FIXME: i should probably clean references to all this when song is over
-			Plugin.Logger.Info("1");
-			gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
-
-			Plugin.Logger.Info("2");
-			Plugin.Logger.Info("scoreController=" + scoreController);
-
-			// Register event listeners
-			// PauseController doesn't exist in multiplayer
-			if (pauseController != null) {
-				Plugin.Logger.Info("pauseController=" + pauseController);
-				// public event Action PauseController#didPauseEvent;
-				pauseController.didPauseEvent += OnGamePause;
-				// public event Action PauseController#didResumeEvent;
-				pauseController.didResumeEvent += OnGameResume;
-			}
-			// public ScoreController#noteWasCutEvent<NoteData, NoteCutInfo, int multiplier> // called after AfterCutScoreBuffer is created
-			scoreController.noteWasCutEvent += OnNoteWasCut;
-			// public ScoreController#noteWasMissedEvent<NoteData, int multiplier>
-			scoreController.noteWasMissedEvent += OnNoteWasMissed;
-			// public ScoreController#scoreDidChangeEvent<int, int> // score
-			scoreController.scoreDidChangeEvent += OnScoreDidChange;
-			// public ScoreController#comboDidChangeEvent<int> // combo
-			scoreController.comboDidChangeEvent += OnComboDidChange;
-			// public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
-			scoreController.multiplierDidChangeEvent += OnMultiplierDidChange;
-			Plugin.Logger.Info("2.5");
-			// public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
-			beatmapObjectCallbackController.beatmapEventDidTriggerEvent += OnBeatmapEventDidTrigger;
-			// public event Action GameEnergyCounter#gameEnergyDidReach0Event;
-			gameEnergyCounter.gameEnergyDidReach0Event += OnEnergyDidReach0Event;
-            gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
-
-			if (multiplayerLocalActivePlayerFacade != null) {
-				multiplayerLocalActivePlayerFacade.playerDidFinishEvent += OnMultiplayerLevelFinished;
-			}
-            if (levelEndActions != null) {
-				levelEndActions.levelFinishedEvent += OnLevelFinished;
-				levelEndActions.levelFailedEvent += OnLevelFailed;
+                this.scoreController = this.container.Resolve<ScoreController>();
+                this.gameplayModifiers = this.container.Resolve<GameplayModifiers>();
+                this.audioTimeSyncController = this.container.Resolve<AudioTimeSyncController>();
+                this.beatmapObjectCallbackController = this.container.Resolve<BeatmapObjectCallbackController>();
+                this.playerHeadAndObstacleInteraction = this.container.Resolve<PlayerHeadAndObstacleInteraction>();
+                this.gameEnergyCounter = this.container.Resolve<GameEnergyCounter>();
+                this.gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
             }
-			Plugin.Logger.Info("3");
-
-			IDifficultyBeatmap diff = gameplayCoreSceneSetupData.difficultyBeatmap;
-			IBeatmapLevel level = diff.level;
-
-			gameStatus.partyMode = Gamemode.IsPartyActive;
-			gameStatus.mode = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
-
-			gameplayModifiers = gameplayCoreSceneSetupData.gameplayModifiers;
-			PlayerSpecificSettings playerSettings = gameplayCoreSceneSetupData.playerSpecificSettings;
-			PracticeSettings practiceSettings = gameplayCoreSceneSetupData.practiceSettings;
-
-			float songSpeedMul = gameplayModifiers.songSpeedMul;
-			if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
-			
-			Plugin.Logger.Info("4");
-
-			// Generate NoteData to id mappings for backwards compatiblity with <1.12.1
-			noteToIdMapping.Clear();
-			
-			lastNoteId = 0;
-			Plugin.Logger.Info("4.1");
-            foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i})) {
-				this.noteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
+            catch (Exception e) {
+                Plugin.Logger.Error(e);
+                return;
             }
-			Plugin.Logger.Info("5");
+            this.pauseController = this.container.TryResolve<PauseController>();
+            this.levelEndActions = this.container.TryResolve<ILevelEndActions>();
+            this.multiplayerLocalActivePlayerFacade = this.container.TryResolve<MultiplayerLocalActivePlayerFacade>();
+            Plugin.Logger.Info("0");
 
-			gameStatus.songName = level.songName;
-			gameStatus.songSubName = level.songSubName;
-			gameStatus.songAuthorName = level.songAuthorName;
-			gameStatus.levelAuthorName = level.levelAuthorName;
-			gameStatus.songBPM = level.beatsPerMinute;
-			gameStatus.noteJumpSpeed = diff.noteJumpMovementSpeed;
-			// 13 is "custom_level_" and 40 is the magic number for the length of the SHA-1 hash
-			gameStatus.songHash = level.levelID.StartsWith("custom_level_") && !level.levelID.EndsWith(" WIP") ? level.levelID.Substring(13, 40) : null;
-			gameStatus.levelId = level.levelID;
-			gameStatus.songTimeOffset = (long)(level.songTimeOffset * 1000f / songSpeedMul);
-			gameStatus.length = (long)(level.beatmapLevelData.audioClip.length * 1000f / songSpeedMul);
-			gameStatus.start = Utility.GetCurrentTime() - (long)(audioTimeSyncController.songTime * 1000f / songSpeedMul);
-			if (practiceSettings != null) gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
-			gameStatus.paused = 0;
-			gameStatus.difficulty = diff.difficulty.Name();
-			gameStatus.notesCount = diff.beatmapData.cuttableNotesType;
-			gameStatus.bombsCount = diff.beatmapData.bombsCount;
-			gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
-			gameStatus.environmentName = level.environmentInfo.sceneInfo.sceneName;
+            // Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
+            this.gameStatus.scene = "Song";
 
-			Plugin.Logger.Info("6");
+            // FIXME: i should probably clean references to all this when song is over
+            Plugin.Logger.Info("1");
+            this.gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
 
-			try {
-				// From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
-				var texture = (await level.GetCoverImageAsync(CancellationToken.None)).texture;
-				var active = RenderTexture.active;
-				var temporary = RenderTexture.GetTemporary(
-					texture.width,
-					texture.height,
-					0,
-					RenderTextureFormat.Default,
-					RenderTextureReadWrite.Linear
-				);
+            Plugin.Logger.Info("2");
+            Plugin.Logger.Info("scoreController=" + this.scoreController);
 
-				Graphics.Blit(texture, temporary);
-				RenderTexture.active = temporary;
+            // Register event listeners
+            // PauseController doesn't exist in multiplayer
+            if (this.pauseController != null) {
+                Plugin.Logger.Info("pauseController=" + this.pauseController);
+                // public event Action PauseController#didPauseEvent;
+                this.pauseController.didPauseEvent += this.OnGamePause;
+                // public event Action PauseController#didResumeEvent;
+                this.pauseController.didResumeEvent += this.OnGameResume;
+            }
+            // public ScoreController#noteWasCutEvent<NoteData, NoteCutInfo, int multiplier> // called after AfterCutScoreBuffer is created
+            this.scoreController.noteWasCutEvent += this.OnNoteWasCut;
+            // public ScoreController#noteWasMissedEvent<NoteData, int multiplier>
+            this.scoreController.noteWasMissedEvent += this.OnNoteWasMissed;
+            // public ScoreController#scoreDidChangeEvent<int, int> // score
+            this.scoreController.scoreDidChangeEvent += this.OnScoreDidChange;
+            // public ScoreController#comboDidChangeEvent<int> // combo
+            this.scoreController.comboDidChangeEvent += this.OnComboDidChange;
+            // public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
+            this.scoreController.multiplierDidChangeEvent += this.OnMultiplierDidChange;
+            Plugin.Logger.Info("2.5");
+            // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
+            this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
+            // public event Action GameEnergyCounter#gameEnergyDidReach0Event;
+            this.gameEnergyCounter.gameEnergyDidReach0Event += this.OnEnergyDidReach0Event;
+            this.gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
 
-				var cover = new Texture2D(texture.width, texture.height);
-				cover.ReadPixels(new Rect(0, 0, temporary.width, temporary.height), 0, 0);
-				cover.Apply();
+            if (this.multiplayerLocalActivePlayerFacade != null) {
+                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += this.OnMultiplayerLevelFinished;
+            }
+            if (this.levelEndActions != null) {
+                this.levelEndActions.levelFinishedEvent += this.OnLevelFinished;
+                this.levelEndActions.levelFailedEvent += this.OnLevelFailed;
+            }
+            Plugin.Logger.Info("3");
 
-				RenderTexture.active = active;
-				RenderTexture.ReleaseTemporary(temporary);
+            IDifficultyBeatmap diff = this.gameplayCoreSceneSetupData.difficultyBeatmap;
+            IBeatmapLevel level = diff.level;
 
-				gameStatus.songCover = System.Convert.ToBase64String(
-					ImageConversion.EncodeToPNG(cover)
-				);
-			}
-			catch {
-				gameStatus.songCover = null;
-			}
-			Plugin.Logger.Info("7");
+            this.gameStatus.partyMode = Gamemode.IsPartyActive;
+            this.gameStatus.mode = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
 
-			UpdateModMultiplier();
-			gameStatus.songSpeedMultiplier = songSpeedMul;
-			gameStatus.batteryLives = gameEnergyCounter.batteryLives;
+            this.gameplayModifiers = this.gameplayCoreSceneSetupData.gameplayModifiers;
+            PlayerSpecificSettings playerSettings = this.gameplayCoreSceneSetupData.playerSpecificSettings;
+            PracticeSettings practiceSettings = this.gameplayCoreSceneSetupData.practiceSettings;
 
-			gameStatus.modObstacles = gameplayModifiers.enabledObstacleType.ToString();
-			gameStatus.modInstaFail = gameplayModifiers.instaFail;
-			gameStatus.modNoFail = gameplayModifiers.noFailOn0Energy;
-			gameStatus.modBatteryEnergy = gameplayModifiers.energyType == GameplayModifiers.EnergyType.Battery;
-			gameStatus.modDisappearingArrows = gameplayModifiers.disappearingArrows;
-			gameStatus.modNoBombs = gameplayModifiers.noBombs;
-			gameStatus.modSongSpeed = gameplayModifiers.songSpeed.ToString();
-			gameStatus.modNoArrows = gameplayModifiers.noArrows;
-			gameStatus.modGhostNotes = gameplayModifiers.ghostNotes;
-			gameStatus.modFailOnSaberClash = gameplayModifiers.failOnSaberClash;
-			gameStatus.modStrictAngles = gameplayModifiers.strictAngles;
-			gameStatus.modFastNotes = gameplayModifiers.fastNotes;
+            float songSpeedMul = this.gameplayModifiers.songSpeedMul;
+            if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
 
-			gameStatus.environmentEffectsFilterPreset = (int)playerSettings.environmentEffectsFilterPreset;
-			gameStatus.leftHanded = playerSettings.leftHanded;
-			gameStatus.playerHeight = playerSettings.playerHeight;
-			gameStatus.sfxVolume = playerSettings.sfxVolume;
-			gameStatus.reduceDebris = playerSettings.reduceDebris;
-			gameStatus.noHUD = playerSettings.noTextsAndHuds;
-			gameStatus.advancedHUD = playerSettings.advancedHud;
-			gameStatus.autoRestart = playerSettings.autoRestart;
-			Plugin.Logger.Info("8");
+            Plugin.Logger.Info("4");
 
-			this._thread = new Thread(new ThreadStart(this.OnObstacleInteraction));
-			this._thread.Start();
-			Plugin.Logger.Info("9");
+            // Generate NoteData to id mappings for backwards compatiblity with <1.12.1
+            this.NoteToIdMapping.Clear();
 
-			statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
-		}
+            this.lastNoteId = 0;
+            Plugin.Logger.Info("4.1");
+            foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i })) {
+                this.NoteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
+            }
+            Plugin.Logger.Info("5");
+
+            this.gameStatus.songName = level.songName;
+            this.gameStatus.songSubName = level.songSubName;
+            this.gameStatus.songAuthorName = level.songAuthorName;
+            this.gameStatus.levelAuthorName = level.levelAuthorName;
+            this.gameStatus.songBPM = level.beatsPerMinute;
+            this.gameStatus.noteJumpSpeed = diff.noteJumpMovementSpeed;
+            // 13 is "custom_level_" and 40 is the magic number for the length of the SHA-1 hash
+            this.gameStatus.songHash = level.levelID.StartsWith("custom_level_") && !level.levelID.EndsWith(" WIP") ? level.levelID.Substring(13, 40) : null;
+            this.gameStatus.levelId = level.levelID;
+            this.gameStatus.songTimeOffset = (long)(level.songTimeOffset * 1000f / songSpeedMul);
+            this.gameStatus.length = (long)(level.beatmapLevelData.audioClip.length * 1000f / songSpeedMul);
+            this.gameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSyncController.songTime * 1000f / songSpeedMul);
+            if (practiceSettings != null) this.gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+            this.gameStatus.paused = 0;
+            this.gameStatus.difficulty = diff.difficulty.Name();
+            this.gameStatus.notesCount = diff.beatmapData.cuttableNotesType;
+            this.gameStatus.bombsCount = diff.beatmapData.bombsCount;
+            this.gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
+            this.gameStatus.environmentName = level.environmentInfo.sceneInfo.sceneName;
+
+            Plugin.Logger.Info("6");
+
+            try {
+                // From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
+                var texture = (await level.GetCoverImageAsync(CancellationToken.None)).texture;
+                var active = RenderTexture.active;
+                var temporary = RenderTexture.GetTemporary(
+                    texture.width,
+                    texture.height,
+                    0,
+                    RenderTextureFormat.Default,
+                    RenderTextureReadWrite.Linear
+                );
+
+                Graphics.Blit(texture, temporary);
+                RenderTexture.active = temporary;
+
+                var cover = new Texture2D(texture.width, texture.height);
+                cover.ReadPixels(new Rect(0, 0, temporary.width, temporary.height), 0, 0);
+                cover.Apply();
+
+                RenderTexture.active = active;
+                RenderTexture.ReleaseTemporary(temporary);
+
+                this.gameStatus.songCover = System.Convert.ToBase64String(
+                    ImageConversion.EncodeToPNG(cover)
+                );
+            }
+            catch {
+                this.gameStatus.songCover = null;
+            }
+            Plugin.Logger.Info("7");
+
+            this.UpdateModMultiplier();
+            this.gameStatus.songSpeedMultiplier = songSpeedMul;
+            this.gameStatus.batteryLives = this.gameEnergyCounter.batteryLives;
+
+            this.gameStatus.modObstacles = this.gameplayModifiers.enabledObstacleType.ToString();
+            this.gameStatus.modInstaFail = this.gameplayModifiers.instaFail;
+            this.gameStatus.modNoFail = this.gameplayModifiers.noFailOn0Energy;
+            this.gameStatus.modBatteryEnergy = this.gameplayModifiers.energyType == GameplayModifiers.EnergyType.Battery;
+            this.gameStatus.modDisappearingArrows = this.gameplayModifiers.disappearingArrows;
+            this.gameStatus.modNoBombs = this.gameplayModifiers.noBombs;
+            this.gameStatus.modSongSpeed = this.gameplayModifiers.songSpeed.ToString();
+            this.gameStatus.modNoArrows = this.gameplayModifiers.noArrows;
+            this.gameStatus.modGhostNotes = this.gameplayModifiers.ghostNotes;
+            this.gameStatus.modFailOnSaberClash = this.gameplayModifiers.failOnSaberClash;
+            this.gameStatus.modStrictAngles = this.gameplayModifiers.strictAngles;
+            this.gameStatus.modFastNotes = this.gameplayModifiers.fastNotes;
+
+            this.gameStatus.environmentEffectsFilterPreset = (int)playerSettings.environmentEffectsFilterPreset;
+            this.gameStatus.leftHanded = playerSettings.leftHanded;
+            this.gameStatus.playerHeight = playerSettings.playerHeight;
+            this.gameStatus.sfxVolume = playerSettings.sfxVolume;
+            this.gameStatus.reduceDebris = playerSettings.reduceDebris;
+            this.gameStatus.noHUD = playerSettings.noTextsAndHuds;
+            this.gameStatus.advancedHUD = playerSettings.advancedHud;
+            this.gameStatus.autoRestart = playerSettings.autoRestart;
+            Plugin.Logger.Info("8");
+
+            this._thread = new Thread(new ThreadStart(this.OnObstacleInteraction));
+            this._thread.Start();
+            Plugin.Logger.Info("9");
+
+            this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
+        }
 
         private void OnMultiplayerLevelFinished(LevelCompletionResults obj)
         {
             switch (obj.levelEndStateType) {
                 case LevelCompletionResults.LevelEndStateType.Failed:
-					OnLevelFailed();
+                    this.OnLevelFailed();
                     break;
                 default:
-					OnLevelFinished();
-					break;
+                    this.OnLevelFinished();
+                    break;
             }
         }
 
         private void OnEnergyChanged(float obj)
         {
-			this.gameStatus.energy = obj;
-			this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
+            this.gameStatus.energy = obj;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
         }
 
         //public void CleanUpMultiplayer()
@@ -360,70 +356,70 @@ namespace HttpSiraStatus.Models
         /// </summary>
         private void OnObstacleInteraction()
         {
-			while (true) {
+            while (true) {
                 try {
-					var currentHeadInObstacle = playerHeadAndObstacleInteraction?.intersectingObstacles.Any();
+                    var currentHeadInObstacle = this.playerHeadAndObstacleInteraction?.intersectingObstacles.Any();
 
-					if (!this.headInObstacle && currentHeadInObstacle == true) {
-						this.headInObstacle = true;
-						this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
-					}
-					else if (this.headInObstacle && currentHeadInObstacle != true) {
-						this.headInObstacle = false;
-						this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
-					}
-				}
+                    if (!this.headInObstacle && currentHeadInObstacle == true) {
+                        this.headInObstacle = true;
+                        this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
+                    }
+                    else if (this.headInObstacle && currentHeadInObstacle != true) {
+                        this.headInObstacle = false;
+                        this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
+                    }
+                }
                 catch (Exception e) {
-					Plugin.Logger.Error(e);
+                    Plugin.Logger.Error(e);
                 }
                 finally {
-					Thread.Sleep(16);
-				}
-			}
+                    Thread.Sleep(16);
+                }
+            }
         }
-		#endregion
-		//public void OnMultiplayerDisconnected(DisconnectedReason reason)
-		//{
-		//	CleanUpMultiplayer();
+        #endregion
+        //public void OnMultiplayerDisconnected(DisconnectedReason reason)
+        //{
+        //	CleanUpMultiplayer();
 
-		//	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
-		//	// HandleMenuStart();
-		//}
+        //	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
+        //	// HandleMenuStart();
+        //}
 
-		public void UpdateModMultiplier()
-		{
-			GameStatus gameStatus = statusManager.GameStatus;
+        public void UpdateModMultiplier()
+        {
+            GameStatus gameStatus = this.statusManager.GameStatus;
 
-			float energy = gameEnergyCounter.energy;
+            float energy = this.gameEnergyCounter.energy;
 
-			gameStatus.modifierMultiplier = gameplayModifiersSO.GetTotalMultiplier(this.gameplayModifiersSO.CreateModifierParamsList(gameplayModifiers), energy);
+            gameStatus.modifierMultiplier = this.gameplayModifiersSO.GetTotalMultiplier(this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), energy);
 
-			gameStatus.maxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesType), this.gameplayModifiersSO.CreateModifierParamsList(gameplayModifiers), gameplayModifiersSO, energy);
-			gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(gameplayModifiers, gameplayModifiersSO, energy).ToString();
-		}
+            gameStatus.maxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(this.gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesType), this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameplayModifiersSO, energy);
+            gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(this.gameplayModifiers, this.gameplayModifiersSO, energy).ToString();
+        }
 
-		public void OnGamePause()
-		{
-			statusManager.GameStatus.paused = Utility.GetCurrentTime();
+        public void OnGamePause()
+        {
+            this.statusManager.GameStatus.paused = Utility.GetCurrentTime();
 
-			statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Pause);
-		}
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Pause);
+        }
 
-		public void OnGameResume()
-		{
-			statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(audioTimeSyncController.songTime * 1000f / statusManager.GameStatus.songSpeedMultiplier);
-			statusManager.GameStatus.paused = 0;
+        public void OnGameResume()
+        {
+            this.statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSyncController.songTime * 1000f / this.statusManager.GameStatus.songSpeedMultiplier);
+            this.statusManager.GameStatus.paused = 0;
 
-			statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
-		}
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
+        }
 
-		private void OnNoteWasCut(NoteData noteData, in NoteCutInfo noteCutInfo, int multiplier)
+        private void OnNoteWasCut(NoteData noteData, in NoteCutInfo noteCutInfo, int multiplier)
         {
             // Event order: combo, multiplier, scoreController.noteWasCut, (LateUpdate) scoreController.scoreDidChange, afterCut, (LateUpdate) scoreController.scoreDidChange
 
-            var gameStatus = statusManager.GameStatus;
+            var gameStatus = this.statusManager.GameStatus;
 
-            SetNoteCutStatus(noteData, noteCutInfo, true);
+            this.SetNoteCutStatus(noteData, noteCutInfo, true);
 
             //int beforeCutScore = 0;
             //int afterCutScore = 0;
@@ -440,7 +436,7 @@ namespace HttpSiraStatus.Models
                 gameStatus.passedBombs++;
                 gameStatus.hitBombs++;
 
-                statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
             }
             else {
                 gameStatus.passedNotes++;
@@ -448,192 +444,188 @@ namespace HttpSiraStatus.Models
                 if (noteCutInfo.allIsOK) {
                     gameStatus.hitNotes++;
 
-                    statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+                    this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
                 }
                 else {
                     gameStatus.missedNotes++;
 
-                    statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
+                    this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
                 }
             }
 
-			if (noteCutMapping.TryRemove(noteCutInfo, out var changeNoteData)) {
-				SetNoteCutStatus(changeNoteData, noteCutInfo, false);
-			}
-			statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
-			statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
-			statusManager.GameStatus.cutMultiplier = multiplier;
-			statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
-            if (noteCutInfo.allIsOK && noteCutMapping.TryAdd(noteCutInfo, noteData)) {
-				this.activeItems.Add(this.pool.Spawn(noteCutInfo, multiplier, this));
+            if (this.noteCutMapping.TryRemove(noteCutInfo, out var changeNoteData)) {
+                this.SetNoteCutStatus(changeNoteData, noteCutInfo, false);
             }
-		}
+            this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
+            this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
+            this.statusManager.GameStatus.cutMultiplier = multiplier;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
+            if (noteCutInfo.allIsOK && this.noteCutMapping.TryAdd(noteCutInfo, noteData)) {
+                this.activeItems.Add(this.pool.Spawn(noteCutInfo, multiplier, this));
+            }
+        }
 
-		public void HandleCutScoreBufferDidFinish(CutScoreBuffer cutScoreBuffer)
-		{
-			cutScoreBuffer.didFinishEvent.Remove(this);
-			if (cutScoreBuffer is CustomCutBuffer customCutBuffer) {
-				int beforeCutScore;
-				int afterCutScore;
-				int cutDistanceScore;
+        public void HandleCutScoreBufferDidFinish(CutScoreBuffer cutScoreBuffer)
+        {
+            cutScoreBuffer.didFinishEvent.Remove(this);
+            if (cutScoreBuffer is CustomCutBuffer customCutBuffer) {
+                var noteCutInfo = customCutBuffer.NoteCutInfo;
 
-				var noteCutInfo = customCutBuffer.NoteCutInfo;
+                if (this.noteCutMapping.TryRemove(noteCutInfo, out var noteData)) {
+                    this.SetNoteCutStatus(noteData, noteCutInfo, false);
+                }
+                // public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
+                ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out int beforeCutScore, out int afterCutScore, out int cutDistanceScore);
 
-				if (noteCutMapping.TryRemove(noteCutInfo, out var noteData)) {
-					SetNoteCutStatus(noteData, noteCutInfo, false);
-				}
-				// public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
-				ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out beforeCutScore, out afterCutScore, out cutDistanceScore);
+                int multiplier = customCutBuffer.multiplier;
 
-				int multiplier = customCutBuffer.multiplier;
+                this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
+                this.statusManager.GameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
+                this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
+                this.statusManager.GameStatus.cutMultiplier = multiplier;
 
-				statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
-				statusManager.GameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
-				statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
-				statusManager.GameStatus.cutMultiplier = multiplier;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
+                this.activeItems.Remove(customCutBuffer);
+                this.pool.Despawn(customCutBuffer);
+            }
+        }
+        private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default, bool initialCut = true)
+        {
+            GameStatus gameStatus = this.statusManager.GameStatus;
 
-				statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
-				this.activeItems.Remove(customCutBuffer);
-				this.pool.Despawn(customCutBuffer);
-			}
-		}
-		private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default(NoteCutInfo) , bool initialCut = true)
-		{
-			GameStatus gameStatus = statusManager.GameStatus;
+            gameStatus.ResetNoteCut();
 
-			gameStatus.ResetNoteCut();
-
-			// Backwards compatibility for <1.12.1
-			gameStatus.noteID = -1;
-			// Check the near notes first for performance
-			if (this.noteToIdMapping.TryRemove(new NoteDataEntity(noteData, this.gameplayModifiers.noArrows), out var noteID)) {
-				gameStatus.noteID = noteID;
-                if (lastNoteId < noteID) {
-					lastNoteId = noteID;
+            // Backwards compatibility for <1.12.1
+            gameStatus.noteID = -1;
+            // Check the near notes first for performance
+            if (this.NoteToIdMapping.TryRemove(new NoteDataEntity(noteData, this.gameplayModifiers.noArrows), out var noteID)) {
+                gameStatus.noteID = noteID;
+                if (this.lastNoteId < noteID) {
+                    this.lastNoteId = noteID;
                 }
             }
             else {
-				gameStatus.noteID = lastNoteId;
+                gameStatus.noteID = this.lastNoteId;
             }
             // Backwards compatibility for <1.12.1
             gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
-			gameStatus.noteCutDirection = noteData.cutDirection.ToString();
-			gameStatus.noteLine = noteData.lineIndex;
-			gameStatus.noteLayer = (int)noteData.noteLineLayer;
-			// If long notes are ever introduced, this name will make no sense
-			gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
+            gameStatus.noteCutDirection = noteData.cutDirection.ToString();
+            gameStatus.noteLine = noteData.lineIndex;
+            gameStatus.noteLayer = (int)noteData.noteLineLayer;
+            // If long notes are ever introduced, this name will make no sense
+            gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
 
-			if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default(NoteCutInfo))) {
-				gameStatus.speedOK = noteCutInfo.speedOK;
-				gameStatus.directionOK = noteCutInfo.directionOK;
-				gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
-				gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
-				gameStatus.saberSpeed = noteCutInfo.saberSpeed;
-				gameStatus.saberDirX = noteCutInfo.saberDir[0];
-				gameStatus.saberDirY = noteCutInfo.saberDir[1];
-				gameStatus.saberDirZ = noteCutInfo.saberDir[2];
-				gameStatus.saberType = noteCutInfo.saberType.ToString();
-				gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
-				gameStatus.timeDeviation = noteCutInfo.timeDeviation;
-				gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
-				gameStatus.cutPointX = noteCutInfo.cutPoint[0];
-				gameStatus.cutPointY = noteCutInfo.cutPoint[1];
-				gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
-				gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
-				gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
-				gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
-				gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
-			}
-		}
+            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
+                gameStatus.speedOK = noteCutInfo.speedOK;
+                gameStatus.directionOK = noteCutInfo.directionOK;
+                gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
+                gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
+                gameStatus.saberSpeed = noteCutInfo.saberSpeed;
+                gameStatus.saberDirX = noteCutInfo.saberDir[0];
+                gameStatus.saberDirY = noteCutInfo.saberDir[1];
+                gameStatus.saberDirZ = noteCutInfo.saberDir[2];
+                gameStatus.saberType = noteCutInfo.saberType.ToString();
+                gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
+                gameStatus.timeDeviation = noteCutInfo.timeDeviation;
+                gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
+                gameStatus.cutPointX = noteCutInfo.cutPoint[0];
+                gameStatus.cutPointY = noteCutInfo.cutPoint[1];
+                gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
+                gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
+                gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
+                gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
+                gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
+            }
+        }
 
-		public void OnNoteWasMissed(NoteData noteData, int multiplier)
-		{
-			// Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
-
-			statusManager.GameStatus.batteryEnergy = gameEnergyCounter.batteryEnergy;
-			statusManager.GameStatus.energy = gameEnergyCounter.energy;
-
-			SetNoteCutStatus(noteData);
-
-			if (noteData.colorType == ColorType.None) {
-				statusManager.GameStatus.passedBombs++;
-
-				statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombMissed);
-			}
-			else {
-				statusManager.GameStatus.passedNotes++;
-				statusManager.GameStatus.missedNotes++;
-
-				statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
-			}
-		}
-
-		public void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
-		{
-			GameStatus gameStatus = statusManager.GameStatus;
-
-			gameStatus.rawScore = scoreBeforeMultiplier;
-			gameStatus.score = scoreAfterMultiplier;
-
-			UpdateCurrentMaxScore();
-
-			statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
-		}
-
-		public void UpdateCurrentMaxScore()
-		{
-			GameStatus gameStatus = statusManager.GameStatus;
-
-			int currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
-			gameStatus.currentMaxScore = gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, gameplayModifiersSO.CreateModifierParamsList(gameplayModifiers), gameEnergyCounter.energy);
-			RankModel.Rank rank = RankModel.GetRankForScore(gameStatus.rawScore, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
-			gameStatus.rank = RankModel.GetRankName(rank);
-			statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
-		}
-
-		public void OnComboDidChange(int combo)
-		{
-			statusManager.GameStatus.combo = combo;
-			// public int ScoreController#maxCombo
-			statusManager.GameStatus.maxCombo = scoreController.maxCombo;
-		}
-
-		public void OnMultiplierDidChange(int multiplier, float multiplierProgress)
-		{
-			statusManager.GameStatus.multiplier = multiplier;
-			statusManager.GameStatus.multiplierProgress = multiplierProgress;
-		}
-
-		public void OnLevelFinished()
-		{
-			statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
-		}
-
-		public void OnLevelFailed()
-		{
-			statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Failed);
-		}
-
-		public void OnEnergyDidReach0Event()
+        public void OnNoteWasMissed(NoteData noteData, int multiplier)
         {
-			if (statusManager.GameStatus.modNoFail) {
-				statusManager.GameStatus.softFailed = true;
+            // Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
 
-				UpdateModMultiplier();
-				UpdateCurrentMaxScore();
+            this.statusManager.GameStatus.batteryEnergy = this.gameEnergyCounter.batteryEnergy;
+            this.statusManager.GameStatus.energy = this.gameEnergyCounter.energy;
 
-				statusManager.EmitStatusUpdate(ChangedProperty.BeatmapAndPerformanceAndMod, BeatSaberEvent.SoftFailed);
-			}
-		}
+            this.SetNoteCutStatus(noteData);
 
-		public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
-		{
-			statusManager.GameStatus.beatmapEventType = (int)beatmapEventData.type;
-			statusManager.GameStatus.beatmapEventValue = beatmapEventData.value;
+            if (noteData.colorType == ColorType.None) {
+                this.statusManager.GameStatus.passedBombs++;
 
-			statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
-		}
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombMissed);
+            }
+            else {
+                this.statusManager.GameStatus.passedNotes++;
+                this.statusManager.GameStatus.missedNotes++;
 
-        
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
+            }
+        }
+
+        public void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
+        {
+            GameStatus gameStatus = this.statusManager.GameStatus;
+
+            gameStatus.rawScore = scoreBeforeMultiplier;
+            gameStatus.score = scoreAfterMultiplier;
+
+            this.UpdateCurrentMaxScore();
+
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+
+        public void UpdateCurrentMaxScore()
+        {
+            GameStatus gameStatus = this.statusManager.GameStatus;
+
+            int currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
+            gameStatus.currentMaxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameEnergyCounter.energy);
+            RankModel.Rank rank = RankModel.GetRankForScore(gameStatus.rawScore, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
+            gameStatus.rank = RankModel.GetRankName(rank);
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+
+        public void OnComboDidChange(int combo)
+        {
+            this.statusManager.GameStatus.combo = combo;
+            // public int ScoreController#maxCombo
+            this.statusManager.GameStatus.maxCombo = this.scoreController.maxCombo;
+        }
+
+        public void OnMultiplierDidChange(int multiplier, float multiplierProgress)
+        {
+            this.statusManager.GameStatus.multiplier = multiplier;
+            this.statusManager.GameStatus.multiplierProgress = multiplierProgress;
+        }
+
+        public void OnLevelFinished()
+        {
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
+        }
+
+        public void OnLevelFailed()
+        {
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Failed);
+        }
+
+        public void OnEnergyDidReach0Event()
+        {
+            if (this.statusManager.GameStatus.modNoFail) {
+                this.statusManager.GameStatus.softFailed = true;
+
+                this.UpdateModMultiplier();
+                this.UpdateCurrentMaxScore();
+
+                this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapAndPerformanceAndMod, BeatSaberEvent.SoftFailed);
+            }
+        }
+
+        public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
+        {
+            this.statusManager.GameStatus.beatmapEventType = (int)beatmapEventData.type;
+            this.statusManager.GameStatus.beatmapEventValue = beatmapEventData.value;
+
+            this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
+        }
+
+
     }
 }
