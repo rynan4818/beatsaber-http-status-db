@@ -24,7 +24,7 @@ namespace HttpSiraStatus
         {
             base.OnOpen();
             Plugin.Logger.Debug("OnOpen call.");
-            JSONObject eventJSON = new JSONObject();
+            var eventJSON = new JSONObject();
 
             eventJSON["event"] = "hello";
             eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());

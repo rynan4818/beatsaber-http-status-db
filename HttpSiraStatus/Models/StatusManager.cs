@@ -262,10 +262,7 @@ namespace HttpSiraStatus
             this.BeatmapEventJSON["value"] = this.GameStatus.beatmapEventValue;
         }
 
-        private JSONNode StringOrNull(string str)
-        {
-            return str == null ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONString(str);
-        }
+        private JSONNode StringOrNull(string str) => str == null ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONString(str);
 
         protected virtual void Dispose(bool disposing)
         {

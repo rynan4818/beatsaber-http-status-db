@@ -10,10 +10,7 @@ namespace HttpSiraStatus.Models
         public NoteData NoteData { get; private set; }
         public bool NoArrow { get; private set; }
 
-        public override bool Equals(object obj)
-        {
-            return this.Equals((NoteDataEntity)obj);
-        }
+        public override bool Equals(object obj) => this.Equals((NoteDataEntity)obj);
         private bool Equals(NoteDataEntity entity)
         {
             if (entity == null) {

@@ -6,10 +6,7 @@ namespace HttpSiraStatus.Util
 {
     public static class Utility
     {
-        public static long GetCurrentTime()
-        {
-            return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        }
+        public static long GetCurrentTime() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         public static bool NoteDataEquals(NoteData a, NoteData b)
         {
@@ -28,7 +25,7 @@ namespace HttpSiraStatus.Util
 
         public static T FindFirstOrDefault<T>() where T : UnityEngine.Object
         {
-            T obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
+            var obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
             if (obj == null) {
                 Plugin.Logger.Error("Couldn't find " + typeof(T).FullName);
                 throw new InvalidOperationException("Couldn't find " + typeof(T).FullName);
@@ -38,7 +35,7 @@ namespace HttpSiraStatus.Util
 
         public static T FindFirstOrDefaultOptional<T>() where T : UnityEngine.Object
         {
-            T obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
+            var obj = Resources.FindObjectsOfTypeAll<T>().FirstOrDefault();
             return obj;
         }
 

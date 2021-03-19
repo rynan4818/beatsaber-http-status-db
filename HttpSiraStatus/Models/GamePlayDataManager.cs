@@ -212,17 +212,17 @@ namespace HttpSiraStatus.Models
             }
             Plugin.Logger.Info("3");
 
-            IDifficultyBeatmap diff = this.gameplayCoreSceneSetupData.difficultyBeatmap;
-            IBeatmapLevel level = diff.level;
+            var diff = this.gameplayCoreSceneSetupData.difficultyBeatmap;
+            var level = diff.level;
 
             this.gameStatus.partyMode = Gamemode.IsPartyActive;
             this.gameStatus.mode = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
 
             this.gameplayModifiers = this.gameplayCoreSceneSetupData.gameplayModifiers;
-            PlayerSpecificSettings playerSettings = this.gameplayCoreSceneSetupData.playerSpecificSettings;
-            PracticeSettings practiceSettings = this.gameplayCoreSceneSetupData.practiceSettings;
+            var playerSettings = this.gameplayCoreSceneSetupData.playerSpecificSettings;
+            var practiceSettings = this.gameplayCoreSceneSetupData.practiceSettings;
 
-            float songSpeedMul = this.gameplayModifiers.songSpeedMul;
+            var songSpeedMul = this.gameplayModifiers.songSpeedMul;
             if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
 
             Plugin.Logger.Info("4");
@@ -310,6 +310,7 @@ namespace HttpSiraStatus.Models
             this.gameStatus.modProMode = this.gameplayModifiers.proMode;
             this.gameStatus.modZenMode = this.gameplayModifiers.zenMode;
 
+            this.gameStatus.staticLights = (diff.difficulty == BeatmapDifficulty.ExpertPlus ? playerSettings.environmentEffectsFilterExpertPlusPreset : playerSettings.environmentEffectsFilterDefaultPreset) != EnvironmentEffectsFilterPreset.AllEffects;
             this.gameStatus.leftHanded = playerSettings.leftHanded;
             this.gameStatus.playerHeight = playerSettings.playerHeight;
             this.gameStatus.sfxVolume = playerSettings.sfxVolume;
@@ -318,7 +319,7 @@ namespace HttpSiraStatus.Models
             this.gameStatus.advancedHUD = playerSettings.advancedHud;
             this.gameStatus.autoRestart = playerSettings.autoRestart;
             this.gameStatus.saberTrailIntensity = playerSettings.saberTrailIntensity;
-            this.gameStatus.environmentEffects = playerSettings.environmentEffectsFilterPreset.ToString();
+            this.gameStatus.environmentEffects = (diff.difficulty == BeatmapDifficulty.ExpertPlus ? playerSettings.environmentEffectsFilterExpertPlusPreset : playerSettings.environmentEffectsFilterDefaultPreset).ToString();
             this.gameStatus.hideNoteSpawningEffect = playerSettings.hideNoteSpawnEffect;
             Plugin.Logger.Info("8");
 
@@ -393,9 +394,9 @@ namespace HttpSiraStatus.Models
 
         public void UpdateModMultiplier()
         {
-            GameStatus gameStatus = this.statusManager.GameStatus;
+            var gameStatus = this.statusManager.GameStatus;
 
-            float energy = this.gameEnergyCounter.energy;
+            var energy = this.gameEnergyCounter.energy;
 
             gameStatus.modifierMultiplier = this.gameplayModifiersSO.GetTotalMultiplier(this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), energy);
 
@@ -480,9 +481,9 @@ namespace HttpSiraStatus.Models
                     this.SetNoteCutStatus(noteData, noteCutInfo, false);
                 }
                 // public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
-                ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out int beforeCutScore, out int afterCutScore, out int cutDistanceScore);
+                ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out var afterCutScore, out var cutDistanceScore);
 
-                int multiplier = customCutBuffer.multiplier;
+                var multiplier = customCutBuffer.multiplier;
 
                 this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
                 this.statusManager.GameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
@@ -496,7 +497,7 @@ namespace HttpSiraStatus.Models
         }
         private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default, bool initialCut = true)
         {
-            GameStatus gameStatus = this.statusManager.GameStatus;
+            var gameStatus = this.statusManager.GameStatus;
 
             gameStatus.ResetNoteCut();
 
@@ -567,7 +568,7 @@ namespace HttpSiraStatus.Models
 
         public void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
         {
-            GameStatus gameStatus = this.statusManager.GameStatus;
+            var gameStatus = this.statusManager.GameStatus;
 
             gameStatus.rawScore = scoreBeforeMultiplier;
             gameStatus.score = scoreAfterMultiplier;
@@ -579,11 +580,11 @@ namespace HttpSiraStatus.Models
 
         public void UpdateCurrentMaxScore()
         {
-            GameStatus gameStatus = this.statusManager.GameStatus;
+            var gameStatus = this.statusManager.GameStatus;
 
-            int currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
+            var currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
             gameStatus.currentMaxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameEnergyCounter.energy);
-            RankModel.Rank rank = RankModel.GetRankForScore(gameStatus.rawScore, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
+            var rank = RankModel.GetRankForScore(gameStatus.rawScore, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
             gameStatus.rank = RankModel.GetRankName(rank);
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
@@ -601,15 +602,9 @@ namespace HttpSiraStatus.Models
             this.statusManager.GameStatus.multiplierProgress = multiplierProgress;
         }
 
-        public void OnLevelFinished()
-        {
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
-        }
+        public void OnLevelFinished() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
 
-        public void OnLevelFailed()
-        {
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Failed);
-        }
+        public void OnLevelFailed() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Failed);
 
         public void OnEnergyDidReach0Event()
         {

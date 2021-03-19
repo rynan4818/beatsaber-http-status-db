@@ -20,10 +20,7 @@ namespace HttpSiraStatus.Models
 
         public new class Pool : MemoryPool<NoteCutInfo, int, ICutScoreBufferDidFinishEvent, CustomCutBuffer>
         {
-            protected override void Reinitialize(NoteCutInfo p1, int p2, ICutScoreBufferDidFinishEvent p3, CustomCutBuffer item)
-            {
-                item.Initialize(p1, p2, p3);
-            }
+            protected override void Reinitialize(NoteCutInfo p1, int p2, ICutScoreBufferDidFinishEvent p3, CustomCutBuffer item) => item.Initialize(p1, p2, p3);
         }
     }
 }
