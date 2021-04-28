@@ -161,6 +161,7 @@ namespace HttpSiraStatus
             performanceJSON["rawScore"] = this.GameStatus.rawScore;
             performanceJSON["score"] = this.GameStatus.score;
             performanceJSON["currentMaxScore"] = this.GameStatus.currentMaxScore;
+            performanceJSON["relativeScore"] = new JSONNumber(this.GameStatus.relativeScore);
             performanceJSON["rank"] = this.GameStatus.rank;
             performanceJSON["passedNotes"] = this.GameStatus.passedNotes;
             performanceJSON["hitNotes"] = this.GameStatus.hitNotes;
