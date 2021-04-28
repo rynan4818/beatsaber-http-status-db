@@ -52,6 +52,7 @@ namespace HttpSiraStatus
         public int batteryEnergy = 1;
         public float energy = 0;
         public bool softFailed = false;
+        public float relativeScore = 0;
 
         // Note cut
         public int noteID = -1;

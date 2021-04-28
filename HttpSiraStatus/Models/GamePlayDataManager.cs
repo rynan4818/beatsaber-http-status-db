@@ -32,6 +32,7 @@ namespace HttpSiraStatus.Models
         private PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction;
         private GameEnergyCounter gameEnergyCounter;
         private MultiplayerLocalActivePlayerFacade multiplayerLocalActivePlayerFacade;
+        private RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter;
         private ILevelEndActions levelEndActions;
         private readonly ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
 
@@ -119,6 +120,9 @@ namespace HttpSiraStatus.Models
                             this.gameEnergyCounter.gameEnergyDidChangeEvent -= this.OnEnergyChanged;
                             this.gameEnergyCounter.gameEnergyDidReach0Event -= this.OnEnergyDidReach0Event;
                         }
+                        if (this.relativeScoreAndImmediateRankCounter) {
+                            this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent -= this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
+                        }
                     }
                     catch (Exception e) {
                         Plugin.Logger.Error(e);
@@ -157,6 +161,7 @@ namespace HttpSiraStatus.Models
                 this.playerHeadAndObstacleInteraction = this.container.Resolve<PlayerHeadAndObstacleInteraction>();
                 this.gameEnergyCounter = this.container.Resolve<GameEnergyCounter>();
                 this.gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
+                this.relativeScoreAndImmediateRankCounter = this.container.Resolve<RelativeScoreAndImmediateRankCounter>();
             }
             catch (Exception e) {
                 Plugin.Logger.Error(e);
@@ -199,6 +204,7 @@ namespace HttpSiraStatus.Models
             Plugin.Logger.Info("2.5");
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
+            this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             // public event Action GameEnergyCounter#gameEnergyDidReach0Event;
             this.gameEnergyCounter.gameEnergyDidReach0Event += this.OnEnergyDidReach0Event;
             this.gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
@@ -328,6 +334,13 @@ namespace HttpSiraStatus.Models
             Plugin.Logger.Info("9");
 
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
+        }
+
+        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
+        {
+            this.gameStatus.relativeScore = this.relativeScoreAndImmediateRankCounter.relativeScore;
+            this.gameStatus.rank = RankModel.GetRankName(this.relativeScoreAndImmediateRankCounter.immediateRank);
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
         private void OnMultiplayerLevelFinished(LevelCompletionResults obj)
@@ -581,11 +594,8 @@ namespace HttpSiraStatus.Models
         public void UpdateCurrentMaxScore()
         {
             var gameStatus = this.statusManager.GameStatus;
-
             var currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
             gameStatus.currentMaxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameEnergyCounter.energy);
-            var rank = RankModel.GetRankForScore(gameStatus.rawScore, gameStatus.score, currentMaxScoreBeforeMultiplier, gameStatus.currentMaxScore);
-            gameStatus.rank = RankModel.GetRankName(rank);
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
