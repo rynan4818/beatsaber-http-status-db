@@ -63,6 +63,7 @@ StatusObject = {
 		"score": Integer, // Current score with modifier multiplier
 		"currentMaxScore": Integer, // Maximum score with modifier multiplier achievable at current passed notes
 		"rank": "SSS" | "SS" | "S" | "A" | "B" | "C" | "D" | "E", // Current rank
+		"relativeScore": Float // 精度
 		"passedNotes": Integer, // Amount of hit or missed cubes
 		"hitNotes": Integer, // Amount of hit cubes
 		"missedNotes": Integer, // Amount of missed cubes
