@@ -25,7 +25,7 @@ namespace HttpSiraStatus.Models
 
         private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
         private PauseController pauseController;
-        private ScoreController scoreController;
+        private IScoreController scoreController;
         private GameplayModifiers gameplayModifiers;
         private AudioTimeSyncController audioTimeSyncController;
         private BeatmapObjectCallbackController beatmapObjectCallbackController;
@@ -99,6 +99,7 @@ namespace HttpSiraStatus.Models
                             this.scoreController.scoreDidChangeEvent -= this.OnScoreDidChange;
                             this.scoreController.comboDidChangeEvent -= this.OnComboDidChange;
                             this.scoreController.multiplierDidChangeEvent -= this.OnMultiplierDidChange;
+                            this.scoreController.immediateMaxPossibleScoreDidChangeEvent -= this.OnImmediateMaxPossibleScoreDidChangeEvent;
                         }
 
                         if (this.multiplayerLocalActivePlayerFacade != null) {
@@ -154,13 +155,15 @@ namespace HttpSiraStatus.Models
             try {
                 this.gameplayCoreSceneSetupData = this.container.Resolve<GameplayCoreSceneSetupData>();
 
-                this.scoreController = this.container.Resolve<ScoreController>();
+                this.scoreController = this.container.Resolve<IScoreController>();
                 this.gameplayModifiers = this.container.Resolve<GameplayModifiers>();
                 this.audioTimeSyncController = this.container.Resolve<AudioTimeSyncController>();
                 this.beatmapObjectCallbackController = this.container.Resolve<BeatmapObjectCallbackController>();
                 this.playerHeadAndObstacleInteraction = this.container.Resolve<PlayerHeadAndObstacleInteraction>();
                 this.gameEnergyCounter = this.container.Resolve<GameEnergyCounter>();
-                this.gameplayModifiersSO = this.scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
+                if (this.scoreController is ScoreController score) {
+                    this.gameplayModifiersSO = score.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
+                }
                 this.relativeScoreAndImmediateRankCounter = this.container.Resolve<RelativeScoreAndImmediateRankCounter>();
             }
             catch (Exception e) {
@@ -201,6 +204,7 @@ namespace HttpSiraStatus.Models
             this.scoreController.comboDidChangeEvent += this.OnComboDidChange;
             // public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
             this.scoreController.multiplierDidChangeEvent += this.OnMultiplierDidChange;
+            this.scoreController.immediateMaxPossibleScoreDidChangeEvent += this.OnImmediateMaxPossibleScoreDidChangeEvent;
             Plugin.Logger.Info("2.5");
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
@@ -334,6 +338,12 @@ namespace HttpSiraStatus.Models
             Plugin.Logger.Info("9");
 
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
+        }
+
+        private void OnImmediateMaxPossibleScoreDidChangeEvent(int immediateMaxPossibleScore, int immediateMaxPossibleModifiedScore)
+        {
+            this.statusManager.GameStatus.currentMaxScore = immediateMaxPossibleModifiedScore;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
         private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
@@ -585,20 +595,8 @@ namespace HttpSiraStatus.Models
 
             gameStatus.rawScore = scoreBeforeMultiplier;
             gameStatus.score = scoreAfterMultiplier;
-
-            this.UpdateCurrentMaxScore();
-
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
-
-        public void UpdateCurrentMaxScore()
-        {
-            var gameStatus = this.statusManager.GameStatus;
-            var currentMaxScoreBeforeMultiplier = ScoreModel.MaxRawScoreForNumberOfNotes(gameStatus.passedNotes);
-            gameStatus.currentMaxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(currentMaxScoreBeforeMultiplier, this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameEnergyCounter.energy);
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
-        }
-
         public void OnComboDidChange(int combo)
         {
             this.statusManager.GameStatus.combo = combo;
@@ -620,10 +618,7 @@ namespace HttpSiraStatus.Models
         {
             if (this.statusManager.GameStatus.modNoFail) {
                 this.statusManager.GameStatus.softFailed = true;
-
                 this.UpdateModMultiplier();
-                this.UpdateCurrentMaxScore();
-
                 this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapAndPerformanceAndMod, BeatSaberEvent.SoftFailed);
             }
         }
@@ -635,7 +630,5 @@ namespace HttpSiraStatus.Models
 
             this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
         }
-
-
     }
 }
