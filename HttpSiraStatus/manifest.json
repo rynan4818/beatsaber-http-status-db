@@ -5,7 +5,7 @@
   "gameVersion": "1.14.0",
   "id": "HttpSiraStatus",
   "name": "HttpSiraStatus",
-  "version": "4.0.4",
+  "version": "4.0.5",
   "dependsOn": {
     "BSIPA": "^4.1.6",
     "BS Utils": "^1.8.0",
