@@ -52,7 +52,7 @@ namespace HttpSiraStatus
         public int batteryEnergy = 1;
         public float energy = 0;
         public bool softFailed = false;
-        public float relativeScore = 0;
+        public float relativeScore = 1;
 
         // Note cut
         public int noteID = -1;
@@ -164,6 +164,7 @@ namespace HttpSiraStatus
             this.batteryEnergy = 1;
             this.energy = 0;
             this.softFailed = false;
+            this.relativeScore = 1;
         }
 
         public void ResetNoteCut()
