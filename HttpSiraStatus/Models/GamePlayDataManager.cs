@@ -214,7 +214,8 @@ namespace HttpSiraStatus.Models
             this.gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
 
             if (this.multiplayerLocalActivePlayerFacade != null) {
-                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += this.OnMultiplayerLevelFinished;
+                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += OnMultiplayerLevelFinished
+                    ;
             }
             if (this.levelEndActions != null) {
                 this.levelEndActions.levelFinishedEvent += this.OnLevelFinished;
@@ -340,6 +341,27 @@ namespace HttpSiraStatus.Models
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
         }
 
+        private void OnMultiplayerLevelFinished(MultiplayerLevelCompletionResults obj)
+        {
+            switch (obj.levelEndState) {
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Cleared:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.GivenUp:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.WasInactive:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.HostEndedLevel:
+                    this.OnLevelFinished();
+                    break;
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Failed:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.StartupFailed:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.ConnectedAfterLevelEnded:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Quit:
+                    this.OnLevelFailed();
+                    break;
+                default:
+                    this.OnLevelFinished();
+                    break;
+            }
+        }
+
         private void OnImmediateMaxPossibleScoreDidChangeEvent(int immediateMaxPossibleScore, int immediateMaxPossibleModifiedScore)
         {
             this.statusManager.GameStatus.currentMaxScore = immediateMaxPossibleModifiedScore;
@@ -352,19 +374,6 @@ namespace HttpSiraStatus.Models
             this.gameStatus.rank = RankModel.GetRankName(this.relativeScoreAndImmediateRankCounter.immediateRank);
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
-
-        private void OnMultiplayerLevelFinished(LevelCompletionResults obj)
-        {
-            switch (obj.levelEndStateType) {
-                case LevelCompletionResults.LevelEndStateType.Failed:
-                    this.OnLevelFailed();
-                    break;
-                default:
-                    this.OnLevelFinished();
-                    break;
-            }
-        }
-
         private void OnEnergyChanged(float obj)
         {
             this.gameStatus.energy = obj;
