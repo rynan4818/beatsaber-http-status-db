@@ -263,7 +263,7 @@ namespace HttpSiraStatus.Models
             if (practiceSettings != null) this.gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
             this.gameStatus.paused = 0;
             this.gameStatus.difficulty = diff.difficulty.Name();
-            this.gameStatus.notesCount = diff.beatmapData.cuttableNotesType;
+            this.gameStatus.notesCount = diff.beatmapData.cuttableNotesCount;
             this.gameStatus.bombsCount = diff.beatmapData.bombsCount;
             this.gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
             this.gameStatus.environmentName = level.environmentInfo.sceneInfo.sceneName;
@@ -432,7 +432,7 @@ namespace HttpSiraStatus.Models
 
             gameStatus.modifierMultiplier = this.gameplayModifiersSO.GetTotalMultiplier(this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), energy);
 
-            gameStatus.maxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(this.gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesType), this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameplayModifiersSO, energy);
+            gameStatus.maxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(this.gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesCount), this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameplayModifiersSO, energy);
             gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(this.gameplayModifiers, this.gameplayModifiersSO, energy).ToString();
         }
 

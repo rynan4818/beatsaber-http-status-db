@@ -2,14 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/bsmg/BSIPA-MetadataFileSchema/master/Schema.json",
   "author": "denpadokei",
   "description": "This plugin exposes information about the current game status, live over a WebSocket and over HTTP.",
-  "gameVersion": "1.16.1",
+  "gameVersion": "1.17.0",
   "id": "HttpSiraStatus",
   "name": "HttpSiraStatus",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "dependsOn": {
     "BSIPA": "^4.1.6",
-    "BS Utils": "^1.8.0",
-    "SiraUtil": "^2.5.2",
+    "BS Utils": "^1.11.0",
+    "SiraUtil": "^2.5.8",
     "websocket-sharp": "^1.0.4"
   },
   "files": [
