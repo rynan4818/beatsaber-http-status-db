@@ -31,15 +31,20 @@ namespace HttpSiraStatus
         public void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e)
         {
             this.GameStatus.updateCause = e.GetDescription();
-            if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) this.UpdateGameJSON();
-            if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) this.UpdateBeatmapJSON();
-            if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance) this.UpdatePerformanceJSON();
-            if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut) this.UpdateNoteCutJSON();
+            if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game)
+                this.UpdateGameJSON();
+            if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap)
+                this.UpdateBeatmapJSON();
+            if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance)
+                this.UpdatePerformanceJSON();
+            if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut)
+                this.UpdateNoteCutJSON();
             if ((changedProps & ChangedProperty.Mod) == ChangedProperty.Mod) {
                 this.UpdateModJSON();
                 this.UpdatePlayerSettingsJSON();
             }
-            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) this.UpdateBeatmapEventJSON();
+            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent)
+                this.UpdateBeatmapEventJSON();
 
             this.EnqueueMessage(changedProps, e);
         }
@@ -56,9 +61,12 @@ namespace HttpSiraStatus
             else {
                 var status = new JSONObject();
 
-                if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game) status["game"] = this.StatusJSON["game"].Clone();
-                if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap) status["beatmap"] = this.StatusJSON["beatmap"].Clone();
-                if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance) status["performance"] = this.StatusJSON["performance"].Clone();
+                if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game)
+                    status["game"] = this.StatusJSON["game"].Clone();
+                if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap)
+                    status["beatmap"] = this.StatusJSON["beatmap"].Clone();
+                if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance)
+                    status["performance"] = this.StatusJSON["performance"].Clone();
                 if ((changedProps & ChangedProperty.Mod) == ChangedProperty.Mod) {
                     status["mod"] = this.StatusJSON["mod"].Clone();
                     status["playerSettings"] = this.StatusJSON["playerSettings"].Clone();
@@ -107,7 +115,8 @@ namespace HttpSiraStatus
 
         private void UpdateGameJSON()
         {
-            if (this.StatusJSON["game"] == null) this.StatusJSON["game"] = new JSONObject();
+            if (this.StatusJSON["game"] == null)
+                this.StatusJSON["game"] = new JSONObject();
             var gameJSON = this.StatusJSON["game"].AsObject;
 
             gameJSON["pluginVersion"] = HttpSiraStatus.Plugin.PluginVersion;
@@ -123,7 +132,8 @@ namespace HttpSiraStatus
                 return;
             }
 
-            if (this.StatusJSON["beatmap"] == null) this.StatusJSON["beatmap"] = new JSONObject();
+            if (this.StatusJSON["beatmap"] == null)
+                this.StatusJSON["beatmap"] = new JSONObject();
             var beatmapJSON = this.StatusJSON["beatmap"].AsObject;
 
             beatmapJSON["songName"] = this.StringOrNull(this.GameStatus.songName);
@@ -140,6 +150,7 @@ namespace HttpSiraStatus
             beatmapJSON["paused"] = this.GameStatus.paused == 0 ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONNumber(this.GameStatus.paused);
             beatmapJSON["length"] = new JSONNumber(this.GameStatus.length);
             beatmapJSON["difficulty"] = this.StringOrNull(this.GameStatus.difficulty);
+            beatmapJSON["difficultyEnum"] = this.StringOrNull(this.GameStatus.difficultyEnum);
             beatmapJSON["notesCount"] = this.GameStatus.notesCount;
             beatmapJSON["bombsCount"] = this.GameStatus.bombsCount;
             beatmapJSON["obstaclesCount"] = this.GameStatus.obstaclesCount;
@@ -155,7 +166,8 @@ namespace HttpSiraStatus
                 return;
             }
 
-            if (this.StatusJSON["performance"] == null) this.StatusJSON["performance"] = new JSONObject();
+            if (this.StatusJSON["performance"] == null)
+                this.StatusJSON["performance"] = new JSONObject();
             var performanceJSON = this.StatusJSON["performance"].AsObject;
 
             performanceJSON["rawScore"] = this.GameStatus.rawScore;
@@ -195,18 +207,21 @@ namespace HttpSiraStatus
             this.NoteCutJSON["swingRating"] = this.GameStatus.swingRating;
             this.NoteCutJSON["multiplier"] = this.GameStatus.cutMultiplier;
             this.NoteCutJSON["saberSpeed"] = this.GameStatus.saberSpeed;
-            if (!this.NoteCutJSON["saberDir"].IsArray) this.NoteCutJSON["saberDir"] = new JSONArray();
+            if (!this.NoteCutJSON["saberDir"].IsArray)
+                this.NoteCutJSON["saberDir"] = new JSONArray();
             this.NoteCutJSON["saberDir"][0] = this.GameStatus.saberDirX;
             this.NoteCutJSON["saberDir"][1] = this.GameStatus.saberDirY;
             this.NoteCutJSON["saberDir"][2] = this.GameStatus.saberDirZ;
             this.NoteCutJSON["saberType"] = this.StringOrNull(this.GameStatus.saberType);
             this.NoteCutJSON["timeDeviation"] = this.GameStatus.timeDeviation;
             this.NoteCutJSON["cutDirectionDeviation"] = this.GameStatus.cutDirectionDeviation;
-            if (!this.NoteCutJSON["cutPoint"].IsArray) this.NoteCutJSON["cutPoint"] = new JSONArray();
+            if (!this.NoteCutJSON["cutPoint"].IsArray)
+                this.NoteCutJSON["cutPoint"] = new JSONArray();
             this.NoteCutJSON["cutPoint"][0] = this.GameStatus.cutPointX;
             this.NoteCutJSON["cutPoint"][1] = this.GameStatus.cutPointY;
             this.NoteCutJSON["cutPoint"][2] = this.GameStatus.cutPointZ;
-            if (!this.NoteCutJSON["cutNormal"].IsArray) this.NoteCutJSON["cutNormal"] = new JSONArray();
+            if (!this.NoteCutJSON["cutNormal"].IsArray)
+                this.NoteCutJSON["cutNormal"] = new JSONArray();
             this.NoteCutJSON["cutNormal"][0] = this.GameStatus.cutNormalX;
             this.NoteCutJSON["cutNormal"][1] = this.GameStatus.cutNormalY;
             this.NoteCutJSON["cutNormal"][2] = this.GameStatus.cutNormalZ;
@@ -216,7 +231,8 @@ namespace HttpSiraStatus
 
         private void UpdateModJSON()
         {
-            if (this.StatusJSON["mod"] == null) this.StatusJSON["mod"] = new JSONObject();
+            if (this.StatusJSON["mod"] == null)
+                this.StatusJSON["mod"] = new JSONObject();
             var modJSON = this.StatusJSON["mod"].AsObject;
 
             modJSON["multiplier"] = this.GameStatus.modifierMultiplier;
@@ -241,7 +257,8 @@ namespace HttpSiraStatus
 
         private void UpdatePlayerSettingsJSON()
         {
-            if (this.StatusJSON["playerSettings"] == null) this.StatusJSON["playerSettings"] = new JSONObject();
+            if (this.StatusJSON["playerSettings"] == null)
+                this.StatusJSON["playerSettings"] = new JSONObject();
             var playerSettingsJSON = this.StatusJSON["playerSettings"].AsObject;
 
             playerSettingsJSON["staticLights"] = this.GameStatus.staticLights;

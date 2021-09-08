@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using UnityEngine;
 using Zenject;
@@ -214,7 +215,7 @@ namespace HttpSiraStatus.Models
             this.gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
 
             if (this.multiplayerLocalActivePlayerFacade != null) {
-                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += OnMultiplayerLevelFinished
+                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += this.OnMultiplayerLevelFinished
                     ;
             }
             if (this.levelEndActions != null) {
@@ -234,7 +235,8 @@ namespace HttpSiraStatus.Models
             var practiceSettings = this.gameplayCoreSceneSetupData.practiceSettings;
 
             var songSpeedMul = this.gameplayModifiers.songSpeedMul;
-            if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
+            if (practiceSettings != null)
+                songSpeedMul = practiceSettings.songSpeedMul;
 
             Plugin.Logger.Info("4");
 
@@ -255,14 +257,16 @@ namespace HttpSiraStatus.Models
             this.gameStatus.songBPM = level.beatsPerMinute;
             this.gameStatus.noteJumpSpeed = diff.noteJumpMovementSpeed;
             // 13 is "custom_level_" and 40 is the magic number for the length of the SHA-1 hash
-            this.gameStatus.songHash = level.levelID.StartsWith("custom_level_") && !level.levelID.EndsWith(" WIP") ? level.levelID.Substring(13, 40) : null;
+            this.gameStatus.songHash = Regex.IsMatch(level.levelID, "^custom_level_[0-9A-F]{40}", RegexOptions.IgnoreCase) && !level.levelID.EndsWith(" WIP") ? level.levelID.Substring(13, 40) : null;
             this.gameStatus.levelId = level.levelID;
             this.gameStatus.songTimeOffset = (long)(level.songTimeOffset * 1000f / songSpeedMul);
             this.gameStatus.length = (long)(level.beatmapLevelData.audioClip.length * 1000f / songSpeedMul);
             this.gameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSyncController.songTime * 1000f / songSpeedMul);
-            if (practiceSettings != null) this.gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+            if (practiceSettings != null)
+                this.gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
             this.gameStatus.paused = 0;
             this.gameStatus.difficulty = diff.difficulty.Name();
+            this.gameStatus.difficultyEnum = Enum.GetName(typeof(BeatmapDifficulty), diff.difficulty);
             this.gameStatus.notesCount = diff.beatmapData.cuttableNotesCount;
             this.gameStatus.bombsCount = diff.beatmapData.bombsCount;
             this.gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
