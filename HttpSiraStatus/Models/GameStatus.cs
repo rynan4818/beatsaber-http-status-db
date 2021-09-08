@@ -27,6 +27,7 @@ namespace HttpSiraStatus
         public long start = 0;
         public long paused = 0;
         public string difficulty = null;
+        public string difficultyEnum = null;
         public int notesCount = 0;
         public int bombsCount = 0;
         public int obstaclesCount = 0;
@@ -138,6 +139,7 @@ namespace HttpSiraStatus
             this.start = 0;
             this.paused = 0;
             this.difficulty = null;
+            this.difficultyEnum = null;
             this.notesCount = 0;
             this.obstaclesCount = 0;
             this.maxScore = 0;
