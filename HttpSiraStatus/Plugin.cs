@@ -38,10 +38,7 @@ namespace HttpSiraStatus
         }
 
         [OnStart]
-        public void OnApplicationStart()
-        {
-            Logger.Debug($"Game version : {GameVersion}");
-        }
+        public void OnApplicationStart() => Logger.Debug($"Game version : {GameVersion}");
 
         [OnExit]
         public void OnApplicationQuit()

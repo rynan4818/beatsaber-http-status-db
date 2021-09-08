@@ -3,6 +3,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{5B46A99A-6545-41EB-A34A-E1B6EF152201}</ProjectGuid>
+    <LangVersion>9</LangVersion>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HttpSiraStatus</RootNamespace>
