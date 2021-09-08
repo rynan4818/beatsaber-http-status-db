@@ -22,7 +22,7 @@ namespace HttpSiraStatus
         /// Populated by MSBuild
         /// </summary>
         public static string PluginVersion => Assembly.GetExecutingAssembly().GetName().Version.ToString();
-        public static string GameVersion => "1.13.4";
+        public static string GameVersion => Application.version;
 
         public string Name => Assembly.GetExecutingAssembly().GetName().Name;
         public static IPALogger Logger { get; private set; }
@@ -40,7 +40,7 @@ namespace HttpSiraStatus
         [OnStart]
         public void OnApplicationStart()
         {
-
+            Logger.Debug($"Game version : {GameVersion}");
         }
 
         [OnExit]
