@@ -8,6 +8,7 @@ namespace HttpSiraStatus.Installer
         {
             this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().AsCached();
             this.Container.BindMemoryPool<CustomCutBuffer, CustomCutBuffer.Pool>().WithInitialSize(90);
+            this.Container.BindMemoryPool<NoteDataEntity, NoteDataEntity.Pool>().WithInitialSize(16);
         }
     }
 }

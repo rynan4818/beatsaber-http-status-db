@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Zenject;
 
 namespace HttpSiraStatus.Models
 {
@@ -22,7 +23,15 @@ namespace HttpSiraStatus.Models
         public BeatmapObjectType beatmapObjectType { get; private set; }
         public float time { get; private set; }
         public int lineIndex { get; private set; }
+        public NoteDataEntity()
+        {
+        }
         public NoteDataEntity(NoteData note, bool noArrow)
+        {
+            this.SetData(note, noArrow);
+        }
+
+        public void SetData(NoteData note, bool noArrow)
         {
             this.beatmapObjectType = note.beatmapObjectType;
             this.time = note.time;
@@ -38,6 +47,14 @@ namespace HttpSiraStatus.Models
             this.duration = note.duration;
             this.skipBeforeCutScoring = note.skipBeforeCutScoring;
             this.skipAfterCutScoring = note.skipAfterCutScoring;
+        }
+
+        public class Pool : MemoryPool<NoteData, bool, NoteDataEntity>
+        {
+            protected override void Reinitialize(NoteData p1, bool p2, NoteDataEntity item)
+            {
+                item.SetData(p1, p2);
+            }
         }
     }
 }

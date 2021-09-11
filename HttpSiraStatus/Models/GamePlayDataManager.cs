@@ -22,7 +22,9 @@ namespace HttpSiraStatus.Models
         [Inject]
         private readonly GameStatus gameStatus;
         [Inject]
-        private readonly CustomCutBuffer.Pool pool;
+        private readonly CustomCutBuffer.Pool cutBufferPool;
+        [Inject]
+        private readonly NoteDataEntity.Pool notePool;
 
         private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
         private PauseController pauseController;
@@ -40,7 +42,6 @@ namespace HttpSiraStatus.Models
         private GameplayModifiersModelSO gameplayModifiersSO;
 
         private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
-
         /// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
         //private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
         /// protected NoteCutInfo CutScoreBuffer._noteCutInfo
@@ -65,7 +66,6 @@ namespace HttpSiraStatus.Models
         private int lastNoteId = 0;
 
         private bool disposedValue;
-
         protected virtual void Dispose(bool disposing)
         {
             if (!this.disposedValue) {
@@ -503,7 +503,7 @@ namespace HttpSiraStatus.Models
             this.statusManager.GameStatus.cutMultiplier = multiplier;
             this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
             if (noteCutInfo.allIsOK && this.noteCutMapping.TryAdd(noteCutInfo, noteData)) {
-                this.activeItems.Add(this.pool.Spawn(noteCutInfo, multiplier, this));
+                this.activeItems.Add(this.cutBufferPool.Spawn(noteCutInfo, multiplier, this));
             }
         }
 
@@ -528,7 +528,7 @@ namespace HttpSiraStatus.Models
 
                 this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
                 this.activeItems.Remove(customCutBuffer);
-                this.pool.Despawn(customCutBuffer);
+                this.cutBufferPool.Despawn(customCutBuffer);
             }
         }
         private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default, bool initialCut = true)
@@ -540,7 +540,8 @@ namespace HttpSiraStatus.Models
             // Backwards compatibility for <1.12.1
             gameStatus.noteID = -1;
             // Check the near notes first for performance
-            if (this.NoteToIdMapping.TryRemove(new NoteDataEntity(noteData, this.gameplayModifiers.noArrows), out var noteID)) {
+            var entiy = this.notePool.Spawn(noteData, this.gameplayModifiers.noArrows);
+            if (this.NoteToIdMapping.TryRemove(entiy, out var noteID)) {
                 gameStatus.noteID = noteID;
                 if (this.lastNoteId < noteID) {
                     this.lastNoteId = noteID;
@@ -549,6 +550,7 @@ namespace HttpSiraStatus.Models
             else {
                 gameStatus.noteID = this.lastNoteId;
             }
+            this.notePool.Despawn(entiy);
             // Backwards compatibility for <1.12.1
             gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
             gameStatus.noteCutDirection = noteData.cutDirection.ToString();
