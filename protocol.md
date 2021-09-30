@@ -58,7 +58,7 @@ StatusObject = {
 		"maxScore": Integer, // Max score obtainable on the map with modifier multiplier
 		"maxRank": "SSS" | "SS" | "S" | "A" | "B" | "C" | "D" | "E", // Max rank obtainable using current modifiers
 		"environmentName": String, // Name of the environment this beatmap requested // TODO: list available names
-		"currentSongTime": int // 現在の曲の秒数です。1秒おきに更新されます。
+		"currentSongTime": Integer // 現在の曲の秒数です。1秒おきに更新されます。
 		"color": { // Contains colors used by this environment. If overrides were set by the player, they replace the values provided by the environment. SongCore may override the colors based on beatmap settings, including player overrides. Each color is stored as an array of three integers in the range [0..255] representing the red, green, and blue values in order.
 		"saberA": [Integer, Integer, Integer], // Color of the left saber and its notes
 		"saberB": [Integer, Integer, Integer], // Color of the right saber and its notes
