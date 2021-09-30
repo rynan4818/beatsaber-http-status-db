@@ -42,7 +42,7 @@ namespace HttpSiraStatus
         public Color? colorEnvironmentBoost0 = null;
         public Color? colorEnvironmentBoost1 = null;
         public Color? colorObstacle = null;
-        public float currentSongTime = 0f;
+        public int currentSongTime = 0;
 
         // Performance
         public int rawScore = 0;
@@ -161,7 +161,7 @@ namespace HttpSiraStatus
             this.colorEnvironmentBoost0 = null;
             this.colorEnvironmentBoost1 = null;
             this.colorObstacle = null;
-            this.currentSongTime = 0f;
+            this.currentSongTime = 0;
         }
 
         public void ResetPerformance()

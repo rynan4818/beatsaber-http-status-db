@@ -432,8 +432,11 @@ namespace HttpSiraStatus.Models
 
         private void UpdateCurrentSongTime()
         {
-            this.statusManager.GameStatus.currentSongTime = this.audioTimeSource.songTime;
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.BeatmapEvent);
+            var songTime = Mathf.RoundToInt(this.audioTimeSource.songTime);
+            if (this.statusManager.GameStatus.currentSongTime != songTime) {
+                this.statusManager.GameStatus.currentSongTime = songTime;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.BeatmapEvent);
+            }
         }
 
         public void UpdateModMultiplier()
