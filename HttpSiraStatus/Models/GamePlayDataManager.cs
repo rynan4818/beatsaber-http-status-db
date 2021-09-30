@@ -30,7 +30,7 @@ namespace HttpSiraStatus.Models
         private PauseController pauseController;
         private IScoreController scoreController;
         private GameplayModifiers gameplayModifiers;
-        private AudioTimeSyncController audioTimeSyncController;
+        private IAudioTimeSource audioTimeSource;
         private BeatmapObjectCallbackController beatmapObjectCallbackController;
         private PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction;
         private GameEnergyCounter gameEnergyCounter;
@@ -70,7 +70,6 @@ namespace HttpSiraStatus.Models
         {
             if (!this.disposedValue) {
                 if (disposing) {
-                    // TODO: マネージド状態を破棄します (マネージド オブジェクト)
                     Plugin.Logger.Debug("dispose call");
                     try {
                         this.gameStatus.scene = "Menu"; // XXX: impossible because multiplayerController is always cleaned up before this
@@ -130,20 +129,9 @@ namespace HttpSiraStatus.Models
                         Plugin.Logger.Error(e);
                     }
                 }
-
-                // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-                // TODO: 大きなフィールドを null に設定します
                 this.disposedValue = true;
             }
         }
-
-        // // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
-        // ~GamePlayDataManager()
-        // {
-        //     // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        //     Dispose(disposing: false);
-        // }
-
         public void Dispose()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
@@ -158,7 +146,7 @@ namespace HttpSiraStatus.Models
 
                 this.scoreController = this.container.Resolve<IScoreController>();
                 this.gameplayModifiers = this.container.Resolve<GameplayModifiers>();
-                this.audioTimeSyncController = this.container.Resolve<AudioTimeSyncController>();
+                this.audioTimeSource = this.container.Resolve<IAudioTimeSource>();
                 this.beatmapObjectCallbackController = this.container.Resolve<BeatmapObjectCallbackController>();
                 this.playerHeadAndObstacleInteraction = this.container.Resolve<PlayerHeadAndObstacleInteraction>();
                 this.gameEnergyCounter = this.container.Resolve<GameEnergyCounter>();
@@ -261,7 +249,7 @@ namespace HttpSiraStatus.Models
             this.gameStatus.levelId = level.levelID;
             this.gameStatus.songTimeOffset = (long)(level.songTimeOffset * 1000f / songSpeedMul);
             this.gameStatus.length = (long)(level.beatmapLevelData.audioClip.length * 1000f / songSpeedMul);
-            this.gameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSyncController.songTime * 1000f / songSpeedMul);
+            this.gameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSource.songTime * 1000f / songSpeedMul);
             if (practiceSettings != null)
                 this.gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
             this.gameStatus.paused = 0;
@@ -271,6 +259,16 @@ namespace HttpSiraStatus.Models
             this.gameStatus.bombsCount = diff.beatmapData.bombsCount;
             this.gameStatus.obstaclesCount = diff.beatmapData.obstaclesCount;
             this.gameStatus.environmentName = level.environmentInfo.sceneInfo.sceneName;
+            var colorScheme = gameplayCoreSceneSetupData.colorScheme ?? new ColorScheme(gameplayCoreSceneSetupData.environmentInfo.colorScheme);
+            gameStatus.colorSaberA = colorScheme.saberAColor;
+            gameStatus.colorSaberB = colorScheme.saberBColor;
+            gameStatus.colorEnvironment0 = colorScheme.environmentColor0;
+            gameStatus.colorEnvironment1 = colorScheme.environmentColor1;
+            if (colorScheme.supportsEnvironmentColorBoost) {
+                gameStatus.colorEnvironmentBoost0 = colorScheme.environmentColor0Boost;
+                gameStatus.colorEnvironmentBoost1 = colorScheme.environmentColor1Boost;
+            }
+            gameStatus.colorObstacle = colorScheme.obstaclesColor;
 
             Plugin.Logger.Info("6");
 
@@ -338,7 +336,21 @@ namespace HttpSiraStatus.Models
             this.gameStatus.hideNoteSpawningEffect = playerSettings.hideNoteSpawnEffect;
             Plugin.Logger.Info("8");
 
-            this._thread = new Thread(new ThreadStart(this.OnObstacleInteraction));
+            this._thread = new Thread(new ThreadStart(() =>
+            {
+                while (!this.disposedValue) {
+                    try {
+                        this.UpdateCurrentSongTime();
+                        this.OnObstacleInteraction();
+                    }
+                    catch (Exception e) {
+                        Plugin.Logger.Error(e);
+                    }
+                    finally {
+                        Thread.Sleep(16);
+                    }
+                }
+            }));
             this._thread.Start();
             Plugin.Logger.Info("9");
 
@@ -398,25 +410,15 @@ namespace HttpSiraStatus.Models
         /// </summary>
         private void OnObstacleInteraction()
         {
-            while (true) {
-                try {
-                    var currentHeadInObstacle = this.playerHeadAndObstacleInteraction?.intersectingObstacles.Any();
+            var currentHeadInObstacle = this.playerHeadAndObstacleInteraction?.intersectingObstacles.Any();
 
-                    if (!this.headInObstacle && currentHeadInObstacle == true) {
-                        this.headInObstacle = true;
-                        this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
-                    }
-                    else if (this.headInObstacle && currentHeadInObstacle != true) {
-                        this.headInObstacle = false;
-                        this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
-                    }
-                }
-                catch (Exception e) {
-                    Plugin.Logger.Error(e);
-                }
-                finally {
-                    Thread.Sleep(16);
-                }
+            if (!this.headInObstacle && currentHeadInObstacle == true) {
+                this.headInObstacle = true;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
+            }
+            else if (this.headInObstacle && currentHeadInObstacle != true) {
+                this.headInObstacle = false;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
             }
         }
         #endregion
@@ -427,6 +429,12 @@ namespace HttpSiraStatus.Models
         //	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
         //	// HandleMenuStart();
         //}
+
+        private void UpdateCurrentSongTime()
+        {
+            this.statusManager.GameStatus.currentSongTime = this.audioTimeSource.songTime;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.BeatmapEvent);
+        }
 
         public void UpdateModMultiplier()
         {
@@ -449,7 +457,7 @@ namespace HttpSiraStatus.Models
 
         public void OnGameResume()
         {
-            this.statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSyncController.songTime * 1000f / this.statusManager.GameStatus.songSpeedMultiplier);
+            this.statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSource.songTime * 1000f / this.statusManager.GameStatus.songSpeedMultiplier);
             this.statusManager.GameStatus.paused = 0;
 
             this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);

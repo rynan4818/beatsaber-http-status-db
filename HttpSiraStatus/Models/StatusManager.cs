@@ -3,6 +3,7 @@ using HttpSiraStatus.Util;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using UnityEngine;
 using Zenject;
 
 namespace HttpSiraStatus
@@ -157,6 +158,36 @@ namespace HttpSiraStatus
             beatmapJSON["maxScore"] = this.GameStatus.maxScore;
             beatmapJSON["maxRank"] = this.GameStatus.maxRank;
             beatmapJSON["environmentName"] = this.GameStatus.environmentName;
+            beatmapJSON["currentSongTime"] = this.GameStatus.currentSongTime;
+
+            if (beatmapJSON["color"] == null) {
+                beatmapJSON["color"] = new JSONObject();
+            }   
+            var colorJSON = beatmapJSON["color"].AsObject;
+
+            UpdateColor(GameStatus.colorSaberA, colorJSON, "saberA");
+            UpdateColor(GameStatus.colorSaberB, colorJSON, "saberB");
+            UpdateColor(GameStatus.colorEnvironment0, colorJSON, "environment0");
+            UpdateColor(GameStatus.colorEnvironment1, colorJSON, "environment1");
+            UpdateColor(GameStatus.colorEnvironmentBoost0, colorJSON, "environment0Boost");
+            UpdateColor(GameStatus.colorEnvironmentBoost1, colorJSON, "environment1Boost");
+            UpdateColor(GameStatus.colorObstacle, colorJSON, "obstacle");
+        }
+
+        private void UpdateColor(Color? color, JSONObject parent, String key)
+        {
+            if (color == null) {
+                parent[key] = JSONNull.CreateOrGet();
+                return;
+            }
+
+            var arr = parent[key] as JSONArray ?? new JSONArray();
+
+            arr[0] = Mathf.RoundToInt(((Color)color).r * 255);
+            arr[1] = Mathf.RoundToInt(((Color)color).g * 255);
+            arr[2] = Mathf.RoundToInt(((Color)color).b * 255);
+
+            parent[key] = arr;
         }
 
         private void UpdatePerformanceJSON()

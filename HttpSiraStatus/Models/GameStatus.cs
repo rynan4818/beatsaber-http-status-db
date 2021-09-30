@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace HttpSiraStatus
 {
@@ -34,6 +35,14 @@ namespace HttpSiraStatus
         public int maxScore = 0;
         public string maxRank = "E";
         public string environmentName = null;
+        public Color? colorSaberA = null;
+        public Color? colorSaberB = null;
+        public Color? colorEnvironment0 = null;
+        public Color? colorEnvironment1 = null;
+        public Color? colorEnvironmentBoost0 = null;
+        public Color? colorEnvironmentBoost1 = null;
+        public Color? colorObstacle = null;
+        public float currentSongTime = 0f;
 
         // Performance
         public int rawScore = 0;
@@ -145,6 +154,14 @@ namespace HttpSiraStatus
             this.maxScore = 0;
             this.maxRank = "E";
             this.environmentName = null;
+            this.colorSaberA = null;
+            this.colorSaberB = null;
+            this.colorEnvironment0 = null;
+            this.colorEnvironment1 = null;
+            this.colorEnvironmentBoost0 = null;
+            this.colorEnvironmentBoost1 = null;
+            this.colorObstacle = null;
+            this.currentSongTime = 0f;
         }
 
         public void ResetPerformance()
