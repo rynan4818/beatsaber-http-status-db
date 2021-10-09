@@ -158,7 +158,6 @@ namespace HttpSiraStatus
             beatmapJSON["maxScore"] = this.GameStatus.maxScore;
             beatmapJSON["maxRank"] = this.GameStatus.maxRank;
             beatmapJSON["environmentName"] = this.GameStatus.environmentName;
-            beatmapJSON["currentSongTime"] = this.GameStatus.currentSongTime;
 
             if (beatmapJSON["color"] == null) {
                 beatmapJSON["color"] = new JSONObject();
@@ -219,6 +218,7 @@ namespace HttpSiraStatus
             performanceJSON["batteryEnergy"] = this.GameStatus.modBatteryEnergy || this.GameStatus.modInstaFail ? (JSONNode)new JSONNumber(this.GameStatus.batteryEnergy) : (JSONNode)JSONNull.CreateOrGet();
             performanceJSON["energy"] = new JSONNumber(this.GameStatus.energy);
             performanceJSON["softFailed"] = this.GameStatus.softFailed;
+            performanceJSON["currentSongTime"] = this.GameStatus.currentSongTime;
         }
 
         private void UpdateNoteCutJSON()
