@@ -435,7 +435,7 @@ namespace HttpSiraStatus.Models
             var songTime = Mathf.FloorToInt(this.audioTimeSource.songTime);
             if (this.statusManager.GameStatus.currentSongTime != songTime) {
                 this.statusManager.GameStatus.currentSongTime = songTime;
-                this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.BeatmapEvent);
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.BeatmapEvent);
             }
         }
 
