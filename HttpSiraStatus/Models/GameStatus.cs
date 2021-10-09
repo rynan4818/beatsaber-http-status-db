@@ -42,7 +42,6 @@ namespace HttpSiraStatus
         public Color? colorEnvironmentBoost0 = null;
         public Color? colorEnvironmentBoost1 = null;
         public Color? colorObstacle = null;
-        public int currentSongTime = 0;
 
         // Performance
         public int rawScore = 0;
@@ -63,6 +62,7 @@ namespace HttpSiraStatus
         public float energy = 0;
         public bool softFailed = false;
         public float relativeScore = 1;
+        public int currentSongTime = 0;
 
         // Note cut
         public int noteID = -1;
@@ -161,7 +161,6 @@ namespace HttpSiraStatus
             this.colorEnvironmentBoost0 = null;
             this.colorEnvironmentBoost1 = null;
             this.colorObstacle = null;
-            this.currentSongTime = 0;
         }
 
         public void ResetPerformance()
@@ -184,6 +183,7 @@ namespace HttpSiraStatus
             this.energy = 0;
             this.softFailed = false;
             this.relativeScore = 1;
+            this.currentSongTime = 0;
         }
 
         public void ResetNoteCut()
