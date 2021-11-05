@@ -13,7 +13,7 @@ using Zenject;
 
 namespace HttpSiraStatus.Models
 {
-    public class GamePlayDataManager : IInitializable, IDisposable, ICutScoreBufferDidFinishEvent
+    public class GamePlayDataManager : MonoBehaviour, IInitializable, IDisposable, ICutScoreBufferDidFinishEvent
     {
         [Inject]
         private readonly DiContainer container;
@@ -341,7 +341,6 @@ namespace HttpSiraStatus.Models
                 while (!this.disposedValue) {
                     try {
                         this.UpdateCurrentSongTime();
-                        this.OnObstacleInteraction();
                     }
                     catch (Exception e) {
                         Plugin.Logger.Error(e);
@@ -395,40 +394,54 @@ namespace HttpSiraStatus.Models
             this.gameStatus.energy = obj;
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
         }
-
-        //public void CleanUpMultiplayer()
-        //{
-        //	if (multiplayerSessionManager != null) {
-        //		multiplayerSessionManager.disconnectedEvent -= OnMultiplayerDisconnected;
-        //		multiplayerSessionManager = null;
-        //	}
-        //}
-
+#if false
+        public void CleanUpMultiplayer()
+        {
+        	if (multiplayerSessionManager != null) {
+        		multiplayerSessionManager.disconnectedEvent -= OnMultiplayerDisconnected;
+        		multiplayerSessionManager = null;
+        	}
+        }
+        public void OnMultiplayerDisconnected(DisconnectedReason reason)
+        {
+        	CleanUpMultiplayer();
+        	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
+        	HandleMenuStart();
+        }
+#endif
         #region // Unity Method
+        private void Update()
+        {
+            try {
+                this.OnObstacleInteraction();
+            }
+            catch (Exception e) {
+                Plugin.Logger.Error(e);
+            }
+        }
+        #endregion
         /// <summary>
-        /// Updateで呼ぼうと思ってたが別スレッドで実行するようにした。
+        /// こいつ別スレで呼ぶと悲惨なことになるのでUpdateで呼ぶことにしました。
         /// </summary>
         private void OnObstacleInteraction()
         {
-            var currentHeadInObstacle = this.playerHeadAndObstacleInteraction?.intersectingObstacles.Any();
+            if (this.playerHeadAndObstacleInteraction == null) {
+                return;
+            }
+            // intersectingObstaclesのgetがフレーム単位で呼ばないといけない。
+            // 別スレで呼ぶと関係ないとこで他のモジュール群が死ぬ。
+            var intersectingObstacles = this.playerHeadAndObstacleInteraction.intersectingObstacles;
+            var currentHeadInObstacle = intersectingObstacles.Any();
 
-            if (!this.headInObstacle && currentHeadInObstacle == true) {
+            if (!this.headInObstacle && currentHeadInObstacle) {
                 this.headInObstacle = true;
                 this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
             }
-            else if (this.headInObstacle && currentHeadInObstacle != true) {
+            else if (this.headInObstacle && !currentHeadInObstacle) {
                 this.headInObstacle = false;
                 this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
             }
         }
-        #endregion
-        //public void OnMultiplayerDisconnected(DisconnectedReason reason)
-        //{
-        //	CleanUpMultiplayer();
-
-        //	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
-        //	// HandleMenuStart();
-        //}
 
         private void UpdateCurrentSongTime()
         {

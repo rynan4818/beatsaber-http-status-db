@@ -14,7 +14,7 @@
     <DebugType>portable</DebugType>
     <LocalRefsDir Condition="Exists('..\Refs')">..\Refs</LocalRefsDir>
     <ErrorReport>prompt</ErrorReport>
-    <Version>5.3.1</Version>
+    <Version>5.3.2</Version>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
