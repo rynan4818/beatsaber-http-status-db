@@ -36,6 +36,7 @@
 #pragma warning disable IDE0044,IDE0034,IDE0059,IDE0018,IDE0031,IDE0075,IDE0041,IDE0019,IDE0038
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -60,24 +61,27 @@ namespace HttpSiraStatus.Util
         Indent
     }
 
-    public abstract partial class JSONNode
+    public abstract partial class JSONNode : IDisposable
     {
         #region Enumerators
-        public struct Enumerator
+        public struct Enumerator : IDisposable
         {
             private enum Type { None, Array, Object }
             private Type type;
-            private Dictionary<string, JSONNode>.Enumerator m_Object;
+            private IEnumerator<KeyValuePair<string, JSONNode>> m_Object;
             private List<JSONNode>.Enumerator m_Array;
+            private bool disposeValue;
             public bool IsValid => this.type != Type.None;
             public Enumerator(List<JSONNode>.Enumerator aArrayEnum)
             {
+                this.disposeValue = false;
                 this.type = Type.Array;
                 this.m_Object = default(Dictionary<string, JSONNode>.Enumerator);
                 this.m_Array = aArrayEnum;
             }
-            public Enumerator(Dictionary<string, JSONNode>.Enumerator aDictEnum)
+            public Enumerator(IEnumerator<KeyValuePair<string, JSONNode>> aDictEnum)
             {
+                this.disposeValue = false;
                 this.type = Type.Object;
                 this.m_Object = aDictEnum;
                 this.m_Array = default(List<JSONNode>.Enumerator);
@@ -101,8 +105,26 @@ namespace HttpSiraStatus.Util
                     return this.m_Object.MoveNext();
                 return false;
             }
+
+            private void Dispose(bool disposing)
+            {
+                if (this.disposeValue) {
+                    return;
+                }
+                if (disposing) {
+                    this.m_Object?.Dispose();
+                    this.m_Object = null;
+                    this.m_Array.Dispose();
+                }
+                this.disposeValue = true;
+            }
+
+            public void Dispose()
+            {
+                this.Dispose(true);
+            }
         }
-        public struct ValueEnumerator
+        public struct ValueEnumerator : IDisposable
         {
             private Enumerator m_Enumerator;
             public ValueEnumerator(List<JSONNode>.Enumerator aArrayEnum) : this(new Enumerator(aArrayEnum)) { }
@@ -111,8 +133,13 @@ namespace HttpSiraStatus.Util
             public JSONNode Current => this.m_Enumerator.Current.Value;
             public bool MoveNext() => this.m_Enumerator.MoveNext();
             public ValueEnumerator GetEnumerator() => this;
+
+            public void Dispose()
+            {
+                ((IDisposable)m_Enumerator).Dispose();
+            }
         }
-        public struct KeyEnumerator
+        public struct KeyEnumerator : IDisposable
         {
             private Enumerator m_Enumerator;
             public KeyEnumerator(List<JSONNode>.Enumerator aArrayEnum) : this(new Enumerator(aArrayEnum)) { }
@@ -121,12 +148,19 @@ namespace HttpSiraStatus.Util
             public string Current => this.m_Enumerator.Current.Key;
             public bool MoveNext() => this.m_Enumerator.MoveNext();
             public KeyEnumerator GetEnumerator() => this;
+
+            public void Dispose()
+            {
+                ((IDisposable)m_Enumerator).Dispose();
+            }
         }
 
         public class LinqEnumerator : IEnumerator<KeyValuePair<string, JSONNode>>, IEnumerable<KeyValuePair<string, JSONNode>>
         {
             private JSONNode m_Node;
             private Enumerator m_Enumerator;
+            private bool disposedValue;
+
             internal LinqEnumerator(JSONNode aNode)
             {
                 this.m_Node = aNode;
@@ -137,12 +171,6 @@ namespace HttpSiraStatus.Util
             object IEnumerator.Current => this.m_Enumerator.Current;
             public bool MoveNext() => this.m_Enumerator.MoveNext();
 
-            public void Dispose()
-            {
-                this.m_Node = null;
-                this.m_Enumerator = new Enumerator();
-            }
-
             public IEnumerator<KeyValuePair<string, JSONNode>> GetEnumerator() => new LinqEnumerator(this.m_Node);
 
             public void Reset()
@@ -152,6 +180,22 @@ namespace HttpSiraStatus.Util
             }
 
             IEnumerator IEnumerable.GetEnumerator() => new LinqEnumerator(this.m_Node);
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (!disposedValue) {
+                    if (disposing) {
+                        this.m_Enumerator.Dispose();
+                    }
+                    this.m_Node = null;
+                    disposedValue = true;
+                }
+            }
+            public void Dispose()
+            {
+                Dispose(disposing: true);
+                GC.SuppressFinalize(this);
+            }
         }
 
         #endregion Enumerators
@@ -407,6 +451,7 @@ namespace HttpSiraStatus.Util
 
         [ThreadStatic]
         private static StringBuilder m_EscapeBuilder;
+
         internal static StringBuilder EscapeBuilder
         {
             get
@@ -639,6 +684,11 @@ namespace HttpSiraStatus.Util
                 return ParseElement(Token.ToString(), TokenIsQuoted);
             return ctx;
         }
+        public virtual void Dispose()
+        {
+            this.Keys.Dispose();
+            this.Values.Dispose();
+        }
     }
     // End of JSONNode
 
@@ -716,7 +766,7 @@ namespace HttpSiraStatus.Util
         {
             var node = new JSONArray();
             node.m_List.Capacity = this.m_List.Capacity;
-            foreach (var n in this.m_List) {
+            foreach (var n in this.m_List.ToArray()) {
                 if (n != null)
                     node.Add(n.Clone());
                 else
@@ -729,7 +779,7 @@ namespace HttpSiraStatus.Util
         {
             get
             {
-                foreach (var N in this.m_List)
+                foreach (var N in this.m_List.ToArray())
                     yield return N;
             }
         }
@@ -760,7 +810,7 @@ namespace HttpSiraStatus.Util
 
     public partial class JSONObject : JSONNode
     {
-        private Dictionary<string, JSONNode> m_Dict = new Dictionary<string, JSONNode>();
+        private ConcurrentDictionary<string, JSONNode> m_Dict = new ConcurrentDictionary<string, JSONNode>();
 
         private bool inline = false;
         public override bool Inline
@@ -791,7 +841,7 @@ namespace HttpSiraStatus.Util
                 if (this.m_Dict.ContainsKey(aKey))
                     this.m_Dict[aKey] = value;
                 else
-                    this.m_Dict.Add(aKey, value);
+                    this.m_Dict.TryAdd(aKey, value);
             }
         }
 
@@ -825,18 +875,15 @@ namespace HttpSiraStatus.Util
                 if (this.m_Dict.ContainsKey(aKey))
                     this.m_Dict[aKey] = aItem;
                 else
-                    this.m_Dict.Add(aKey, aItem);
+                    this.m_Dict.TryAdd(aKey, aItem);
             }
             else
-                this.m_Dict.Add(Guid.NewGuid().ToString(), aItem);
+                this.m_Dict.TryAdd(Guid.NewGuid().ToString(), aItem);
         }
 
         public override JSONNode Remove(string aKey)
         {
-            if (!this.m_Dict.ContainsKey(aKey))
-                return null;
-            var tmp = this.m_Dict[aKey];
-            this.m_Dict.Remove(aKey);
+            this.m_Dict.TryRemove(aKey, out var tmp);
             return tmp;
         }
 
@@ -845,16 +892,21 @@ namespace HttpSiraStatus.Util
             if (aIndex < 0 || aIndex >= this.m_Dict.Count)
                 return null;
             var item = this.m_Dict.ElementAt(aIndex);
-            this.m_Dict.Remove(item.Key);
-            return item.Value;
+            this.m_Dict.TryRemove(item.Key, out var tmp);
+            return tmp;
         }
 
         public override JSONNode Remove(JSONNode aNode)
         {
             try {
-                var item = this.m_Dict.Where(k => k.Value == aNode).First();
-                this.m_Dict.Remove(item.Key);
-                return aNode;
+                KeyValuePair<string, JSONNode>? item = this.m_Dict.Where(k => k.Value == aNode).FirstOrDefault();
+                if (!item.HasValue) {
+                    return null;
+                }
+                else {
+                    this.m_Dict.TryRemove(item.Value.Key, out var tmp);
+                    return tmp;
+                }
             }
             catch {
                 return null;
@@ -866,7 +918,7 @@ namespace HttpSiraStatus.Util
         public override JSONNode Clone()
         {
             var node = new JSONObject();
-            foreach (var n in this.m_Dict) {
+            foreach (var n in this.m_Dict.ToArray()) {
                 node.Add(n.Key, n.Value.Clone());
             }
             return node;
@@ -886,7 +938,7 @@ namespace HttpSiraStatus.Util
         {
             get
             {
-                foreach (var N in this.m_Dict)
+                foreach (var N in this.m_Dict.ToArray())
                     yield return N.Value;
             }
         }
@@ -898,7 +950,7 @@ namespace HttpSiraStatus.Util
             if (this.inline)
                 aMode = JSONTextMode.Compact;
             try {
-                foreach (var k in this.m_Dict) {
+                foreach (var k in this.m_Dict.ToArray()) {
                     if (!first)
                         aSB.Append(',');
                     first = false;
@@ -915,8 +967,6 @@ namespace HttpSiraStatus.Util
                 }
             }
             catch (Exception e) {
-                HttpSiraStatus.Plugin.Logger.Error(e);
-                HttpSiraStatus.Plugin.Logger.Error(aSB.ToString());
                 aSB.Clear();
                 return;
             }

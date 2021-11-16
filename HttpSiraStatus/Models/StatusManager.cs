@@ -1,4 +1,5 @@
 using HttpSiraStatus.Interfaces;
+using HttpSiraStatus.Models;
 using HttpSiraStatus.Util;
 using System;
 using System.Collections.Concurrent;
@@ -10,11 +11,18 @@ namespace HttpSiraStatus
 {
     public class StatusManager : IStatusManager, IDisposable
     {
+        public StatusManager()
+        {
+            this.JsonPool = new ObjectMemoryPool<JSONObject>(null, r => { r.Clear(); }, 20);
+        }
+
         [Inject]
         public GameStatus GameStatus { get; }
         public JSONObject StatusJSON { get; } = new JSONObject();
         public JSONObject NoteCutJSON { get; } = new JSONObject();
         public JSONObject BeatmapEventJSON { get; } = new JSONObject();
+        public ObjectMemoryPool<JSONObject> JsonPool { get; }
+
         public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
         public event SendEventHandler SendEvent;
         private Thread thread;
@@ -52,33 +60,33 @@ namespace HttpSiraStatus
 
         private void EnqueueMessage(ChangedProperty changedProps, BeatSaberEvent e)
         {
-            var eventJSON = new JSONObject();
+            var eventJSON = this.JsonPool.Spawn();
             eventJSON["event"] = e.GetDescription();
 
             if ((changedProps & (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod))
                 == (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod)) {
-                eventJSON["status"] = this.StatusJSON.Clone();
+                eventJSON["status"] = this.StatusJSON;
             }
             else {
-                var status = new JSONObject();
+                var status = this.JsonPool.Spawn();
 
                 if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game)
-                    status["game"] = this.StatusJSON["game"].Clone();
+                    status["game"] = this.StatusJSON["game"];
                 if ((changedProps & ChangedProperty.Beatmap) == ChangedProperty.Beatmap)
-                    status["beatmap"] = this.StatusJSON["beatmap"].Clone();
+                    status["beatmap"] = this.StatusJSON["beatmap"];
                 if ((changedProps & ChangedProperty.Performance) == ChangedProperty.Performance)
-                    status["performance"] = this.StatusJSON["performance"].Clone();
+                    status["performance"] = this.StatusJSON["performance"];
                 if ((changedProps & ChangedProperty.Mod) == ChangedProperty.Mod) {
-                    status["mod"] = this.StatusJSON["mod"].Clone();
-                    status["playerSettings"] = this.StatusJSON["playerSettings"].Clone();
+                    status["mod"] = this.StatusJSON["mod"];
+                    status["playerSettings"] = this.StatusJSON["playerSettings"];
                 }
                 eventJSON["status"] = status;
             }
             if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut) {
-                eventJSON["noteCut"] = this.NoteCutJSON.Clone();
+                eventJSON["noteCut"] = this.NoteCutJSON;
             }
             if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
-                eventJSON["beatmapEvent"] = this.BeatmapEventJSON.Clone();
+                eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
             }
             this.JsonQueue.Enqueue(eventJSON);
         }
@@ -88,7 +96,8 @@ namespace HttpSiraStatus
             while (true) {
                 try {
                     while (this.JsonQueue.TryDequeue(out var json)) {
-                        this.SendEvent?.Invoke(this, new SendEventArgs(json.Clone()));
+                        this.SendEvent?.Invoke(this, new SendEventArgs(json));
+                        this.JsonPool.Despawn(json);
                     }
                 }
                 catch (Exception e) {
