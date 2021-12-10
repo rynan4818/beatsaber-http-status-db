@@ -15,17 +15,10 @@ namespace HttpSiraStatus.Models
 {
     public class GamePlayDataManager : MonoBehaviour, IInitializable, IDisposable, ICutScoreBufferDidFinishEvent
     {
-        [Inject]
-        private readonly DiContainer container;
-        [Inject]
-        private readonly IStatusManager statusManager;
-        [Inject]
-        private readonly GameStatus gameStatus;
-        [Inject]
-        private readonly CustomCutBuffer.Pool cutBufferPool;
-        [Inject]
-        private readonly NoteDataEntity.Pool notePool;
-
+        private IStatusManager statusManager;
+        private GameStatus gameStatus;
+        private CustomCutBuffer.Pool cutBufferPool;
+        private NoteDataEntity.Pool notePool;
         private GameplayCoreSceneSetupData gameplayCoreSceneSetupData;
         private PauseController pauseController;
         private IScoreController scoreController;
@@ -66,6 +59,59 @@ namespace HttpSiraStatus.Models
         private int lastNoteId = 0;
 
         private bool disposedValue;
+
+        /// <summary>
+        /// 引数やっば
+        /// </summary>
+        /// <param name="statusManager"></param>
+        /// <param name="gameStatus"></param>
+        /// <param name="customBufferPool"></param>
+        /// <param name="noteDataPool"></param>
+        /// <param name="gameplayCoreSceneSetupData"></param>
+        /// <param name="score"></param>
+        /// <param name="gameplayModifiers"></param>
+        /// <param name="audioTimeSource"></param>
+        /// <param name="beatmapObjectCallbackController"></param>
+        /// <param name="playerHeadAndObstacleInteraction"></param>
+        /// <param name="gameEnergyCounter"></param>
+        /// <param name="relative"></param>
+        /// <param name="diContainer"></param>
+        [Inject]
+        private void Constractor(
+            IStatusManager statusManager,
+            GameStatus gameStatus,
+            CustomCutBuffer.Pool customCutBufferPool,
+            NoteDataEntity.Pool noteEntityPool,
+            GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
+            IScoreController score,
+            GameplayModifiers gameplayModifiers,
+            IAudioTimeSource audioTimeSource,
+            BeatmapObjectCallbackController beatmapObjectCallbackController,
+            PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction,
+            GameEnergyCounter gameEnergyCounter,
+            RelativeScoreAndImmediateRankCounter relative,
+            DiContainer diContainer)
+        {
+            this.statusManager = statusManager;
+            this.gameStatus = gameStatus;
+            this.cutBufferPool = customCutBufferPool;
+            this.notePool = noteEntityPool;
+            this.gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
+            this.scoreController = score;
+            this.gameplayModifiers = gameplayModifiers;
+            this.audioTimeSource = audioTimeSource;
+            this.beatmapObjectCallbackController = beatmapObjectCallbackController;
+            this.playerHeadAndObstacleInteraction = playerHeadAndObstacleInteraction;
+            this.gameEnergyCounter = gameEnergyCounter;
+            this.relativeScoreAndImmediateRankCounter = relative;
+            if (this.scoreController is ScoreController scoreController) {
+                this.gameplayModifiersSO = scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
+            }
+            this.pauseController = diContainer.TryResolve<PauseController>();
+            this.levelEndActions = diContainer.TryResolve<ILevelEndActions>();
+            this.multiplayerLocalActivePlayerFacade = diContainer.TryResolve<MultiplayerLocalActivePlayerFacade>();
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!this.disposedValue) {
@@ -141,29 +187,7 @@ namespace HttpSiraStatus.Models
 
         public async void Initialize()
         {
-            try {
-                this.gameplayCoreSceneSetupData = this.container.Resolve<GameplayCoreSceneSetupData>();
-
-                this.scoreController = this.container.Resolve<IScoreController>();
-                this.gameplayModifiers = this.container.Resolve<GameplayModifiers>();
-                this.audioTimeSource = this.container.Resolve<IAudioTimeSource>();
-                this.beatmapObjectCallbackController = this.container.Resolve<BeatmapObjectCallbackController>();
-                this.playerHeadAndObstacleInteraction = this.container.Resolve<PlayerHeadAndObstacleInteraction>();
-                this.gameEnergyCounter = this.container.Resolve<GameEnergyCounter>();
-                if (this.scoreController is ScoreController score) {
-                    this.gameplayModifiersSO = score.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
-                }
-                this.relativeScoreAndImmediateRankCounter = this.container.Resolve<RelativeScoreAndImmediateRankCounter>();
-            }
-            catch (Exception e) {
-                Plugin.Logger.Error(e);
-                return;
-            }
-            this.pauseController = this.container.TryResolve<PauseController>();
-            this.levelEndActions = this.container.TryResolve<ILevelEndActions>();
-            this.multiplayerLocalActivePlayerFacade = this.container.TryResolve<MultiplayerLocalActivePlayerFacade>();
             Plugin.Logger.Info("0");
-
             // Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
             this.gameStatus.scene = "Song";
 
@@ -203,8 +227,7 @@ namespace HttpSiraStatus.Models
             this.gameEnergyCounter.gameEnergyDidChangeEvent += this.OnEnergyChanged;
 
             if (this.multiplayerLocalActivePlayerFacade != null) {
-                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += this.OnMultiplayerLevelFinished
-                    ;
+                this.multiplayerLocalActivePlayerFacade.playerDidFinishEvent += this.OnMultiplayerLevelFinished;
             }
             if (this.levelEndActions != null) {
                 this.levelEndActions.levelFinishedEvent += this.OnLevelFinished;
@@ -298,7 +321,8 @@ namespace HttpSiraStatus.Models
                     ImageConversion.EncodeToPNG(cover)
                 );
             }
-            catch {
+            catch (Exception e) {
+                Plugin.Logger.Error(e);
                 this.gameStatus.songCover = null;
             }
             Plugin.Logger.Info("7");
