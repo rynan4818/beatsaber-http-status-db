@@ -52,9 +52,9 @@ namespace HttpSiraStatus
                 this.UpdateModJSON();
                 this.UpdatePlayerSettingsJSON();
             }
-            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent)
+            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
                 this.UpdateBeatmapEventJSON();
-
+            }
             this.EnqueueMessage(changedProps, e);
         }
 
@@ -63,12 +63,11 @@ namespace HttpSiraStatus
             var eventJSON = this.JsonPool.Spawn();
             eventJSON["event"] = e.GetDescription();
 
-            if ((changedProps & (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod))
-                == (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod)) {
+            if ((changedProps & ChangedProperty.AllButNoteCut) == ChangedProperty.AllButNoteCut) {
                 eventJSON["status"] = this.StatusJSON;
             }
             else {
-                var status = this.JsonPool.Spawn();
+                var status = new JSONObject();
 
                 if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game)
                     status["game"] = this.StatusJSON["game"];
@@ -129,8 +128,8 @@ namespace HttpSiraStatus
                 this.StatusJSON["game"] = new JSONObject();
             var gameJSON = this.StatusJSON["game"].AsObject;
 
-            gameJSON["pluginVersion"] = HttpSiraStatus.Plugin.PluginVersion;
-            gameJSON["gameVersion"] = HttpSiraStatus.Plugin.GameVersion;
+            gameJSON["pluginVersion"] = Plugin.PluginVersion;
+            gameJSON["gameVersion"] = Plugin.GameVersion;
             gameJSON["scene"] = this.StringOrNull(this.GameStatus.scene);
             gameJSON["mode"] = this.StringOrNull(this.GameStatus.mode == null ? null : (this.GameStatus.multiplayer ? "Multiplayer" : this.GameStatus.partyMode ? "Party" : "Solo") + this.GameStatus.mode);
         }

@@ -30,8 +30,10 @@ namespace HttpSiraStatus
     /// </summary>
     public enum BeatSaberEvent
     {
+        [Description("other")]
+        Other = int.MaxValue,
         [Description("menu")]
-        Menu,
+        Menu = 0,
         [Description("songStart")]
         SongStart,
         [Description("obstacleEnter")]
@@ -79,6 +81,7 @@ namespace HttpSiraStatus
         NoteCut = 1 << 3,
         Mod = 1 << 4,
         BeatmapEvent = 1 << 5,
+        Other = 1 << 31,
         AllButNoteCut = Game | Beatmap | Performance | Mod,
         PerformanceAndNoteCut = Performance | NoteCut,
         BeatmapAndPerformanceAndMod = Beatmap | Performance | Mod
