@@ -9,6 +9,7 @@ namespace HttpSiraStatus.Interfaces
         JSONObject StatusJSON { get; }
         JSONObject NoteCutJSON { get; }
         JSONObject BeatmapEventJSON { get; }
+        JSONObject OtherJSON { get; }
         ConcurrentQueue<JSONObject> JsonQueue { get; }
         event SendEventHandler SendEvent;
         void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e);

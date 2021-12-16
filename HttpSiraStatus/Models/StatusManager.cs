@@ -21,6 +21,7 @@ namespace HttpSiraStatus
         public JSONObject StatusJSON { get; } = new JSONObject();
         public JSONObject NoteCutJSON { get; } = new JSONObject();
         public JSONObject BeatmapEventJSON { get; } = new JSONObject();
+        public JSONObject OtherJSON { get; } = new JSONObject();
         public ObjectMemoryPool<JSONObject> JsonPool { get; }
 
         public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
@@ -86,6 +87,9 @@ namespace HttpSiraStatus
             }
             if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
                 eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
+            }
+            if ((changedProps & ChangedProperty.Other) != 0) {
+                eventJSON["other"] = this.OtherJSON;
             }
             this.JsonQueue.Enqueue(eventJSON);
         }

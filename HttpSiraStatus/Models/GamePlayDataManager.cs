@@ -65,8 +65,8 @@ namespace HttpSiraStatus.Models
         /// </summary>
         /// <param name="statusManager"></param>
         /// <param name="gameStatus"></param>
-        /// <param name="customBufferPool"></param>
-        /// <param name="noteDataPool"></param>
+        /// <param name="customCutBufferPool"></param>
+        /// <param name="noteEntityPool"></param>
         /// <param name="gameplayCoreSceneSetupData"></param>
         /// <param name="score"></param>
         /// <param name="gameplayModifiers"></param>
