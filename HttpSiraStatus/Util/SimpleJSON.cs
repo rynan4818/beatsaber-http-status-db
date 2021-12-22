@@ -966,7 +966,7 @@ namespace HttpSiraStatus.Util
                     k.Value.WriteToStringBuilder(aSB, aIndent + aIndentInc, aIndentInc, aMode);
                 }
             }
-            catch (Exception e) {
+            catch {
                 aSB.Clear();
                 return;
             }

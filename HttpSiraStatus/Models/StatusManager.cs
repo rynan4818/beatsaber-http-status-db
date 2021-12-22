@@ -21,6 +21,7 @@ namespace HttpSiraStatus
         public JSONObject StatusJSON { get; } = new JSONObject();
         public JSONObject NoteCutJSON { get; } = new JSONObject();
         public JSONObject BeatmapEventJSON { get; } = new JSONObject();
+        public JSONObject OtherJSON { get; } = new JSONObject();
         public ObjectMemoryPool<JSONObject> JsonPool { get; }
 
         public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
@@ -52,9 +53,9 @@ namespace HttpSiraStatus
                 this.UpdateModJSON();
                 this.UpdatePlayerSettingsJSON();
             }
-            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent)
+            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
                 this.UpdateBeatmapEventJSON();
-
+            }
             this.EnqueueMessage(changedProps, e);
         }
 
@@ -63,12 +64,11 @@ namespace HttpSiraStatus
             var eventJSON = this.JsonPool.Spawn();
             eventJSON["event"] = e.GetDescription();
 
-            if ((changedProps & (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod))
-                == (ChangedProperty.Game | ChangedProperty.Beatmap | ChangedProperty.Performance | ChangedProperty.Mod)) {
+            if ((changedProps & ChangedProperty.AllButNoteCut) == ChangedProperty.AllButNoteCut) {
                 eventJSON["status"] = this.StatusJSON;
             }
             else {
-                var status = this.JsonPool.Spawn();
+                var status = new JSONObject();
 
                 if ((changedProps & ChangedProperty.Game) == ChangedProperty.Game)
                     status["game"] = this.StatusJSON["game"];
@@ -87,6 +87,9 @@ namespace HttpSiraStatus
             }
             if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
                 eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
+            }
+            if ((changedProps & ChangedProperty.Other) != 0) {
+                eventJSON["other"] = this.OtherJSON;
             }
             this.JsonQueue.Enqueue(eventJSON);
         }
@@ -129,8 +132,8 @@ namespace HttpSiraStatus
                 this.StatusJSON["game"] = new JSONObject();
             var gameJSON = this.StatusJSON["game"].AsObject;
 
-            gameJSON["pluginVersion"] = HttpSiraStatus.Plugin.PluginVersion;
-            gameJSON["gameVersion"] = HttpSiraStatus.Plugin.GameVersion;
+            gameJSON["pluginVersion"] = Plugin.PluginVersion;
+            gameJSON["gameVersion"] = Plugin.GameVersion;
             gameJSON["scene"] = this.StringOrNull(this.GameStatus.scene);
             gameJSON["mode"] = this.StringOrNull(this.GameStatus.mode == null ? null : (this.GameStatus.multiplayer ? "Multiplayer" : this.GameStatus.partyMode ? "Party" : "Solo") + this.GameStatus.mode);
         }

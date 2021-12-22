@@ -32,9 +32,8 @@ namespace HttpSiraStatus
         {
             Logger = logger;
             Logger.Debug("Logger Initialized.");
-            zenjector.OnGame<HttpGameInstaller>(true).OnlyForStandard();
-            zenjector.OnGame<HttpGameInstaller>(false).OnlyForMultiplayer();
-            zenjector.OnApp<HttpAppInstaller>();
+            zenjector.Install<HttpPlayerInstaller>(Location.Player);
+            zenjector.Install<HttpAppInstaller>(Location.App);
         }
 
         [OnStart]
