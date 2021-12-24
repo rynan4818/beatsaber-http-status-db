@@ -29,6 +29,7 @@ namespace HttpSiraStatus
             eventJSON["event"] = "hello";
             eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
             eventJSON["status"] = this.statusManager.StatusJSON;
+            eventJSON["other"] = this.statusManager.OtherJSON;
 
             this.SendAsync(eventJSON.ToString(), null);
         }
