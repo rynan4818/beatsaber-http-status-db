@@ -126,7 +126,11 @@ namespace HttpSiraStatus.Models
 
                         // Release references for AfterCutScoreBuffers that don't resolve due to player leaving the map before finishing.
                         this.noteCutMapping?.Clear();
-
+                        while (this.activeItems.items.Any()) {
+                            var note = this.activeItems.items.First();
+                            this.activeItems.items.RemoveAt(0);
+                            this.cutBufferPool.Despawn(note);
+                        }
                         // Clear note id mappings.
                         this.NoteToIdMapping?.Clear();
 
@@ -157,7 +161,6 @@ namespace HttpSiraStatus.Models
                             this.levelEndActions.levelFinishedEvent -= this.OnLevelFinished;
                             this.levelEndActions.levelFailedEvent -= this.OnLevelFailed;
                         }
-                        //CleanUpMultiplayer();
 
                         if (this.beatmapObjectCallbackController != null) {
                             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= this.OnBeatmapEventDidTrigger;
@@ -187,21 +190,12 @@ namespace HttpSiraStatus.Models
 
         public async void Initialize()
         {
-            Plugin.Logger.Info("0");
+            Plugin.Logger.Info("Initialize()");
             // Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
             this.gameStatus.scene = "Song";
-
-            // FIXME: i should probably clean references to all this when song is over
-            Plugin.Logger.Info("1");
-            this.gameplayCoreSceneSetupData = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
-
-            Plugin.Logger.Info("2");
-            Plugin.Logger.Info("scoreController=" + this.scoreController);
-
             // Register event listeners
             // PauseController doesn't exist in multiplayer
             if (this.pauseController != null) {
-                Plugin.Logger.Info("pauseController=" + this.pauseController);
                 // public event Action PauseController#didPauseEvent;
                 this.pauseController.didPauseEvent += this.OnGamePause;
                 // public event Action PauseController#didResumeEvent;
@@ -218,7 +212,6 @@ namespace HttpSiraStatus.Models
             // public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
             this.scoreController.multiplierDidChangeEvent += this.OnMultiplierDidChange;
             this.scoreController.immediateMaxPossibleScoreDidChangeEvent += this.OnImmediateMaxPossibleScoreDidChangeEvent;
-            Plugin.Logger.Info("2.5");
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
             this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
@@ -233,34 +226,27 @@ namespace HttpSiraStatus.Models
                 this.levelEndActions.levelFinishedEvent += this.OnLevelFinished;
                 this.levelEndActions.levelFailedEvent += this.OnLevelFailed;
             }
-            Plugin.Logger.Info("3");
-
             var diff = this.gameplayCoreSceneSetupData.difficultyBeatmap;
             var level = diff.level;
 
             this.gameStatus.partyMode = Gamemode.IsPartyActive;
-            this.gameStatus.mode = BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
+            this.gameStatus.mode = this.gameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
 
             this.gameplayModifiers = this.gameplayCoreSceneSetupData.gameplayModifiers;
             var playerSettings = this.gameplayCoreSceneSetupData.playerSpecificSettings;
             var practiceSettings = this.gameplayCoreSceneSetupData.practiceSettings;
 
             var songSpeedMul = this.gameplayModifiers.songSpeedMul;
-            if (practiceSettings != null)
+            if (practiceSettings != null) {
                 songSpeedMul = practiceSettings.songSpeedMul;
-
-            Plugin.Logger.Info("4");
-
+            }
             // Generate NoteData to id mappings for backwards compatiblity with <1.12.1
             this.NoteToIdMapping.Clear();
 
             this.lastNoteId = 0;
-            Plugin.Logger.Info("4.1");
             foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i })) {
                 this.NoteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
             }
-            Plugin.Logger.Info("5");
-
             this.gameStatus.songName = level.songName;
             this.gameStatus.songSubName = level.songSubName;
             this.gameStatus.songAuthorName = level.songAuthorName;
@@ -292,9 +278,6 @@ namespace HttpSiraStatus.Models
                 gameStatus.colorEnvironmentBoost1 = colorScheme.environmentColor1Boost;
             }
             gameStatus.colorObstacle = colorScheme.obstaclesColor;
-
-            Plugin.Logger.Info("6");
-
             try {
                 // From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
                 var texture = (await level.GetCoverImageAsync(CancellationToken.None)).texture;
@@ -325,7 +308,6 @@ namespace HttpSiraStatus.Models
                 Plugin.Logger.Error(e);
                 this.gameStatus.songCover = null;
             }
-            Plugin.Logger.Info("7");
 
             this.UpdateModMultiplier();
             this.gameStatus.songSpeedMultiplier = songSpeedMul;
@@ -358,7 +340,6 @@ namespace HttpSiraStatus.Models
             this.gameStatus.saberTrailIntensity = playerSettings.saberTrailIntensity;
             this.gameStatus.environmentEffects = (diff.difficulty == BeatmapDifficulty.ExpertPlus ? playerSettings.environmentEffectsFilterExpertPlusPreset : playerSettings.environmentEffectsFilterDefaultPreset).ToString();
             this.gameStatus.hideNoteSpawningEffect = playerSettings.hideNoteSpawnEffect;
-            Plugin.Logger.Info("8");
 
             this._thread = new Thread(new ThreadStart(() =>
             {
@@ -375,8 +356,6 @@ namespace HttpSiraStatus.Models
                 }
             }));
             this._thread.Start();
-            Plugin.Logger.Info("9");
-
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
         }
 
