@@ -466,11 +466,11 @@ namespace HttpSiraStatus.Models
         }
         public void Initialize()
         {
-            _ = this.InitializeAsync();
+            this.InitializeAsync().Wait();
         }
         public async Task InitializeAsync()
         {
-            Plugin.Logger.Info("Initialize()");
+            Plugin.Logger.Info("InitializeAsync()");
             // Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
             this.gameStatus.scene = "Song";
             // Register event listeners
@@ -523,8 +523,8 @@ namespace HttpSiraStatus.Models
             this._noteToIdMapping.Clear();
 
             this.lastNoteId = 0;
-            foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i })) {
-                this._noteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
+            foreach (var note in diff.beatmapData.beatmapObjectsData.OfType<NoteData>().OrderBy(x => x.time).ThenBy(x => x.lineIndex).ThenBy(x => x.noteLineLayer).ThenBy(x => x.cutDirection).Select((x, i) => new { note = x, index = i })) {
+                this._noteToIdMapping.TryAdd(new NoteDataEntity(note.note, this.gameplayModifiers.noArrows), note.index);
             }
             this.gameStatus.songName = level.songName;
             this.gameStatus.songSubName = level.songSubName;
@@ -560,7 +560,8 @@ namespace HttpSiraStatus.Models
             this.gameStatus.colorObstacle = colorScheme.obstaclesColor;
             try {
                 // From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
-                var texture = (await level.GetCoverImageAsync(CancellationToken.None)).texture;
+                var sprite = await level.GetCoverImageAsync(CancellationToken.None).ConfigureAwait(true);
+                var texture = sprite.texture;
                 var active = RenderTexture.active;
                 var temporary = RenderTexture.GetTemporary(
                     texture.width,
