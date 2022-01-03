@@ -148,6 +148,12 @@ namespace HttpSiraStatus.Models
             this.SetNoteCutStatus(noteData);
             this.statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
         }
+        private void OnNoteWasDespawnedEvent(NoteController obj)
+        {
+            var tmp = this.notePool.Spawn(obj.noteData, this.gameplayModifiers.noArrows);
+            this._noteControllerMapping.TryRemove(tmp, out _);
+            this.notePool.Despawn(tmp);
+        }
 
         private void OnNoteWasCut(NoteData noteData, in NoteCutInfo noteCutInfo, int multiplier)
         {
@@ -156,10 +162,6 @@ namespace HttpSiraStatus.Models
             var gameStatus = this.statusManager.GameStatus;
 
             this.SetNoteCutStatus(noteData, noteCutInfo, true);
-
-            //int beforeCutScore = 0;
-            //int afterCutScore = 0;
-            //int cutDistanceScore = 0;
 
             ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out _, out var cutDistanceScore);
 
@@ -225,7 +227,7 @@ namespace HttpSiraStatus.Models
             gameStatus.noteLayer = (int)noteData.noteLineLayer;
             // If long notes are ever introduced, this name will make no sense
             gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
-            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default) && this._noteControllerMapping.TryRemove(entity, out var controller)) {
+            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default) && this._noteControllerMapping.TryGetValue(entity, out var controller)) {
                 var noteTransform = controller.noteTransform;
                 gameStatus.speedOK = noteCutInfo.speedOK;
                 gameStatus.directionOK = noteCutInfo.directionOK;
@@ -462,6 +464,7 @@ namespace HttpSiraStatus.Models
 
                         if (this._beatmapObjectManager != null) {
                             this._beatmapObjectManager.noteWasSpawnedEvent -= this.OnNoteWasSpawnedEvent;
+                            this._beatmapObjectManager.noteWasDespawnedEvent -= this.OnNoteWasDespawnedEvent;
                         }
 
                         if (this.gameEnergyCounter != null) {
@@ -517,6 +520,7 @@ namespace HttpSiraStatus.Models
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
+            this._beatmapObjectManager.noteWasDespawnedEvent += this.OnNoteWasDespawnedEvent;
             this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             // public event Action GameEnergyCounter#gameEnergyDidReach0Event;
             this.gameEnergyCounter.gameEnergyDidReach0Event += this.OnEnergyDidReach0Event;
