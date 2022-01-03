@@ -25,7 +25,7 @@ namespace HttpSiraStatus.Models
         public new class Pool : MemoryPool<NoteCutInfo, int, NoteController, ICutScoreBufferDidFinishEvent, CustomCutBuffer>
         {
             // GCに勝手に回収されない用
-            private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
+            private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>(256);
 
             protected override void OnSpawned(CustomCutBuffer item)
             {

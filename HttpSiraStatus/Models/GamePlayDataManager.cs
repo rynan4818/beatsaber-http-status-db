@@ -149,7 +149,7 @@ namespace HttpSiraStatus.Models
             this.statusManager.GameStatus.batteryEnergy = this.gameEnergyCounter.batteryEnergy;
             this.statusManager.GameStatus.energy = this.gameEnergyCounter.energy;
 
-            this.SetNoteCutStatus(obj);
+            this.SetNoteCutStatus(obj, default, false);
 
             if (noteData.colorType == ColorType.None) {
                 this.statusManager.GameStatus.passedBombs++;
@@ -171,9 +171,7 @@ namespace HttpSiraStatus.Models
             var gameStatus = this.statusManager.GameStatus;
             var noteData = noteController.noteData;
             var multiplier = this.scoreController.multiplierWithFever;
-
             this.SetNoteCutStatus(noteController, noteCutInfo);
-
             ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out _, out var cutDistanceScore);
 
             gameStatus.initialScore = beforeCutScore + cutDistanceScore;
@@ -192,22 +190,17 @@ namespace HttpSiraStatus.Models
 
                 if (noteCutInfo.allIsOK) {
                     gameStatus.hitNotes++;
-
                     this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
                 }
                 else {
                     gameStatus.missedNotes++;
-
                     this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
                 }
             }
-            this.SetNoteCutStatus(noteController, noteCutInfo);
             this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
             this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
             this.statusManager.GameStatus.cutMultiplier = multiplier;
-            if (noteCutInfo.allIsOK) {
-                this.cutBufferPool.Spawn(noteCutInfo, multiplier, noteController, this);
-            }
+            this.cutBufferPool.Spawn(noteCutInfo, multiplier, noteController, this);
         }
 
         private void SetNoteCutStatus(NoteController noteController, NoteCutInfo noteCutInfo = default, bool initialCut = true)
@@ -277,12 +270,14 @@ namespace HttpSiraStatus.Models
             this.statusManager.GameStatus.combo = combo;
             // public int ScoreController#maxCombo
             this.statusManager.GameStatus.maxCombo = this.scoreController.maxCombo;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
         private void OnMultiplierDidChange(int multiplier, float multiplierProgress)
         {
             this.statusManager.GameStatus.multiplier = multiplier;
             this.statusManager.GameStatus.multiplierProgress = multiplierProgress;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
         private void OnLevelFinished() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
