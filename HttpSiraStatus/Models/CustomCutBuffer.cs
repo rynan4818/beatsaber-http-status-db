@@ -5,38 +5,43 @@ namespace HttpSiraStatus.Models
     public class CustomCutBuffer : CutScoreBuffer
     {
         public NoteCutInfo NoteCutInfo { get; private set; }
-        public ICutScoreBufferDidFinishEvent CutBufferDidFinishEvent { get; private set; }
-        public void Initialize(NoteCutInfo noteCutInfo, int m, ICutScoreBufferDidFinishEvent e)
+        public ICutScoreBufferDidFinishEvent FinishEvent { get; set; }
+        public NoteController NoteController { get; private set; }
+
+        public void Init(in NoteCutInfo noteCutInfo, int multiplier, NoteController controller, ICutScoreBufferDidFinishEvent e)
         {
-            this._initialized = true;
-            this._multiplier = m;
-            this._saberSwingRatingCounter = noteCutInfo.swingRatingCounter;
-            this._cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
-            noteCutInfo.swingRatingCounter.RegisterDidChangeReceiver(this);
-            noteCutInfo.swingRatingCounter.RegisterDidFinishReceiver(this);
+            this.FinishEvent = e;
+            this.NoteController = controller;
+            this.didFinishEvent.Add(this.FinishEvent);
             this.NoteCutInfo = noteCutInfo;
-            this.RefreshScores();
-            this.CutBufferDidFinishEvent = e;
-            this.didFinishEvent.Add(this.CutBufferDidFinishEvent);
+            base.Init(noteCutInfo, multiplier);
         }
-
-        public void OnDespawned()
+        public void Reflesh()
         {
-            this.NoteCutInfo.swingRatingCounter.UnregisterDidFinishReceiver(this);
-            this.NoteCutInfo.swingRatingCounter.UnregisterDidChangeReceiver(this);
-            this.didFinishEvent.Remove(this.CutBufferDidFinishEvent);
+            this.didFinishEvent.Remove(this.FinishEvent);
+            this.NoteController = null;
+            this.FinishEvent = null;
         }
-
-        public new class Pool : MemoryPool<NoteCutInfo, int, ICutScoreBufferDidFinishEvent, CustomCutBuffer>
+        public new class Pool : MemoryPool<NoteCutInfo, int, NoteController, ICutScoreBufferDidFinishEvent, CustomCutBuffer>
         {
-            protected override void Reinitialize(NoteCutInfo p1, int p2, ICutScoreBufferDidFinishEvent p3, CustomCutBuffer item) => item.Initialize(p1, p2, p3);
+            // GCに勝手に回収されない用
+            private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
+
+            protected override void OnSpawned(CustomCutBuffer item)
+            {
+                this.activeItems.Add(item);
+            }
+
+            protected override void Reinitialize(NoteCutInfo p1, int p2, NoteController p3, ICutScoreBufferDidFinishEvent p4, CustomCutBuffer item) => item.Init(p1, p2, p3, p4);
             protected override void OnDespawned(CustomCutBuffer item)
             {
-                item.OnDespawned();
+                item.Reflesh();
+                this.activeItems.Remove(item);
             }
             protected override void OnDestroyed(CustomCutBuffer item)
             {
-                this.OnDespawned(item);
+                item.Reflesh();
+                this.activeItems.Remove(item);
             }
         }
     }

@@ -249,6 +249,8 @@ namespace HttpSiraStatus
             this.NoteCutJSON["finalScore"] = this.GameStatus.finalScore == -1 ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONNumber(this.GameStatus.finalScore);
             this.NoteCutJSON["cutDistanceScore"] = this.GameStatus.cutDistanceScore == -1 ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONNumber(this.GameStatus.cutDistanceScore);
             this.NoteCutJSON["swingRating"] = this.GameStatus.swingRating;
+            this.NoteCutJSON["beforSwingRating"] = this.GameStatus.beforSwingRating;
+            this.NoteCutJSON["afterSwingRating"] = this.GameStatus.afterSwingRating;
             this.NoteCutJSON["multiplier"] = this.GameStatus.cutMultiplier;
             this.NoteCutJSON["saberSpeed"] = this.GameStatus.saberSpeed;
             if (!this.NoteCutJSON["saberDir"].IsArray)
