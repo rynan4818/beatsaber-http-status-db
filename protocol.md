@@ -84,6 +84,7 @@ StatusObject = {
 		"score": Integer, // Current score with modifier multiplier
 		"currentMaxScore": Integer, // Maximum score with modifier multiplier achievable at current passed notes
 		"rank": "SSS" | "SS" | "S" | "A" | "B" | "C" | "D" | "E", // Current rank
+		"relativeScore": Float // 精度
 		"passedNotes": Integer, // Amount of hit or missed cubes
 		"hitNotes": Integer, // Amount of hit cubes
 		"missedNotes": Integer, // Amount of missed cubes
@@ -94,6 +95,7 @@ StatusObject = {
 		"multiplier": Integer, // Current combo multiplier {1, 2, 4, 8}
 		"multiplierProgress": Number, // Current combo multiplier progress [0..1)
 		"batteryEnergy": null | Integer, // Current amount of battery lives left. null if Battery Energy and Insta Fail are disabled.
+		"currentSongTime": Integer // 現在の曲の秒数です。1秒おきに更新されます。
 		"softFailed": Boolean, // Set to `true` when the player's energy reaches 0, but they can continue playing. See the `softFailed` event.
 	},
 	"mod": {
