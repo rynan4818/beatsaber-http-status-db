@@ -158,6 +158,7 @@ namespace HttpSiraStatus
             beatmapJSON["levelId"] = this.StringOrNull(this.GameStatus.levelId);
             beatmapJSON["songBPM"] = this.GameStatus.songBPM;
             beatmapJSON["noteJumpSpeed"] = this.GameStatus.noteJumpSpeed;
+            beatmapJSON["noteJumpStartBeatOffset"] = this.GameStatus.noteJumpStartBeatOffset;
             beatmapJSON["songTimeOffset"] = new JSONNumber(this.GameStatus.songTimeOffset);
             beatmapJSON["start"] = this.GameStatus.start == 0 ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONNumber(this.GameStatus.start);
             beatmapJSON["paused"] = this.GameStatus.paused == 0 ? (JSONNode)JSONNull.CreateOrGet() : (JSONNode)new JSONNumber(this.GameStatus.paused);

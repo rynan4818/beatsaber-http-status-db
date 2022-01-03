@@ -46,6 +46,8 @@ namespace HttpSiraStatus
         Resume,
         [Description("bombCut")]
         BombCut,
+        [Description("noteSpawned")]
+        NoteSpawned,
         [Description("noteCut")]
         NoteCut,
         [Description("noteFullyCut")]

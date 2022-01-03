@@ -23,6 +23,7 @@ namespace HttpSiraStatus
         public string levelId = null;
         public float songBPM;
         public float noteJumpSpeed;
+        public float noteJumpStartBeatOffset;
         public long songTimeOffset = 0;
         public long length = 0;
         public long start = 0;
@@ -144,6 +145,7 @@ namespace HttpSiraStatus
             this.songBPM = 0f;
             this.noteJumpSpeed = 0f;
             this.songTimeOffset = 0;
+            this.noteJumpStartBeatOffset = 0;
             this.length = 0;
             this.start = 0;
             this.paused = 0;
