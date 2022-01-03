@@ -15,6 +15,302 @@ namespace HttpSiraStatus.Models
 {
     public class GamePlayDataManager : MonoBehaviour, IInitializable, IDisposable, ICutScoreBufferDidFinishEvent
     {
+        //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
+        #region // パブリックメソッド
+        public void HandleCutScoreBufferDidFinish(CutScoreBuffer cutScoreBuffer)
+        {
+            cutScoreBuffer.didFinishEvent.Remove(this);
+            if (cutScoreBuffer is CustomCutBuffer customCutBuffer) {
+                var noteCutInfo = customCutBuffer.NoteCutInfo;
+
+                if (this.noteCutMapping.TryRemove(noteCutInfo, out var noteData)) {
+                    this.SetNoteCutStatus(noteData, noteCutInfo, false);
+                }
+                // public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
+                ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out var afterCutScore, out var cutDistanceScore);
+
+                var multiplier = customCutBuffer.multiplier;
+
+                this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
+                this.statusManager.GameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
+                this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
+                this.statusManager.GameStatus.cutMultiplier = multiplier;
+
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
+                this.activeItems.Remove(customCutBuffer);
+                this.cutBufferPool.Despawn(customCutBuffer);
+            }
+        }
+        #endregion
+        //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
+        #region // プライベートメソッド
+        private void OnMultiplayerLevelFinished(MultiplayerLevelCompletionResults obj)
+        {
+            switch (obj.levelEndState) {
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Cleared:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.GivenUp:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.WasInactive:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.HostEndedLevel:
+                    this.OnLevelFinished();
+                    break;
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Failed:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.StartupFailed:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.ConnectedAfterLevelEnded:
+                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Quit:
+                    this.OnLevelFailed();
+                    break;
+                default:
+                    this.OnLevelFinished();
+                    break;
+            }
+        }
+
+        private void OnImmediateMaxPossibleScoreDidChangeEvent(int immediateMaxPossibleScore, int immediateMaxPossibleModifiedScore)
+        {
+            this.statusManager.GameStatus.currentMaxScore = immediateMaxPossibleModifiedScore;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+
+        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
+        {
+            this.gameStatus.relativeScore = this.relativeScoreAndImmediateRankCounter.relativeScore;
+            this.gameStatus.rank = RankModel.GetRankName(this.relativeScoreAndImmediateRankCounter.immediateRank);
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+        private void OnEnergyChanged(float obj)
+        {
+            this.gameStatus.energy = obj;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
+        }
+        /// <summary>
+        /// こいつ別スレで呼ぶと悲惨なことになるのでUpdateで呼ぶことにしました。
+        /// </summary>
+        private void OnObstacleInteraction()
+        {
+            if (this.playerHeadAndObstacleInteraction == null) {
+                return;
+            }
+            // intersectingObstaclesのgetがフレーム単位で呼ばないといけない。
+            // 別スレで呼ぶと関係ないとこで他のモジュール群が死ぬ。
+            var intersectingObstacles = this.playerHeadAndObstacleInteraction.intersectingObstacles;
+            var currentHeadInObstacle = intersectingObstacles.Any();
+
+            if (!this.headInObstacle && currentHeadInObstacle) {
+                this.headInObstacle = true;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
+            }
+            else if (this.headInObstacle && !currentHeadInObstacle) {
+                this.headInObstacle = false;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
+            }
+        }
+
+        private void UpdateCurrentSongTime()
+        {
+            var songTime = Mathf.FloorToInt(this.audioTimeSource.songTime);
+            if (this.statusManager.GameStatus.currentSongTime != songTime) {
+                this.statusManager.GameStatus.currentSongTime = songTime;
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.BeatmapEvent);
+            }
+        }
+
+        private void UpdateModMultiplier()
+        {
+            var gameStatus = this.statusManager.GameStatus;
+
+            var energy = this.gameEnergyCounter.energy;
+
+            gameStatus.modifierMultiplier = this.gameplayModifiersSO.GetTotalMultiplier(this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), energy);
+
+            gameStatus.maxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(this.gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesCount), this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameplayModifiersSO, energy);
+            gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(this.gameplayModifiers, this.gameplayModifiersSO, energy).ToString();
+        }
+
+        private void OnGamePause()
+        {
+            this.statusManager.GameStatus.paused = Utility.GetCurrentTime();
+
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Pause);
+        }
+
+        private void OnGameResume()
+        {
+            this.statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSource.songTime * 1000f / this.statusManager.GameStatus.songSpeedMultiplier);
+            this.statusManager.GameStatus.paused = 0;
+
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
+        }
+
+        private void OnNoteWasCut(NoteData noteData, in NoteCutInfo noteCutInfo, int multiplier)
+        {
+            // Event order: combo, multiplier, scoreController.noteWasCut, (LateUpdate) scoreController.scoreDidChange, afterCut, (LateUpdate) scoreController.scoreDidChange
+
+            var gameStatus = this.statusManager.GameStatus;
+
+            this.SetNoteCutStatus(noteData, noteCutInfo, true);
+
+            //int beforeCutScore = 0;
+            //int afterCutScore = 0;
+            //int cutDistanceScore = 0;
+
+            ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out _, out var cutDistanceScore);
+
+            gameStatus.initialScore = beforeCutScore + cutDistanceScore;
+            gameStatus.finalScore = -1;
+            gameStatus.cutDistanceScore = cutDistanceScore;
+            gameStatus.cutMultiplier = multiplier;
+
+            if (noteData.colorType == ColorType.None) {
+                gameStatus.passedBombs++;
+                gameStatus.hitBombs++;
+
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
+            }
+            else {
+                gameStatus.passedNotes++;
+
+                if (noteCutInfo.allIsOK) {
+                    gameStatus.hitNotes++;
+
+                    this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+                }
+                else {
+                    gameStatus.missedNotes++;
+
+                    this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
+                }
+            }
+
+            if (this.noteCutMapping.TryRemove(noteCutInfo, out var changeNoteData)) {
+                this.SetNoteCutStatus(changeNoteData, noteCutInfo, false);
+            }
+            this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
+            this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
+            this.statusManager.GameStatus.cutMultiplier = multiplier;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
+            if (noteCutInfo.allIsOK && this.noteCutMapping.TryAdd(noteCutInfo, noteData)) {
+                this.activeItems.Add(this.cutBufferPool.Spawn(noteCutInfo, multiplier, this));
+            }
+        }
+
+        
+        private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default, bool initialCut = true)
+        {
+            var gameStatus = this.statusManager.GameStatus;
+
+            gameStatus.ResetNoteCut();
+
+            // Backwards compatibility for <1.12.1
+            gameStatus.noteID = -1;
+            // Check the near notes first for performance
+            var entiy = this.notePool.Spawn(noteData, this.gameplayModifiers.noArrows);
+            if (this._noteToIdMapping.TryRemove(entiy, out var noteID)) {
+                gameStatus.noteID = noteID;
+                if (this.lastNoteId < noteID) {
+                    this.lastNoteId = noteID;
+                }
+            }
+            else {
+                gameStatus.noteID = this.lastNoteId;
+            }
+            this.notePool.Despawn(entiy);
+            // Backwards compatibility for <1.12.1
+            gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
+            gameStatus.noteCutDirection = noteData.cutDirection.ToString();
+            gameStatus.noteLine = noteData.lineIndex;
+            gameStatus.noteLayer = (int)noteData.noteLineLayer;
+            // If long notes are ever introduced, this name will make no sense
+            gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
+
+            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
+                gameStatus.speedOK = noteCutInfo.speedOK;
+                gameStatus.directionOK = noteCutInfo.directionOK;
+                gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
+                gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
+                gameStatus.saberSpeed = noteCutInfo.saberSpeed;
+                gameStatus.saberDirX = noteCutInfo.saberDir[0];
+                gameStatus.saberDirY = noteCutInfo.saberDir[1];
+                gameStatus.saberDirZ = noteCutInfo.saberDir[2];
+                gameStatus.saberType = noteCutInfo.saberType.ToString();
+                gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
+                gameStatus.timeDeviation = noteCutInfo.timeDeviation;
+                gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
+                gameStatus.cutPointX = noteCutInfo.cutPoint[0];
+                gameStatus.cutPointY = noteCutInfo.cutPoint[1];
+                gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
+                gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
+                gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
+                gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
+                gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
+            }
+        }
+
+        private void OnNoteWasMissed(NoteData noteData, int multiplier)
+        {
+            // Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
+
+            this.statusManager.GameStatus.batteryEnergy = this.gameEnergyCounter.batteryEnergy;
+            this.statusManager.GameStatus.energy = this.gameEnergyCounter.energy;
+
+            this.SetNoteCutStatus(noteData);
+
+            if (noteData.colorType == ColorType.None) {
+                this.statusManager.GameStatus.passedBombs++;
+
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombMissed);
+            }
+            else {
+                this.statusManager.GameStatus.passedNotes++;
+                this.statusManager.GameStatus.missedNotes++;
+
+                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
+            }
+        }
+
+        private void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
+        {
+            var gameStatus = this.statusManager.GameStatus;
+
+            gameStatus.rawScore = scoreBeforeMultiplier;
+            gameStatus.score = scoreAfterMultiplier;
+            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+        private void OnComboDidChange(int combo)
+        {
+            this.statusManager.GameStatus.combo = combo;
+            // public int ScoreController#maxCombo
+            this.statusManager.GameStatus.maxCombo = this.scoreController.maxCombo;
+        }
+
+        private void OnMultiplierDidChange(int multiplier, float multiplierProgress)
+        {
+            this.statusManager.GameStatus.multiplier = multiplier;
+            this.statusManager.GameStatus.multiplierProgress = multiplierProgress;
+        }
+
+        private void OnLevelFinished() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
+
+        private void OnLevelFailed() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Failed);
+
+        private void OnEnergyDidReach0Event()
+        {
+            if (this.statusManager.GameStatus.modNoFail) {
+                this.statusManager.GameStatus.softFailed = true;
+                this.UpdateModMultiplier();
+                this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapAndPerformanceAndMod, BeatSaberEvent.SoftFailed);
+            }
+        }
+
+        private void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
+        {
+            this.statusManager.GameStatus.beatmapEventType = (int)beatmapEventData.type;
+            this.statusManager.GameStatus.beatmapEventValue = beatmapEventData.value;
+
+            this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
+        }
+        #endregion
+        //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
+        #region // メンバ変数
         private IStatusManager statusManager;
         private GameStatus gameStatus;
         private CustomCutBuffer.Pool cutBufferPool;
@@ -31,35 +327,20 @@ namespace HttpSiraStatus.Models
         private RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter;
         private ILevelEndActions levelEndActions;
         private readonly ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
-
         private GameplayModifiersModelSO gameplayModifiersSO;
-
         private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>();
-        /// private PlayerHeadAndObstacleInteraction ScoreController._playerHeadAndObstacleInteraction;
-        //private FieldInfo scoreControllerHeadAndObstacleInteractionField = typeof(ScoreController).GetField("_playerHeadAndObstacleInteraction", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-        /// protected NoteCutInfo CutScoreBuffer._noteCutInfo
-        //private readonly FieldInfo noteCutInfoField = typeof(CutScoreBuffer).GetField("_noteCutInfo", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-        /// protected List<CutScoreBuffer> ScoreController._cutScoreBuffers // contains a list of after cut buffers
-        //private FieldInfo afterCutScoreBuffersField = typeof(ScoreController).GetField("_cutScoreBuffers", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-        /// private int CutScoreBuffer#_multiplier
-        //private FieldInfo cutScoreBufferMultiplierField = typeof(CutScoreBuffer).GetField("_multiplier", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-        /// private static LevelCompletionResults.Rank LevelCompletionResults.GetRankForScore(int score, int maxPossibleScore)
-        //private MethodInfo getRankForScoreMethod = typeof(LevelCompletionResults).GetMethod("GetRankForScore", BindingFlags.NonPublic | BindingFlags.Static);
-
-        // こいつはどうもオブジェクトと頭がどうたらこうたら言ってるけど重いだけの不要メンバ変数っぽい
         private bool headInObstacle = false;
-
         private Thread _thread;
-
+        private int lastNoteId = 0;
+        private bool disposedValue;
         /// <summary>
         /// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
         /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
         /// </summary>
-        private ConcurrentDictionary<NoteDataEntity, int> NoteToIdMapping { get; } = new ConcurrentDictionary<NoteDataEntity, int>();
-        private int lastNoteId = 0;
-
-        private bool disposedValue;
-
+        private readonly ConcurrentDictionary<NoteDataEntity, int> _noteToIdMapping = new ConcurrentDictionary<NoteDataEntity, int>();
+        #endregion
+        //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
+        #region // 構築・破棄
         /// <summary>
         /// 引数やっば
         /// </summary>
@@ -132,7 +413,7 @@ namespace HttpSiraStatus.Models
                             this.cutBufferPool.Despawn(note);
                         }
                         // Clear note id mappings.
-                        this.NoteToIdMapping?.Clear();
+                        this._noteToIdMapping?.Clear();
 
                         this.statusManager?.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.Menu);
 
@@ -241,11 +522,11 @@ namespace HttpSiraStatus.Models
                 songSpeedMul = practiceSettings.songSpeedMul;
             }
             // Generate NoteData to id mappings for backwards compatiblity with <1.12.1
-            this.NoteToIdMapping.Clear();
+            this._noteToIdMapping.Clear();
 
             this.lastNoteId = 0;
             foreach (var note in diff.beatmapData.beatmapObjectsData.Where(x => x is NoteData).Select((x, i) => new { note = x, index = i })) {
-                this.NoteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
+                this._noteToIdMapping.TryAdd(new NoteDataEntity(note.note as NoteData, this.gameplayModifiers.noArrows), note.index);
             }
             this.gameStatus.songName = level.songName;
             this.gameStatus.songSubName = level.songSubName;
@@ -358,60 +639,8 @@ namespace HttpSiraStatus.Models
             this._thread.Start();
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
         }
-
-        private void OnMultiplayerLevelFinished(MultiplayerLevelCompletionResults obj)
-        {
-            switch (obj.levelEndState) {
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Cleared:
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.GivenUp:
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.WasInactive:
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.HostEndedLevel:
-                    this.OnLevelFinished();
-                    break;
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Failed:
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.StartupFailed:
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.ConnectedAfterLevelEnded:
-                case MultiplayerLevelCompletionResults.MultiplayerLevelEndState.Quit:
-                    this.OnLevelFailed();
-                    break;
-                default:
-                    this.OnLevelFinished();
-                    break;
-            }
-        }
-
-        private void OnImmediateMaxPossibleScoreDidChangeEvent(int immediateMaxPossibleScore, int immediateMaxPossibleModifiedScore)
-        {
-            this.statusManager.GameStatus.currentMaxScore = immediateMaxPossibleModifiedScore;
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
-        }
-
-        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
-        {
-            this.gameStatus.relativeScore = this.relativeScoreAndImmediateRankCounter.relativeScore;
-            this.gameStatus.rank = RankModel.GetRankName(this.relativeScoreAndImmediateRankCounter.immediateRank);
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
-        }
-        private void OnEnergyChanged(float obj)
-        {
-            this.gameStatus.energy = obj;
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
-        }
-#if false
-        public void CleanUpMultiplayer()
-        {
-        	if (multiplayerSessionManager != null) {
-        		multiplayerSessionManager.disconnectedEvent -= OnMultiplayerDisconnected;
-        		multiplayerSessionManager = null;
-        	}
-        }
-        public void OnMultiplayerDisconnected(DisconnectedReason reason)
-        {
-        	CleanUpMultiplayer();
-        	// XXX: this should only be fired if we go from multiplayer lobby to menu and there's no scene transition because of it. gotta prevent duplicates too
-        	HandleMenuStart();
-        }
-#endif
+        #endregion
+        //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // Unity Method
         private void Update()
         {
@@ -423,254 +652,5 @@ namespace HttpSiraStatus.Models
             }
         }
         #endregion
-        /// <summary>
-        /// こいつ別スレで呼ぶと悲惨なことになるのでUpdateで呼ぶことにしました。
-        /// </summary>
-        private void OnObstacleInteraction()
-        {
-            if (this.playerHeadAndObstacleInteraction == null) {
-                return;
-            }
-            // intersectingObstaclesのgetがフレーム単位で呼ばないといけない。
-            // 別スレで呼ぶと関係ないとこで他のモジュール群が死ぬ。
-            var intersectingObstacles = this.playerHeadAndObstacleInteraction.intersectingObstacles;
-            var currentHeadInObstacle = intersectingObstacles.Any();
-
-            if (!this.headInObstacle && currentHeadInObstacle) {
-                this.headInObstacle = true;
-                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleEnter);
-            }
-            else if (this.headInObstacle && !currentHeadInObstacle) {
-                this.headInObstacle = false;
-                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ObstacleExit);
-            }
-        }
-
-        private void UpdateCurrentSongTime()
-        {
-            var songTime = Mathf.FloorToInt(this.audioTimeSource.songTime);
-            if (this.statusManager.GameStatus.currentSongTime != songTime) {
-                this.statusManager.GameStatus.currentSongTime = songTime;
-                this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.BeatmapEvent);
-            }
-        }
-
-        public void UpdateModMultiplier()
-        {
-            var gameStatus = this.statusManager.GameStatus;
-
-            var energy = this.gameEnergyCounter.energy;
-
-            gameStatus.modifierMultiplier = this.gameplayModifiersSO.GetTotalMultiplier(this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), energy);
-
-            gameStatus.maxScore = this.gameplayModifiersSO.MaxModifiedScoreForMaxRawScore(ScoreModel.MaxRawScoreForNumberOfNotes(this.gameplayCoreSceneSetupData.difficultyBeatmap.beatmapData.cuttableNotesCount), this.gameplayModifiersSO.CreateModifierParamsList(this.gameplayModifiers), this.gameplayModifiersSO, energy);
-            gameStatus.maxRank = RankModelHelper.MaxRankForGameplayModifiers(this.gameplayModifiers, this.gameplayModifiersSO, energy).ToString();
-        }
-
-        public void OnGamePause()
-        {
-            this.statusManager.GameStatus.paused = Utility.GetCurrentTime();
-
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Pause);
-        }
-
-        public void OnGameResume()
-        {
-            this.statusManager.GameStatus.start = Utility.GetCurrentTime() - (long)(this.audioTimeSource.songTime * 1000f / this.statusManager.GameStatus.songSpeedMultiplier);
-            this.statusManager.GameStatus.paused = 0;
-
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
-        }
-
-        private void OnNoteWasCut(NoteData noteData, in NoteCutInfo noteCutInfo, int multiplier)
-        {
-            // Event order: combo, multiplier, scoreController.noteWasCut, (LateUpdate) scoreController.scoreDidChange, afterCut, (LateUpdate) scoreController.scoreDidChange
-
-            var gameStatus = this.statusManager.GameStatus;
-
-            this.SetNoteCutStatus(noteData, noteCutInfo, true);
-
-            //int beforeCutScore = 0;
-            //int afterCutScore = 0;
-            //int cutDistanceScore = 0;
-
-            ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out _, out var cutDistanceScore);
-
-            gameStatus.initialScore = beforeCutScore + cutDistanceScore;
-            gameStatus.finalScore = -1;
-            gameStatus.cutDistanceScore = cutDistanceScore;
-            gameStatus.cutMultiplier = multiplier;
-
-            if (noteData.colorType == ColorType.None) {
-                gameStatus.passedBombs++;
-                gameStatus.hitBombs++;
-
-                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
-            }
-            else {
-                gameStatus.passedNotes++;
-
-                if (noteCutInfo.allIsOK) {
-                    gameStatus.hitNotes++;
-
-                    this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
-                }
-                else {
-                    gameStatus.missedNotes++;
-
-                    this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
-                }
-            }
-
-            if (this.noteCutMapping.TryRemove(noteCutInfo, out var changeNoteData)) {
-                this.SetNoteCutStatus(changeNoteData, noteCutInfo, false);
-            }
-            this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
-            this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
-            this.statusManager.GameStatus.cutMultiplier = multiplier;
-            this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
-            if (noteCutInfo.allIsOK && this.noteCutMapping.TryAdd(noteCutInfo, noteData)) {
-                this.activeItems.Add(this.cutBufferPool.Spawn(noteCutInfo, multiplier, this));
-            }
-        }
-
-        public void HandleCutScoreBufferDidFinish(CutScoreBuffer cutScoreBuffer)
-        {
-            cutScoreBuffer.didFinishEvent.Remove(this);
-            if (cutScoreBuffer is CustomCutBuffer customCutBuffer) {
-                var noteCutInfo = customCutBuffer.NoteCutInfo;
-
-                if (this.noteCutMapping.TryRemove(noteCutInfo, out var noteData)) {
-                    this.SetNoteCutStatus(noteData, noteCutInfo, false);
-                }
-                // public static ScoreModel.RawScoreWithoutMultiplier(NoteCutInfo, out int beforeCutRawScore, out int afterCutRawScore, out int cutDistanceRawScore)
-                ScoreModel.RawScoreWithoutMultiplier(noteCutInfo.swingRatingCounter, noteCutInfo.cutDistanceToCenter, out var beforeCutScore, out var afterCutScore, out var cutDistanceScore);
-
-                var multiplier = customCutBuffer.multiplier;
-
-                this.statusManager.GameStatus.initialScore = beforeCutScore + cutDistanceScore;
-                this.statusManager.GameStatus.finalScore = beforeCutScore + afterCutScore + cutDistanceScore;
-                this.statusManager.GameStatus.cutDistanceScore = cutDistanceScore;
-                this.statusManager.GameStatus.cutMultiplier = multiplier;
-
-                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
-                this.activeItems.Remove(customCutBuffer);
-                this.cutBufferPool.Despawn(customCutBuffer);
-            }
-        }
-        private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default, bool initialCut = true)
-        {
-            var gameStatus = this.statusManager.GameStatus;
-
-            gameStatus.ResetNoteCut();
-
-            // Backwards compatibility for <1.12.1
-            gameStatus.noteID = -1;
-            // Check the near notes first for performance
-            var entiy = this.notePool.Spawn(noteData, this.gameplayModifiers.noArrows);
-            if (this.NoteToIdMapping.TryRemove(entiy, out var noteID)) {
-                gameStatus.noteID = noteID;
-                if (this.lastNoteId < noteID) {
-                    this.lastNoteId = noteID;
-                }
-            }
-            else {
-                gameStatus.noteID = this.lastNoteId;
-            }
-            this.notePool.Despawn(entiy);
-            // Backwards compatibility for <1.12.1
-            gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
-            gameStatus.noteCutDirection = noteData.cutDirection.ToString();
-            gameStatus.noteLine = noteData.lineIndex;
-            gameStatus.noteLayer = (int)noteData.noteLineLayer;
-            // If long notes are ever introduced, this name will make no sense
-            gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
-
-            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
-                gameStatus.speedOK = noteCutInfo.speedOK;
-                gameStatus.directionOK = noteCutInfo.directionOK;
-                gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
-                gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
-                gameStatus.saberSpeed = noteCutInfo.saberSpeed;
-                gameStatus.saberDirX = noteCutInfo.saberDir[0];
-                gameStatus.saberDirY = noteCutInfo.saberDir[1];
-                gameStatus.saberDirZ = noteCutInfo.saberDir[2];
-                gameStatus.saberType = noteCutInfo.saberType.ToString();
-                gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
-                gameStatus.timeDeviation = noteCutInfo.timeDeviation;
-                gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
-                gameStatus.cutPointX = noteCutInfo.cutPoint[0];
-                gameStatus.cutPointY = noteCutInfo.cutPoint[1];
-                gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
-                gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
-                gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
-                gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
-                gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
-            }
-        }
-
-        public void OnNoteWasMissed(NoteData noteData, int multiplier)
-        {
-            // Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
-
-            this.statusManager.GameStatus.batteryEnergy = this.gameEnergyCounter.batteryEnergy;
-            this.statusManager.GameStatus.energy = this.gameEnergyCounter.energy;
-
-            this.SetNoteCutStatus(noteData);
-
-            if (noteData.colorType == ColorType.None) {
-                this.statusManager.GameStatus.passedBombs++;
-
-                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombMissed);
-            }
-            else {
-                this.statusManager.GameStatus.passedNotes++;
-                this.statusManager.GameStatus.missedNotes++;
-
-                this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
-            }
-        }
-
-        public void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
-        {
-            var gameStatus = this.statusManager.GameStatus;
-
-            gameStatus.rawScore = scoreBeforeMultiplier;
-            gameStatus.score = scoreAfterMultiplier;
-            this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
-        }
-        public void OnComboDidChange(int combo)
-        {
-            this.statusManager.GameStatus.combo = combo;
-            // public int ScoreController#maxCombo
-            this.statusManager.GameStatus.maxCombo = this.scoreController.maxCombo;
-        }
-
-        public void OnMultiplierDidChange(int multiplier, float multiplierProgress)
-        {
-            this.statusManager.GameStatus.multiplier = multiplier;
-            this.statusManager.GameStatus.multiplierProgress = multiplierProgress;
-        }
-
-        public void OnLevelFinished() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Finished);
-
-        public void OnLevelFailed() => this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.Failed);
-
-        public void OnEnergyDidReach0Event()
-        {
-            if (this.statusManager.GameStatus.modNoFail) {
-                this.statusManager.GameStatus.softFailed = true;
-                this.UpdateModMultiplier();
-                this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapAndPerformanceAndMod, BeatSaberEvent.SoftFailed);
-            }
-        }
-
-        public void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
-        {
-            this.statusManager.GameStatus.beatmapEventType = (int)beatmapEventData.type;
-            this.statusManager.GameStatus.beatmapEventValue = beatmapEventData.value;
-
-            this.statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
-        }
     }
 }
