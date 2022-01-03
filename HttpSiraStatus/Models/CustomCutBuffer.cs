@@ -4,8 +4,8 @@ namespace HttpSiraStatus.Models
 {
     public class CustomCutBuffer : CutScoreBuffer
     {
-        public NoteCutInfo NoteCutInfo { get; set; }
-        public ICutScoreBufferDidFinishEvent CutBufferDidFinishEvent { get; set; }
+        public NoteCutInfo NoteCutInfo { get; private set; }
+        public ICutScoreBufferDidFinishEvent CutBufferDidFinishEvent { get; private set; }
         public void Initialize(NoteCutInfo noteCutInfo, int m, ICutScoreBufferDidFinishEvent e)
         {
             this._initialized = true;

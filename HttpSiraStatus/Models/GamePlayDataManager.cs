@@ -141,6 +141,13 @@ namespace HttpSiraStatus.Models
 
             this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
         }
+        private void OnNoteWasSpawnedEvent(NoteController obj)
+        {
+            var noteData = obj.noteData;
+            this._noteControllerMapping.AddOrUpdate(new NoteDataEntity(noteData, this.gameplayModifiers.noArrows), obj, (e, c) => obj);
+            this.SetNoteCutStatus(noteData);
+            this.statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
+        }
 
         private void OnNoteWasCut(NoteData noteData, in NoteCutInfo noteCutInfo, int multiplier)
         {
@@ -194,18 +201,15 @@ namespace HttpSiraStatus.Models
             }
         }
 
-        
         private void SetNoteCutStatus(NoteData noteData, NoteCutInfo noteCutInfo = default, bool initialCut = true)
         {
             var gameStatus = this.statusManager.GameStatus;
-
+            var entity = this.notePool.Spawn(noteData, this.gameplayModifiers.noArrows);
             gameStatus.ResetNoteCut();
-
             // Backwards compatibility for <1.12.1
             gameStatus.noteID = -1;
             // Check the near notes first for performance
-            var entiy = this.notePool.Spawn(noteData, this.gameplayModifiers.noArrows);
-            if (this._noteToIdMapping.TryGetValue(entiy, out var noteID)) {
+            if (this._noteToIdMapping.TryGetValue(entity, out var noteID)) {
                 gameStatus.noteID = noteID;
                 if (this.lastNoteId < noteID) {
                     this.lastNoteId = noteID;
@@ -214,7 +218,6 @@ namespace HttpSiraStatus.Models
             else {
                 gameStatus.noteID = this.lastNoteId;
             }
-            this.notePool.Despawn(entiy);
             // Backwards compatibility for <1.12.1
             gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
             gameStatus.noteCutDirection = noteData.cutDirection.ToString();
@@ -222,28 +225,32 @@ namespace HttpSiraStatus.Models
             gameStatus.noteLayer = (int)noteData.noteLineLayer;
             // If long notes are ever introduced, this name will make no sense
             gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
-
-            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
+            if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default) && this._noteControllerMapping.TryRemove(entity, out var controller)) {
+                var noteTransform = controller.noteTransform;
                 gameStatus.speedOK = noteCutInfo.speedOK;
                 gameStatus.directionOK = noteCutInfo.directionOK;
                 gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
                 gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
                 gameStatus.saberSpeed = noteCutInfo.saberSpeed;
-                gameStatus.saberDirX = noteCutInfo.saberDir[0];
-                gameStatus.saberDirY = noteCutInfo.saberDir[1];
-                gameStatus.saberDirZ = noteCutInfo.saberDir[2];
+                var saberDir = noteTransform.InverseTransformDirection(noteCutInfo.saberDir);
+                gameStatus.saberDirX = saberDir[0];
+                gameStatus.saberDirY = saberDir[1];
+                gameStatus.saberDirZ = saberDir[2];
                 gameStatus.saberType = noteCutInfo.saberType.ToString();
                 gameStatus.swingRating = noteCutInfo.swingRatingCounter == null ? -1 : initialCut ? noteCutInfo.swingRatingCounter.beforeCutRating : noteCutInfo.swingRatingCounter.afterCutRating;
                 gameStatus.timeDeviation = noteCutInfo.timeDeviation;
                 gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
-                gameStatus.cutPointX = noteCutInfo.cutPoint[0];
-                gameStatus.cutPointY = noteCutInfo.cutPoint[1];
-                gameStatus.cutPointZ = noteCutInfo.cutPoint[2];
-                gameStatus.cutNormalX = noteCutInfo.cutNormal[0];
-                gameStatus.cutNormalY = noteCutInfo.cutNormal[1];
-                gameStatus.cutNormalZ = noteCutInfo.cutNormal[2];
+                var cutPoint = noteTransform.InverseTransformPoint(noteCutInfo.cutPoint);
+                gameStatus.cutPointX = cutPoint[0];
+                gameStatus.cutPointY = cutPoint[1];
+                gameStatus.cutPointZ = cutPoint[2];
+                var cutNormal = noteTransform.InverseTransformDirection(noteCutInfo.cutNormal);
+                gameStatus.cutNormalX = cutNormal[0];
+                gameStatus.cutNormalY = cutNormal[1];
+                gameStatus.cutNormalZ = cutNormal[2];
                 gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
             }
+            this.notePool.Despawn(entity);
         }
 
         private void OnNoteWasMissed(NoteData noteData, int multiplier)
@@ -326,6 +333,7 @@ namespace HttpSiraStatus.Models
         private GameEnergyCounter gameEnergyCounter;
         private MultiplayerLocalActivePlayerFacade multiplayerLocalActivePlayerFacade;
         private RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter;
+        private BeatmapObjectManager _beatmapObjectManager;
         private ILevelEndActions levelEndActions;
         private readonly ConcurrentDictionary<NoteCutInfo, NoteData> noteCutMapping = new ConcurrentDictionary<NoteCutInfo, NoteData>();
         private GameplayModifiersModelSO gameplayModifiersSO;
@@ -339,6 +347,7 @@ namespace HttpSiraStatus.Models
         /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
         /// </summary>
         private readonly ConcurrentDictionary<NoteDataEntity, int> _noteToIdMapping = new ConcurrentDictionary<NoteDataEntity, int>();
+        private readonly ConcurrentDictionary<NoteDataEntity, NoteController> _noteControllerMapping = new ConcurrentDictionary<NoteDataEntity, NoteController>();
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // 構築・破棄
@@ -372,6 +381,7 @@ namespace HttpSiraStatus.Models
             PlayerHeadAndObstacleInteraction playerHeadAndObstacleInteraction,
             GameEnergyCounter gameEnergyCounter,
             RelativeScoreAndImmediateRankCounter relative,
+            BeatmapObjectManager beatmapObjectManager,
             DiContainer diContainer)
         {
             this.statusManager = statusManager;
@@ -386,6 +396,7 @@ namespace HttpSiraStatus.Models
             this.playerHeadAndObstacleInteraction = playerHeadAndObstacleInteraction;
             this.gameEnergyCounter = gameEnergyCounter;
             this.relativeScoreAndImmediateRankCounter = relative;
+            this._beatmapObjectManager = beatmapObjectManager;
             if (this.scoreController is ScoreController scoreController) {
                 this.gameplayModifiersSO = scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
             }
@@ -415,6 +426,7 @@ namespace HttpSiraStatus.Models
                         }
                         // Clear note id mappings.
                         this._noteToIdMapping?.Clear();
+                        this._noteControllerMapping?.Clear();
 
                         this.statusManager?.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.Menu);
 
@@ -448,6 +460,10 @@ namespace HttpSiraStatus.Models
                             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent -= this.OnBeatmapEventDidTrigger;
                         }
 
+                        if (this._beatmapObjectManager != null) {
+                            this._beatmapObjectManager.noteWasSpawnedEvent -= this.OnNoteWasSpawnedEvent;
+                        }
+
                         if (this.gameEnergyCounter != null) {
                             this.gameEnergyCounter.gameEnergyDidChangeEvent -= this.OnEnergyChanged;
                             this.gameEnergyCounter.gameEnergyDidReach0Event -= this.OnEnergyDidReach0Event;
@@ -463,6 +479,7 @@ namespace HttpSiraStatus.Models
                 this.disposedValue = true;
             }
         }
+
         public void Dispose()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
@@ -499,6 +516,7 @@ namespace HttpSiraStatus.Models
             this.scoreController.immediateMaxPossibleScoreDidChangeEvent += this.OnImmediateMaxPossibleScoreDidChangeEvent;
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
+            this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
             this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             // public event Action GameEnergyCounter#gameEnergyDidReach0Event;
             this.gameEnergyCounter.gameEnergyDidReach0Event += this.OnEnergyDidReach0Event;
@@ -538,6 +556,7 @@ namespace HttpSiraStatus.Models
             this.gameStatus.levelAuthorName = level.levelAuthorName;
             this.gameStatus.songBPM = level.beatsPerMinute;
             this.gameStatus.noteJumpSpeed = diff.noteJumpMovementSpeed;
+            this.gameStatus.noteJumpStartBeatOffset = diff.noteJumpStartBeatOffset;
             // 13 is "custom_level_" and 40 is the magic number for the length of the SHA-1 hash
             this.gameStatus.songHash = Regex.IsMatch(level.levelID, "^custom_level_[0-9A-F]{40}", RegexOptions.IgnoreCase) && !level.levelID.EndsWith(" WIP") ? level.levelID.Substring(13, 40) : null;
             this.gameStatus.levelId = level.levelID;

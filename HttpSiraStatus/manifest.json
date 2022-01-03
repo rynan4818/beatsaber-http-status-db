@@ -5,11 +5,11 @@
   "gameVersion": "1.19.0",
   "id": "HttpSiraStatus",
   "name": "HttpSiraStatus",
-  "version": "6.0.1",
+  "version": "6.1.0",
   "dependsOn": {
-    "BSIPA": "^4.1.6",
-    "BS Utils": "^1.11.0",
-    "SiraUtil": "^3.0.0",
+    "BSIPA": "^4.2.1",
+    "BS Utils": "^1.11.1",
+    "SiraUtil": "^3.0.2",
     "websocket-sharp": "^1.0.4"
   },
   "files": [
