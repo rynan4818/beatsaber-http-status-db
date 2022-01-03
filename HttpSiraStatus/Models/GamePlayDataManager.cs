@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
@@ -204,7 +205,7 @@ namespace HttpSiraStatus.Models
             gameStatus.noteID = -1;
             // Check the near notes first for performance
             var entiy = this.notePool.Spawn(noteData, this.gameplayModifiers.noArrows);
-            if (this._noteToIdMapping.TryRemove(entiy, out var noteID)) {
+            if (this._noteToIdMapping.TryGetValue(entiy, out var noteID)) {
                 gameStatus.noteID = noteID;
                 if (this.lastNoteId < noteID) {
                     this.lastNoteId = noteID;
@@ -468,8 +469,11 @@ namespace HttpSiraStatus.Models
             this.Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
-
-        public async void Initialize()
+        public void Initialize()
+        {
+            _ = this.InitializeAsync();
+        }
+        public async Task InitializeAsync()
         {
             Plugin.Logger.Info("Initialize()");
             // Check for multiplayer early to abort if needed: gameplay controllers don't exist in multiplayer until later
