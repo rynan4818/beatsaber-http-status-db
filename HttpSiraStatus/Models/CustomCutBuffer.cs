@@ -1,4 +1,5 @@
-﻿using Zenject;
+﻿using System;
+using Zenject;
 
 namespace HttpSiraStatus.Models
 {
@@ -22,10 +23,11 @@ namespace HttpSiraStatus.Models
             this.NoteController = null;
             this.FinishEvent = null;
         }
-        public new class Pool : MemoryPool<NoteCutInfo, int, NoteController, ICutScoreBufferDidFinishEvent, CustomCutBuffer>
+        public new class Pool : MemoryPool<NoteCutInfo, int, NoteController, ICutScoreBufferDidFinishEvent, CustomCutBuffer>, IDisposable
         {
             // GCに勝手に回収されない用
             private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>(256);
+            private bool disposeValue = false;
 
             protected override void OnSpawned(CustomCutBuffer item)
             {
@@ -42,6 +44,27 @@ namespace HttpSiraStatus.Models
             {
                 item.Reflesh();
                 this.activeItems.Remove(item);
+            }
+
+            protected virtual void Dispose(bool disposing)
+            {
+                Plugin.Logger.Debug("Dispose()");
+                if (!this.disposeValue) {
+                    if (disposing) {
+                        foreach (var buff in this.activeItems.items) {
+                            buff.Reflesh();
+                        }
+                        this.activeItems.items.Clear();
+                    }
+                    this.disposeValue = true;
+                }
+            }
+
+            public new void Dispose()
+            {
+                base.Dispose();
+                this.Dispose(true);
+                GC.SuppressFinalize(this);
             }
         }
     }
