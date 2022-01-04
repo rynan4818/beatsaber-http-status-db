@@ -216,7 +216,21 @@ namespace HttpSiraStatus.Models
                 this.gameStatus.noteID = this.lastNoteId;
             }
             // Backwards compatibility for <1.12.1
-            this.gameStatus.noteType = noteData.colorType == ColorType.None ? "Bomb" : noteData.colorType == ColorType.ColorA ? "NoteA" : noteData.colorType == ColorType.ColorB ? "NoteB" : noteData.colorType.ToString();
+            var colorName = noteData.colorType.ToString();
+            switch (noteData.colorType) {
+                case ColorType.ColorA:
+                    colorName = "NoteA";
+                    break;
+                case ColorType.ColorB:
+                    colorName = "NoteB";
+                    break;
+                case ColorType.None:
+                    colorName = "Bomb";
+                    break;
+                default:
+                    break;
+            }
+            this.gameStatus.noteType = colorName;
             this.gameStatus.noteCutDirection = noteData.cutDirection.ToString();
             this.gameStatus.noteLine = noteData.lineIndex;
             this.gameStatus.noteLayer = (int)noteData.noteLineLayer;
