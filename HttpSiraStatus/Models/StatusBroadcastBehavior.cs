@@ -16,7 +16,7 @@ namespace HttpSiraStatus
 
         private void OnSendEvent(object sender, SendEventArgs e)
         {
-            e.JsonNode["time"] = new JSONNumber(Utility.GetCurrentTime());
+            e.JsonNode["time"].AsLong = Utility.GetCurrentTime();
             this.Send(e.JsonNode.ToString());
         }
 
@@ -27,7 +27,7 @@ namespace HttpSiraStatus
             var eventJSON = new JSONObject();
 
             eventJSON["event"] = "hello";
-            eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
+            eventJSON["time"].AsLong = Utility.GetCurrentTime();
             eventJSON["status"] = this.statusManager.StatusJSON;
             eventJSON["other"] = this.statusManager.OtherJSON;
 
@@ -40,42 +40,5 @@ namespace HttpSiraStatus
             this.statusManager.SendEvent -= this.OnSendEvent;
             base.OnClose(e);
         }
-
-        //public void OnStatusChange(object sender, StatusChangedEventArgs e)
-        //{
-        //          if (sender is IStatusManager statusManager) {
-        //		var changedProps = e.ChangedProperties;
-
-        //		JSONObject eventJSON = new JSONObject();
-        //		eventJSON["event"] = e.Cause;
-        //		eventJSON["time"] = new JSONNumber(Utility.GetCurrentTime());
-
-        //		if (changedProps.game && changedProps.beatmap && changedProps.performance && changedProps.mod) {
-        //			eventJSON["status"] = statusManager.statusJSON;
-        //		}
-        //		else {
-        //			JSONObject status = new JSONObject();
-        //			eventJSON["status"] = status;
-
-        //			if (changedProps.game) status["game"] = statusManager.statusJSON["game"];
-        //			if (changedProps.beatmap) status["beatmap"] = statusManager.statusJSON["beatmap"];
-        //			if (changedProps.performance) status["performance"] = statusManager.statusJSON["performance"];
-        //			if (changedProps.mod) {
-        //				status["mod"] = statusManager.statusJSON["mod"];
-        //				status["playerSettings"] = statusManager.statusJSON["playerSettings"];
-        //			}
-        //		}
-
-        //		if (changedProps.noteCut) {
-        //			eventJSON["noteCut"] = statusManager.noteCutJSON;
-        //		}
-
-        //		if (changedProps.beatmapEvent) {
-        //			eventJSON["beatmapEvent"] = statusManager.beatmapEventJSON;
-        //		}
-        //		statusManager.JsonQueue.Enqueue(eventJSON);
-        //		//SendAsync(eventJSON.ToString(), null);
-        //	}
-        //}
     }
 }

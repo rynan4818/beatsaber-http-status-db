@@ -85,6 +85,8 @@ namespace HttpSiraStatus
         public float saberDirZ = 0;
         public string saberType = null;
         public float swingRating = 0;
+        public float beforSwingRating = 0;
+        public float afterSwingRating = 0;
         public float timeDeviation = 0;
         public float cutDirectionDeviation = 0;
         public float cutPointX = 0;
@@ -207,6 +209,8 @@ namespace HttpSiraStatus
             this.saberDirZ = 0;
             this.saberType = null;
             this.swingRating = 0;
+            this.beforSwingRating = 0;
+            this.afterSwingRating = 0;
             this.timeDeviation = 0;
             this.cutDirectionDeviation = 0;
             this.cutPointX = 0;
