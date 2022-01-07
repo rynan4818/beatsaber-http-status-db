@@ -1,4 +1,5 @@
 ﻿using BS_Utils.Gameplay;
+using HttpSiraStatus.Harmonies;
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using IPA.Utilities;
@@ -195,7 +196,9 @@ namespace HttpSiraStatus.Models
                     this.statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
                 }
             }
-            this.cutBufferPool.Spawn(noteCutInfo, multiplier, noteController, this);
+            if (noteCutInfo.allIsOK) {
+                this.cutBufferPool.Spawn(noteCutInfo, multiplier, noteController, this);
+            }
         }
 
         private void SetNoteCutStatus(NoteController noteController, NoteCutInfo noteCutInfo = default, bool initialCut = true)
@@ -440,7 +443,6 @@ namespace HttpSiraStatus.Models
 
                         if (this._beatmapObjectManager != null) {
                             this._beatmapObjectManager.noteWasSpawnedEvent -= this.OnNoteWasSpawnedEvent;
-                            this._beatmapObjectManager.noteWasCutEvent -= this.OnNoteWasCutEvent;
                             this._beatmapObjectManager.noteWasMissedEvent -= this.OnNoteWasMissedEvent;
                         }
 
@@ -451,6 +453,7 @@ namespace HttpSiraStatus.Models
                         if (this.relativeScoreAndImmediateRankCounter) {
                             this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent -= this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
                         }
+                        ScoreControllerHandleWasCutPatch.NoteWasCut -= this.OnNoteWasCutEvent;
                     }
                     catch (Exception e) {
                         Plugin.Logger.Error(e);
@@ -493,7 +496,7 @@ namespace HttpSiraStatus.Models
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
-            this._beatmapObjectManager.noteWasCutEvent += this.OnNoteWasCutEvent;
+            ScoreControllerHandleWasCutPatch.NoteWasCut += this.OnNoteWasCutEvent;
             this._beatmapObjectManager.noteWasMissedEvent += this.OnNoteWasMissedEvent;
             this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             // public event Action GameEnergyCounter#gameEnergyDidReach0Event;

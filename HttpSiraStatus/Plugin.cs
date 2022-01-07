@@ -1,3 +1,4 @@
+using HarmonyLib;
 using HttpSiraStatus.Installer;
 using IPA;
 using SiraUtil.Zenject;
@@ -5,17 +6,9 @@ using System.Reflection;
 using UnityEngine;
 using IPALogger = IPA.Logging.Logger;
 
-// Interesting props and methods:
-// protected const int ScoreController.kMaxCutScore // 110
-// public BeatmapObjectSpawnController.noteWasCutEvent<BeatmapObjectSpawnController, NoteController, NoteCutInfo> // Listened to by scoreManager for its cut event and therefore is raised before combo, multiplier and score changes
-// public BeatmapObjectSpawnController.noteWasMissedEvent<BeatmapObjectSpawnController, NoteController> // Same as above, but for misses
-// public BeatmapObjectSpawnController.obstacleDidPassAvoidedMarkEvent<BeatmapObjectSpawnController, ObstacleController>
-// public int ScoreController.prevFrameScore
-// protected ScoreController._baseScore
-
 namespace HttpSiraStatus
 {
-    [Plugin(RuntimeOptions.SingleStartInit)]
+    [Plugin(RuntimeOptions.DynamicInit)]
     internal class Plugin
     {
         /// <summary>
@@ -27,6 +20,8 @@ namespace HttpSiraStatus
         public string Name => Assembly.GetExecutingAssembly().GetName().Name;
         public static IPALogger Logger { get; private set; }
 
+        public const string HARMONY_ID = "HttpSiraStatus.com.github.denpadokei";
+        private Harmony _harmony;
         [Init]
         public void Init(IPALogger logger, Zenjector zenjector)
         {
@@ -34,6 +29,7 @@ namespace HttpSiraStatus
             Logger.Debug("Logger Initialized.");
             zenjector.Install<HttpPlayerInstaller>(Location.Player);
             zenjector.Install<HttpAppInstaller>(Location.App);
+            this._harmony = new Harmony(HARMONY_ID);
         }
 
         [OnStart]
@@ -43,6 +39,17 @@ namespace HttpSiraStatus
         public void OnApplicationQuit()
         {
 
+        }
+        [OnEnable]
+        public void OnEnable()
+        {
+            this._harmony?.PatchAll(Assembly.GetExecutingAssembly());
+        }
+
+        [OnDisable]
+        public void OnDisable()
+        {
+            this._harmony?.UnpatchSelf();
         }
     }
 }
