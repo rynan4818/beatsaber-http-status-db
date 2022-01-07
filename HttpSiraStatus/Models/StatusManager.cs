@@ -213,25 +213,25 @@ namespace HttpSiraStatus
                 this.StatusJSON["performance"] = new JSONObject();
             var performanceJSON = this.StatusJSON["performance"].AsObject;
 
-            performanceJSON["rawScore"] = this.GameStatus.rawScore;
-            performanceJSON["score"] = this.GameStatus.score;
-            performanceJSON["currentMaxScore"] = this.GameStatus.currentMaxScore;
-            performanceJSON["relativeScore"] = new JSONNumber(this.GameStatus.relativeScore);
+            performanceJSON["rawScore"].AsInt = this.GameStatus.rawScore;
+            performanceJSON["score"].AsInt = this.GameStatus.score;
+            performanceJSON["currentMaxScore"].AsInt = this.GameStatus.currentMaxScore;
+            performanceJSON["relativeScore"].AsFloat = this.GameStatus.relativeScore;
             performanceJSON["rank"] = this.GameStatus.rank;
-            performanceJSON["passedNotes"] = this.GameStatus.passedNotes;
-            performanceJSON["hitNotes"] = this.GameStatus.hitNotes;
-            performanceJSON["missedNotes"] = this.GameStatus.missedNotes;
-            performanceJSON["lastNoteScore"] = this.GameStatus.lastNoteScore;
-            performanceJSON["passedBombs"] = this.GameStatus.passedBombs;
-            performanceJSON["hitBombs"] = this.GameStatus.hitBombs;
-            performanceJSON["combo"] = this.GameStatus.combo;
-            performanceJSON["maxCombo"] = this.GameStatus.maxCombo;
-            performanceJSON["multiplier"] = this.GameStatus.multiplier;
-            performanceJSON["multiplierProgress"] = this.GameStatus.multiplierProgress;
+            performanceJSON["passedNotes"].AsInt = this.GameStatus.passedNotes;
+            performanceJSON["hitNotes"].AsInt = this.GameStatus.hitNotes;
+            performanceJSON["missedNotes"].AsInt = this.GameStatus.missedNotes;
+            performanceJSON["lastNoteScore"].AsInt = this.GameStatus.lastNoteScore;
+            performanceJSON["passedBombs"].AsInt = this.GameStatus.passedBombs;
+            performanceJSON["hitBombs"].AsInt = this.GameStatus.hitBombs;
+            performanceJSON["combo"].AsInt = this.GameStatus.combo;
+            performanceJSON["maxCombo"].AsInt = this.GameStatus.maxCombo;
+            performanceJSON["multiplier"].AsInt = this.GameStatus.multiplier;
+            performanceJSON["multiplierProgress"].AsFloat = this.GameStatus.multiplierProgress;
             performanceJSON["batteryEnergy"] = this.GameStatus.modBatteryEnergy || this.GameStatus.modInstaFail ? (JSONNode)new JSONNumber(this.GameStatus.batteryEnergy) : (JSONNode)JSONNull.CreateOrGet();
-            performanceJSON["energy"] = new JSONNumber(this.GameStatus.energy);
-            performanceJSON["softFailed"] = this.GameStatus.softFailed;
-            performanceJSON["currentSongTime"] = this.GameStatus.currentSongTime;
+            performanceJSON["energy"].AsFloat = this.GameStatus.energy;
+            performanceJSON["softFailed"].AsBool = this.GameStatus.softFailed;
+            performanceJSON["currentSongTime"].AsInt = this.GameStatus.currentSongTime;
         }
 
         private void UpdateNoteCutJSON()
@@ -255,22 +255,22 @@ namespace HttpSiraStatus
             this.NoteCutJSON["saberSpeed"] = this.GameStatus.saberSpeed;
             if (!this.NoteCutJSON["saberDir"].IsArray)
                 this.NoteCutJSON["saberDir"] = new JSONArray();
-            this.NoteCutJSON["saberDir"][0] = this.GameStatus.saberDirX;
-            this.NoteCutJSON["saberDir"][1] = this.GameStatus.saberDirY;
-            this.NoteCutJSON["saberDir"][2] = this.GameStatus.saberDirZ;
+            this.NoteCutJSON["saberDir"][0].AsFloat = this.GameStatus.saberDirX;
+            this.NoteCutJSON["saberDir"][1].AsFloat = this.GameStatus.saberDirY;
+            this.NoteCutJSON["saberDir"][2].AsFloat = this.GameStatus.saberDirZ;
             this.NoteCutJSON["saberType"] = this.StringOrNull(this.GameStatus.saberType);
             this.NoteCutJSON["timeDeviation"] = this.GameStatus.timeDeviation;
             this.NoteCutJSON["cutDirectionDeviation"] = this.GameStatus.cutDirectionDeviation;
             if (!this.NoteCutJSON["cutPoint"].IsArray)
                 this.NoteCutJSON["cutPoint"] = new JSONArray();
-            this.NoteCutJSON["cutPoint"][0] = this.GameStatus.cutPointX;
-            this.NoteCutJSON["cutPoint"][1] = this.GameStatus.cutPointY;
-            this.NoteCutJSON["cutPoint"][2] = this.GameStatus.cutPointZ;
+            this.NoteCutJSON["cutPoint"][0].AsFloat = this.GameStatus.cutPointX;
+            this.NoteCutJSON["cutPoint"][1].AsFloat = this.GameStatus.cutPointY;
+            this.NoteCutJSON["cutPoint"][2].AsFloat = this.GameStatus.cutPointZ;
             if (!this.NoteCutJSON["cutNormal"].IsArray)
                 this.NoteCutJSON["cutNormal"] = new JSONArray();
-            this.NoteCutJSON["cutNormal"][0] = this.GameStatus.cutNormalX;
-            this.NoteCutJSON["cutNormal"][1] = this.GameStatus.cutNormalY;
-            this.NoteCutJSON["cutNormal"][2] = this.GameStatus.cutNormalZ;
+            this.NoteCutJSON["cutNormal"][0].AsFloat = this.GameStatus.cutNormalX;
+            this.NoteCutJSON["cutNormal"][1].AsFloat = this.GameStatus.cutNormalY;
+            this.NoteCutJSON["cutNormal"][2].AsFloat = this.GameStatus.cutNormalZ;
             this.NoteCutJSON["cutDistanceToCenter"] = this.GameStatus.cutDistanceToCenter;
             this.NoteCutJSON["timeToNextBasicNote"] = this.GameStatus.timeToNextBasicNote;
         }
@@ -332,28 +332,15 @@ namespace HttpSiraStatus
         {
             if (!this.disposedValue) {
                 if (disposing) {
-                    // TODO: マネージド状態を破棄します (マネージド オブジェクト)
                     this.thread?.Abort();
                 }
-
-                // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-                // TODO: 大きなフィールドを null に設定します
                 this.disposedValue = true;
             }
         }
-
-        // // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
-        // ~StatusManager()
-        // {
-        //     // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        //     Dispose(disposing: false);
-        // }
-
         public void Dispose()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
             this.Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

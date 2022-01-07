@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
 
 namespace HttpSiraStatus.Models
 {
@@ -17,6 +15,7 @@ namespace HttpSiraStatus.Models
                 return result;
             }
             else {
+                Plugin.Logger.Warn("fail tryTake");
                 result = new T();
                 this.Initialize?.Invoke(result);
                 this.ReInitialize?.Invoke(result);
