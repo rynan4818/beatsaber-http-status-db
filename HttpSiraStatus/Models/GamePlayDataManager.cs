@@ -442,8 +442,6 @@ namespace HttpSiraStatus.Models
 
                         this._statusManager?.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.Menu);
 
-                        this._thread?.Abort();
-
                         if (this._pauseController != null) {
                             this._pauseController.didPauseEvent -= this.OnGamePause;
                             this._pauseController.didResumeEvent -= this.OnGameResume;
@@ -491,6 +489,11 @@ namespace HttpSiraStatus.Models
                 }
                 this._disposedValue = true;
             }
+        }
+
+        ~GamePlayDataManager()
+        {
+            this.Dispose(disposing: false);
         }
 
         public void Dispose()
