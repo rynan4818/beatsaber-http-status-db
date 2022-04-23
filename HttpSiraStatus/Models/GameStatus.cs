@@ -6,9 +6,8 @@ namespace HttpSiraStatus
     [Serializable]
     public class GameStatus
     {
-        public string updateCause;
-
 #pragma warning disable IDE1006 // –½–¼ƒXƒ^ƒCƒ‹
+        public string updateCause { get; set; }
         public string scene { get; set; } = "Menu";
         public bool partyMode { get; set; } = false;
         public bool multiplayer { get; set; } = false;
