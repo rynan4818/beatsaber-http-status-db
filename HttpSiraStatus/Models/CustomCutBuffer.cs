@@ -6,7 +6,7 @@ namespace HttpSiraStatus.Models
     public class CustomCutBuffer : CutScoreBuffer
     {
         public NoteCutInfo NoteCutInfo { get; private set; }
-        public ICutScoreBufferDidFinishReceiver FinishEvent { get; set; }
+        public ICutScoreBufferDidFinishReceiver FinishEvent { get; private set; }
         public NoteController NoteController { get; private set; }
 
         public void Init(in NoteCutInfo noteCutInfo, int multiplier, NoteController controller, ICutScoreBufferDidFinishReceiver e)
@@ -24,45 +24,58 @@ namespace HttpSiraStatus.Models
             this.NoteController = null;
             this.FinishEvent = null;
         }
-        public new class Pool : MemoryPool<NoteCutInfo, int, NoteController, ICutScoreBufferDidFinishReceiver, CustomCutBuffer>, IDisposable
+        public class Pool : MemoryPool<NoteCutInfo, int, NoteController, ICutScoreBufferDidFinishReceiver, CustomCutBuffer>, IDisposable
         {
             // GCに勝手に回収されない用
-            private readonly LazyCopyHashSet<CustomCutBuffer> activeItems = new LazyCopyHashSet<CustomCutBuffer>(256);
-            private bool disposeValue = false;
-            protected override void Reinitialize(NoteCutInfo p1, int p2, NoteController p3, ICutScoreBufferDidFinishReceiver p4, CustomCutBuffer item) => item.Init(p1, p2, p3, p4);
+            private readonly LazyCopyHashSet<CustomCutBuffer> _activeItems = new LazyCopyHashSet<CustomCutBuffer>(256);
+            private bool _disposeValue = false;
+            protected override void Reinitialize(NoteCutInfo p1, int p2, NoteController p3, ICutScoreBufferDidFinishReceiver p4, CustomCutBuffer item)
+            {
+                item.Init(p1, p2, p3, p4);
+            }
+
             protected override void OnSpawned(CustomCutBuffer item)
             {
-                this.activeItems.Add(item);
+                this._activeItems.Add(item);
             }
             protected override void OnDespawned(CustomCutBuffer item)
             {
                 item.Reflesh();
-                this.activeItems.Remove(item);
+                this._activeItems.Remove(item);
             }
             protected override void OnDestroyed(CustomCutBuffer item)
             {
                 item.Reflesh();
-                this.activeItems.Remove(item);
+                this._activeItems.Remove(item);
             }
 
             protected virtual void Dispose(bool disposing)
             {
-                Plugin.Logger.Debug("Dispose()");
-                if (!this.disposeValue) {
-                    if (disposing) {
-                        foreach (var buff in this.activeItems.items) {
+                try {
+                    Plugin.Logger.Debug("Dispose()");
+                    if (!this._disposeValue) {
+                        foreach (var buff in this._activeItems.items) {
                             buff.Reflesh();
                         }
-                        this.activeItems.items.Clear();
+                        this._activeItems.items.Clear();
+                        this._disposeValue = true;
                     }
-                    this.disposeValue = true;
                 }
+                catch (Exception e) {
+                    Plugin.Logger.Error(e);
+                }
+            }
+
+            ~Pool()
+            {
+                this.Dispose(false);
             }
 
             public new void Dispose()
             {
-                base.Dispose();
                 this.Dispose(true);
+                base.Dispose();
+                GC.SuppressFinalize(this);
             }
         }
     }

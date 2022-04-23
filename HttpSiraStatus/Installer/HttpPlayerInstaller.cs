@@ -1,8 +1,5 @@
 ﻿using HttpSiraStatus.Models;
-using SiraUtil;
-using SiraUtil.Attributes;
-using SiraUtil.Zenject;
-using UnityEngine;
+using Zenject;
 
 namespace HttpSiraStatus.Installer
 {
@@ -12,7 +9,7 @@ namespace HttpSiraStatus.Installer
         {
             this.Container.BindMemoryPool<CustomCutBuffer, CustomCutBuffer.Pool>().WithInitialSize(90);
             this.Container.BindMemoryPool<NoteDataEntity, NoteDataEntity.Pool>().WithInitialSize(16);
-            this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().FromNewComponentOn(new GameObject(nameof(GamePlayDataManager))).AsCached();
+            this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().FromNewComponentOnNewGameObject().AsCached().NonLazy();
         }
     }
 }

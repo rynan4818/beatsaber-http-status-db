@@ -7,11 +7,11 @@ namespace HttpSiraStatus
 {
     public class StatusBroadcastBehavior : WebSocketBehavior
     {
-        private IStatusManager statusManager;
+        private IStatusManager _statusManager;
         public void SetStatusManager(IStatusManager statusManager)
         {
-            this.statusManager = statusManager;
-            this.statusManager.SendEvent += this.OnSendEvent;
+            this._statusManager = statusManager;
+            this._statusManager.SendEvent += this.OnSendEvent;
         }
 
         private void OnSendEvent(object sender, SendEventArgs e)
@@ -28,8 +28,8 @@ namespace HttpSiraStatus
 
             eventJSON["event"] = "hello";
             eventJSON["time"].AsLong = Utility.GetCurrentTime();
-            eventJSON["status"] = this.statusManager.StatusJSON;
-            eventJSON["other"] = this.statusManager.OtherJSON;
+            eventJSON["status"] = this._statusManager.StatusJSON;
+            eventJSON["other"] = this._statusManager.OtherJSON;
 
             this.SendAsync(eventJSON.ToString(), null);
         }
@@ -37,7 +37,7 @@ namespace HttpSiraStatus
         protected override void OnClose(CloseEventArgs e)
         {
             Plugin.Logger.Debug("OnClose call.");
-            this.statusManager.SendEvent -= this.OnSendEvent;
+            this._statusManager.SendEvent -= this.OnSendEvent;
             base.OnClose(e);
         }
     }

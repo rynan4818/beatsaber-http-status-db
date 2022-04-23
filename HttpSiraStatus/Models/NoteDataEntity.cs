@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Zenject;
 
+#pragma warning disable IDE1006 // 命名スタイル
 namespace HttpSiraStatus.Models
 {
     /// <summary>
@@ -18,22 +18,9 @@ namespace HttpSiraStatus.Models
         public NoteLineLayer beforeJumpNoteLineLayer { get; private set; }
         public int flipLineIndex { get; private set; }
         public float flipYSide { get; private set; }
-        public int executionOrder
-        {
-            get;
-            private set;
-        }
-        public NoteData.GameplayType gameplayType
-        {
-            get;
-            private set;
-        }
-
-        public NoteData.ScoringType scoringType
-        {
-            get;
-            private set;
-        }
+        public int executionOrder { get; private set; }
+        public NoteData.GameplayType gameplayType { get; private set; }
+        public NoteData.ScoringType scoringType { get; private set; }
         public float time { get; private set; }
         public int lineIndex { get; private set; }
         public NoteDataEntity()
