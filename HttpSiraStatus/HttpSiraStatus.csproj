@@ -14,7 +14,7 @@
     <DebugType>portable</DebugType>
     <LocalRefsDir Condition="Exists('..\Refs')">..\Refs</LocalRefsDir>
     <ErrorReport>prompt</ErrorReport>
-    <Version>7.0.0</Version>
+    <Version>7.1.0</Version>
     <WarningLevel>4</WarningLevel>
 	<AssemblySearchPaths>$(ReferencePath)</AssemblySearchPaths>
   </PropertyGroup>
@@ -39,6 +39,9 @@
     <Reference Include="0Harmony">
       <HintPath>$(BeatSaberDir)\Libs\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="Hive.Versioning.dll">
+      <HintPath>$(BeatSaberDir)\Libs\Hive.Versioning.dll</HintPath>
+    </Reference>
     <Reference Include="BeatmapCore">
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\BeatmapCore.dll</HintPath>
       <Private>False</Private>
@@ -46,11 +49,6 @@
     </Reference>
     <Reference Include="BGNet">
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\BGNet.dll</HintPath>
-      <Private>False</Private>
-      <SpecificVersion>False</SpecificVersion>
-    </Reference>
-    <Reference Include="BS_Utils">
-      <HintPath>$(BeatSaberDir)\Plugins\BS_Utils.dll</HintPath>
       <Private>False</Private>
       <SpecificVersion>False</SpecificVersion>
     </Reference>

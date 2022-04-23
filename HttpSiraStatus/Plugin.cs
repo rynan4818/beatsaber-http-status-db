@@ -1,6 +1,9 @@
-using HarmonyLib;
+using HttpSiraStatus.Configuration;
 using HttpSiraStatus.Installer;
 using IPA;
+using IPA.Config;
+using IPA.Config.Stores;
+using IPA.Loader;
 using SiraUtil.Zenject;
 using System.Reflection;
 using UnityEngine;
@@ -14,26 +17,32 @@ namespace HttpSiraStatus
         /// <summary>
         /// Populated by MSBuild
         /// </summary>
-        public static string PluginVersion => Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        public static string PluginVersion => s_metadata.HVersion.ToString();
         public static string GameVersion => Application.version;
 
         public string Name => Assembly.GetExecutingAssembly().GetName().Name;
         public static IPALogger Logger { get; private set; }
-
-        public const string HARMONY_ID = "HttpSiraStatus.com.github.denpadokei";
-        private Harmony _harmony;
+        private static PluginMetadata s_metadata;
         [Init]
-        public void Init(IPALogger logger, Zenjector zenjector)
+        public void Init(IPALogger logger, Zenjector zenjector, PluginMetadata metadata, Config config)
         {
             Logger = logger;
+            s_metadata = metadata;
             Logger.Debug("Logger Initialized.");
-            zenjector.Install<HttpPlayerInstaller>(Location.Player);
             zenjector.Install<HttpAppInstaller>(Location.App);
-            this._harmony = new Harmony(HARMONY_ID);
+            zenjector.Install(Location.App, container =>
+            {
+                container.BindInterfacesAndSelfTo<PluginConfig>().FromInstance(config.Generated<PluginConfig>());
+            });
+            zenjector.Install<HttpMainInstaller>(Location.Menu);
+            zenjector.Install<HttpPlayerInstaller>(Location.Player);
         }
 
         [OnStart]
-        public void OnApplicationStart() => Logger.Debug($"Game version : {GameVersion}");
+        public void OnApplicationStart()
+        {
+            Logger.Debug($"Game version : {GameVersion}");
+        }
 
         [OnExit]
         public void OnApplicationQuit()
@@ -43,13 +52,13 @@ namespace HttpSiraStatus
         [OnEnable]
         public void OnEnable()
         {
-            this._harmony?.PatchAll(Assembly.GetExecutingAssembly());
+
         }
 
         [OnDisable]
         public void OnDisable()
         {
-            this._harmony?.UnpatchSelf();
+
         }
     }
 }

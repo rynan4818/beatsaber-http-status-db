@@ -1,3 +1,4 @@
+using HttpSiraStatus.Configuration;
 using HttpSiraStatus.Interfaces;
 using System;
 using System.Text;
@@ -8,12 +9,17 @@ namespace HttpSiraStatus
 {
     public class HTTPServer : IInitializable, IDisposable
     {
-        private readonly int ServerPort = 6557;
+        private HttpServer _server;
+        private readonly IStatusManager _statusManager;
+        private bool _disposedValue;
+        private readonly PluginConfig _config;
 
-        private HttpServer server;
         [Inject]
-        private readonly IStatusManager statusManager;
-        private bool disposedValue;
+        public HTTPServer(IStatusManager statusManager, PluginConfig config)
+        {
+            this._statusManager = statusManager;
+            this._config = config;
+        }
 
         public void OnHTTPGet(HttpRequestEventArgs e)
         {
@@ -25,7 +31,7 @@ namespace HttpSiraStatus
                 res.ContentType = "application/json";
                 res.ContentEncoding = Encoding.UTF8;
 
-                var stringifiedStatus = Encoding.UTF8.GetBytes(this.statusManager.StatusJSON.ToString());
+                var stringifiedStatus = Encoding.UTF8.GetBytes(this._statusManager.StatusJSON.ToString());
 
                 res.ContentLength64 = stringifiedStatus.Length;
                 res.Close(stringifiedStatus, false);
@@ -38,40 +44,29 @@ namespace HttpSiraStatus
         }
         public void Initialize()
         {
-            this.server = new HttpServer(this.ServerPort);
+            this._server = new HttpServer(this._config.Port);
 
-            this.server.OnGet += (sender, e) =>
+            this._server.OnGet += (sender, e) =>
             {
                 this.OnHTTPGet(e);
             };
 
-            this.server.AddWebSocketService<StatusBroadcastBehavior>("/socket", initializer => initializer.SetStatusManager(this.statusManager));
+            this._server.AddWebSocketService<StatusBroadcastBehavior>("/socket", initializer => initializer.SetStatusManager(this._statusManager));
 
-            HttpSiraStatus.Plugin.Logger.Info("Starting HTTP server on port " + this.ServerPort);
-            this.server.Start();
+            Plugin.Logger.Info($"Starting HTTP server on port {this._config.Port}");
+            this._server.Start();
         }
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.disposedValue) {
+            if (!this._disposedValue) {
                 if (disposing) {
-                    // TODO: マネージド状態を破棄します (マネージド オブジェクト)
-                    HttpSiraStatus.Plugin.Logger.Info("Stopping HTTP server");
-                    this.server.Stop();
+                    Plugin.Logger.Info("Stopping HTTP server");
+                    this._server.Stop();
                 }
-
-                // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
-                // TODO: 大きなフィールドを null に設定します
-                this.disposedValue = true;
+                this._disposedValue = true;
             }
         }
-
-        // // TODO: 'Dispose(bool disposing)' にアンマネージド リソースを解放するコードが含まれる場合にのみ、ファイナライザーをオーバーライドします
-        // ~HTTPServer()
-        // {
-        //     // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {

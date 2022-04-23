@@ -1,15 +1,12 @@
-﻿/*
+﻿using IPA.Config.Stores;
 using System.Runtime.CompilerServices;
-using IPA.Config.Stores;
 
 [assembly: InternalsVisibleTo(GeneratedStore.AssemblyVisibilityTarget)]
 namespace HttpSiraStatus.Configuration
 {
-    internal class PluginConfig
+    public class PluginConfig
     {
-        public static PluginConfig Instance { get; set; }
-        public virtual int IntValue { get; set; } = 42; // Must be 'virtual' if you want BSIPA to detect a value change and save the config automatically.
-
+        public virtual int Port { get; set; } = 6557;
         /// <summary>
         /// This is called whenever BSIPA reads the config from disk (including when file changes are detected).
         /// </summary>
@@ -35,4 +32,3 @@ namespace HttpSiraStatus.Configuration
         }
     }
 }
-*/

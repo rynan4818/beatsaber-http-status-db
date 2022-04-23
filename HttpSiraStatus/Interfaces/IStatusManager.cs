@@ -1,10 +1,12 @@
 ﻿using HttpSiraStatus.Util;
+using System;
 using System.Collections.Concurrent;
 
 namespace HttpSiraStatus.Interfaces
 {
     public interface IStatusManager
     {
+        [Obsolete("このプロパティはいずれなくなります。DiContainerからInjectで取得してください。", true)]
         GameStatus GameStatus { get; }
         JSONObject StatusJSON { get; }
         JSONObject NoteCutJSON { get; }

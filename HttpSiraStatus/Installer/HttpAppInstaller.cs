@@ -1,6 +1,4 @@
-﻿using SiraUtil.Attributes;
-
-namespace HttpSiraStatus.Installer
+﻿namespace HttpSiraStatus.Installer
 {
     public class HttpAppInstaller : Zenject.Installer
     {
