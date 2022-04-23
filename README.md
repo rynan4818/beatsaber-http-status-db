@@ -15,14 +15,12 @@ Next you will need to [get additional software](https://github.com/opl-/beatsabe
 
 1. Install [BSIPA](https://bsmg.github.io/BeatSaber-IPA-Reloaded/) [(BSMG guide)](https://bsmg.wiki/pc-modding.html#manual-installation).
 
-2. Download the latest release from the [releases page](https://github.com/opl-/beatsaber-http-status/releases).
+2. Download the latest release from the [releases page](https://github.com/denpadokei/HttpSiraStatus/releases).
 
 3. Extract the zip into your Beat Saber directory.
 
 4. Download and extract the following plugins and their dependencies:
-
-	- BS Utils from [BeatMods](https://beatmods.com/#/mods)
-
+	
 	- websocket-sharp from [BeatMods](https://beatmods.com/#/mods)
 
 5. [Get additional software](https://github.com/opl-/beatsaber-http-status/wiki/Software-using-this-plugin) that makes use of this plugin. This mod does nothing on its own; it simply exposes information for other programs to use.
@@ -32,7 +30,7 @@ Next you will need to [get additional software](https://github.com/opl-/beatsabe
 
 ### Using HTTP Status
 
-Protocol documentation can be found in [protocol.md](protocol.md).
+Protocol documentation can be found in [protocol.md](https://github.com/opl-/beatsaber-http-status/blob/master/protocol.md).
 
 ### Contributing to HTTP Status
 
@@ -50,7 +48,7 @@ To build this project you will need to create a `BeatSaberHTTPStatus/BeatSaberHT
 </Project>
 ```
 
-Alternatively you can provide the game DLLs in the `libs/beatsaber` directory using the standard Beat Saber directory structure. For a full list see the [project file](BeatSaberHTTPStatus/BeatSaberHTTPStatusPlugin.csproj).
+Alternatively you can provide the game DLLs in the `libs/beatsaber` directory using the standard Beat Saber directory structure. For a full list see the [project file](HttpSiraStatus/HttpSiraStatus.csproj).
 
 The following properties can be specified either in the `.csproj.user` file or through the command line (`/p:<name>=<value>`):
 
