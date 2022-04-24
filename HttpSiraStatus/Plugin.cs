@@ -23,6 +23,7 @@ namespace HttpSiraStatus
         public string Name => Assembly.GetExecutingAssembly().GetName().Name;
         public static IPALogger Logger { get; private set; }
         private static PluginMetadata s_metadata;
+        private static PluginConfig s_config;
         [Init]
         public void Init(IPALogger logger, Zenjector zenjector, PluginMetadata metadata, Config config)
         {
@@ -30,9 +31,10 @@ namespace HttpSiraStatus
             s_metadata = metadata;
             Logger.Debug("Logger Initialized.");
             zenjector.Install<HttpAppInstaller>(Location.App);
+            s_config = config.Generated<PluginConfig>();
             zenjector.Install(Location.App, container =>
             {
-                container.BindInterfacesAndSelfTo<PluginConfig>().FromInstance(config.Generated<PluginConfig>());
+                container.BindInterfacesAndSelfTo<PluginConfig>().FromInstance(s_config);
             });
             zenjector.Install<HttpMainInstaller>(Location.Menu);
             zenjector.Install<HttpPlayerInstaller>(Location.Player);
