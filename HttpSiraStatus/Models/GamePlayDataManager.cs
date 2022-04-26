@@ -15,34 +15,47 @@ using Zenject;
 
 namespace HttpSiraStatus.Models
 {
-    public class GamePlayDataManager : MonoBehaviour, IAsyncInitializable, IDisposable, ICutScoreBufferDidFinishReceiver, IAffinity
+    public class GamePlayDataManager : MonoBehaviour, IAsyncInitializable, IDisposable, IAffinity
     {
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // パブリックメソッド
         public void HandleCutScoreBufferDidFinish(CutScoreBuffer cutScoreBuffer)
         {
-            cutScoreBuffer.UnregisterDidFinishReceiver(this);
-            if (cutScoreBuffer is CustomCutBuffer customCutBuffer) {
-                var noteCutInfo = customCutBuffer.NoteCutInfo;
-                this.SetNoteCutStatus(customCutBuffer.NoteController, noteCutInfo, false);
-                this._gameStatus.swingRating = cutScoreBuffer.noteCutInfo.saberMovementData.ComputeSwingRating();
-                this._gameStatus.afterSwingRating = cutScoreBuffer.afterCutSwingRating;
-                this._gameStatus.beforSwingRating = cutScoreBuffer.beforeCutSwingRating;
-                this._gameStatus.cutMultiplier = this._multiplier;
 
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
-                this._cutBufferPool.Despawn(customCutBuffer);
-            }
         }
 
         [AffinityPatch(typeof(ScoreController), nameof(ScoreController.HandleNoteWasCut))]
         [AffinityPostfix]
         public void NoteWasCutPostfix(NoteController noteController, in NoteCutInfo noteCutInfo)
         {
-            if (noteController.noteData.scoringType == NoteData.ScoringType.Ignore) {
+            if (noteCutInfo.allIsOK) {
+                var goodCutScoringElement = this._customGoodCutScoringElementPool.Spawn();
+                goodCutScoringElement.Init(noteCutInfo, noteController, this._gameplayModifiers.noArrows);
+                this._sortedScoringElementsWithoutMultiplier.InsertIntoSortedListFromEnd(goodCutScoringElement);
+                this.ScoreController_scoringForNoteStartedEvent(goodCutScoringElement);
+                this._sortedNoteTimesWithoutScoringElements.Remove(noteCutInfo.noteData.time);
+                this.OnNoteWasCutEvent(noteController, noteCutInfo);
+            }
+            else {
+                var badCutScoringElement = this._badCutScoringElementPool.Spawn();
+                badCutScoringElement.Init(noteCutInfo.noteData);
+                this._sortedScoringElementsWithoutMultiplier.InsertIntoSortedListFromEnd(badCutScoringElement);
+                this._sortedNoteTimesWithoutScoringElements.Remove(noteCutInfo.noteData.time);
+            }
+        }
+
+        [AffinityPatch(typeof(ScoreController), nameof(ScoreController.HandleNoteWasMissed))]
+        [AffinityPostfix]
+        public void NoteWasMissedPostfix(NoteController noteController)
+        {
+            var noteData = noteController.noteData;
+            if (noteData.scoringType == NoteData.ScoringType.Ignore) {
                 return;
             }
-            this.OnNoteWasCutEvent(noteController, noteCutInfo);
+            var missScoringElement = this._missScoringElementPool.Spawn();
+            missScoringElement.Init(noteData);
+            this._sortedScoringElementsWithoutMultiplier.InsertIntoSortedListFromEnd(missScoringElement);
+            this._sortedNoteTimesWithoutScoringElements.Remove(noteData.time);
         }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
@@ -77,6 +90,7 @@ namespace HttpSiraStatus.Models
         private void OnEnergyChanged(float obj)
         {
             this._gameStatus.energy = obj;
+            this._gameStatus.batteryEnergy = this._gameplayModifiers.energyType == GameplayModifiers.EnergyType.Bar ? 0 : Mathf.RoundToInt(1f / obj);
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
         }
         /// <summary>
@@ -136,84 +150,80 @@ namespace HttpSiraStatus.Models
         }
         private void OnNoteWasSpawnedEvent(NoteController obj)
         {
-            this.SetNoteCutStatus(obj);
+            if (obj.noteData.scoringType != NoteData.ScoringType.Ignore) {
+                this._sortedNoteTimesWithoutScoringElements.InsertIntoSortedListFromEnd(obj.noteData.time);
+            }
+            this.SetNoteCutStatus(obj.noteData, obj.noteTransform);
             this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
         }
         private void OnNoteWasMissedEvent(NoteController obj)
         {
-            // Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
-            var noteData = obj.noteData;
-            this._gameStatus.batteryEnergy = this._gameEnergyCounter.batteryEnergy;
-            this._gameStatus.energy = this._gameEnergyCounter.energy;
-
-            this.SetNoteCutStatus(obj, default, false);
-
-            if (noteData.colorType == ColorType.None) {
+            if (obj.noteData.colorType == ColorType.None) {
                 this._gameStatus.passedBombs++;
-
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombMissed);
             }
             else {
                 this._gameStatus.passedNotes++;
                 this._gameStatus.missedNotes++;
-
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
             }
         }
 
         private void OnNoteWasCutEvent(NoteController noteController, in NoteCutInfo noteCutInfo)
         {
-            // Event order: combo, multiplier, scoreController.noteWasCut, (LateUpdate) scoreController.scoreDidChange, afterCut, (LateUpdate) scoreController.scoreDidChange
-            var noteData = noteController.noteData;
-            var multiplier = this._multiplier;
-            this.SetNoteCutStatus(noteController, noteCutInfo);
-            this._gameStatus.finalScore = -1;
-            this._gameStatus.cutMultiplier = multiplier;
-            if (noteData.colorType == ColorType.None) {
+            if (noteController.noteData.colorType == ColorType.None) {
                 this._gameStatus.passedBombs++;
-                this._gameStatus.hitBombs++;
-
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
             }
             else {
                 this._gameStatus.passedNotes++;
-
-                if (noteCutInfo.allIsOK) {
-                    this._gameStatus.hitNotes++;
-                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
-                }
-                else {
-                    this._gameStatus.missedNotes++;
-                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
-                }
-            }
-            if (noteCutInfo.allIsOK) {
-                this._cutBufferPool.Spawn(noteCutInfo, multiplier, noteController, this);
             }
         }
 
         private void ScoreController_scoringForNoteStartedEvent(ScoringElement obj)
         {
-            if (obj is GoodCutScoringElement element) {
+            this._gameStatus.finalScore = -1;
+            if (obj is CustomGoodCutScoringElement element) {
+                this._gameStatus.hitNotes++;
+                var cutScoreBuffer = element.cutScoreBuffer;
+                var noteCutInfo = cutScoreBuffer.noteCutInfo;
+                this.SetNoteCutStatus(element.NoteDataEntity, element.NoteTransform, noteCutInfo);
                 this._gameStatus.cutDistanceScore = element.cutScoreBuffer.centerDistanceCutScore;
                 this._gameStatus.initialScore = element.cutScore;
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+            }
+            else if (obj is MissScoringElement missElement) {
+                this._gameStatus.missedNotes++;
+                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
+            }
+            else if (obj is BadCutScoringElement badElement) {
+                this._gameStatus.hitBombs++;
+                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
             }
         }
 
         private void ScoreController_scoringForNoteFinishedEvent(ScoringElement obj)
         {
-            if (obj is GoodCutScoringElement element) {
+            if (obj is CustomGoodCutScoringElement element) {
+                var cutScoreBuffer = element.cutScoreBuffer;
+                var noteCutInfo = cutScoreBuffer.noteCutInfo;
+                this.SetNoteCutStatus(element.NoteDataEntity, element.NoteTransform, noteCutInfo);
+                this._gameStatus.swingRating = cutScoreBuffer.noteCutInfo.saberMovementData.ComputeSwingRating();
+                this._gameStatus.afterSwingRating = cutScoreBuffer.afterCutSwingRating;
+                this._gameStatus.beforSwingRating = cutScoreBuffer.beforeCutSwingRating;
+                this._gameStatus.cutMultiplier = element.multiplier;
                 this._gameStatus.cutDistanceScore = element.cutScoreBuffer.centerDistanceCutScore;
                 this._gameStatus.finalScore = element.cutScore;
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
             }
         }
 
-        private void SetNoteCutStatus(NoteController noteController, in NoteCutInfo noteCutInfo = default, bool initialCut = true)
+        private void SetNoteCutStatus(NoteData noteData, Transform noteTransform, in NoteCutInfo noteCutInfo = default)
         {
-            var noteData = noteController.noteData;
-            var entity = this._notePool.Spawn(noteData, this._gameplayModifiers.noArrows);
+            var noteDataEntity = this._notePool.Spawn(noteData, this._gameplayModifiers.noArrows);
+            this.SetNoteCutStatus(noteDataEntity, noteTransform, noteCutInfo);
+            this._notePool.Despawn(noteDataEntity);
+        }
+
+        private void SetNoteCutStatus(NoteDataEntity entity, Transform noteTransform, in NoteCutInfo noteCutInfo = default)
+        {
             this._gameStatus.ResetNoteCut();
             // Backwards compatibility for <1.12.1
             this._gameStatus.noteID = -1;
@@ -228,8 +238,8 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.noteID = this._lastNoteId;
             }
             // Backwards compatibility for <1.12.1
-            var colorName = noteData.colorType.ToString();
-            switch (noteData.colorType) {
+            var colorName = entity.colorType.ToString();
+            switch (entity.colorType) {
                 case ColorType.ColorA:
                     colorName = "NoteA";
                     break;
@@ -243,16 +253,15 @@ namespace HttpSiraStatus.Models
                     break;
             }
             this._gameStatus.noteType = colorName;
-            this._gameStatus.noteCutDirection = noteData.cutDirection.ToString();
-            this._gameStatus.noteLine = noteData.lineIndex;
-            this._gameStatus.noteLayer = (int)noteData.noteLineLayer;
+            this._gameStatus.noteCutDirection = entity.cutDirection.ToString();
+            this._gameStatus.noteLine = entity.lineIndex;
+            this._gameStatus.noteLayer = (int)entity.noteLineLayer;
             // If long notes are ever introduced, this name will make no sense
-            this._gameStatus.timeToNextBasicNote = noteData.timeToNextColorNote;
+            this._gameStatus.timeToNextBasicNote = entity.timeToNextColorNote;
             if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
                 var noteScoreDefinition = ScoreModel.GetNoteScoreDefinition(noteCutInfo.noteData.scoringType);
                 var rateBeforeCut = noteScoreDefinition.maxBeforeCutScore > 0 && noteScoreDefinition.minBeforeCutScore != noteScoreDefinition.maxBeforeCutScore;
                 var rateAfterCut = noteScoreDefinition.maxAfterCutScore > 0 && noteScoreDefinition.minAfterCutScore != noteScoreDefinition.maxAfterCutScore;
-                var noteTransform = noteController.noteTransform;
                 this._gameStatus.speedOK = noteCutInfo.speedOK;
                 this._gameStatus.directionOK = noteCutInfo.directionOK;
                 this._gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
@@ -279,7 +288,6 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.cutNormalZ = cutNormal[2];
                 this._gameStatus.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
             }
-            this._notePool.Despawn(entity);
         }
 
         private void OnScoreDidChange(int scoreBeforeMultiplier, int scoreAfterMultiplier)
@@ -299,7 +307,6 @@ namespace HttpSiraStatus.Models
 
         private void OnMultiplierDidChange(int multiplier, float multiplierProgress)
         {
-            this._multiplier = multiplier;
             this._gameStatus.multiplier = multiplier;
             this._gameStatus.multiplierProgress = multiplierProgress;
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
@@ -331,12 +338,30 @@ namespace HttpSiraStatus.Models
 
             this._statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
         }
+
+        public void DespawnScoringElement(ScoringElement scoringElement)
+        {
+            if (scoringElement is CustomGoodCutScoringElement item) {
+                this._customGoodCutScoringElementPool.Despawn(item);
+                return;
+            }
+            else if (scoringElement is BadCutScoringElement item2) {
+                this._badCutScoringElementPool.Despawn(item2);
+                return;
+            }
+            else if (scoringElement is MissScoringElement item3) {
+                this._missScoringElementPool.Despawn(item3);
+                return;
+            }
+        }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // メンバ変数
         private IStatusManager _statusManager;
         private GameStatus _gameStatus;
-        private CustomCutBuffer.Pool _cutBufferPool;
+        private MemoryPoolContainer<CustomGoodCutScoringElement> _customGoodCutScoringElementPool;
+        private MemoryPoolContainer<BadCutScoringElement> _badCutScoringElementPool;
+        private MemoryPoolContainer<MissScoringElement> _missScoringElementPool;
         private NoteDataEntity.Pool _notePool;
         private GameplayCoreSceneSetupData _gameplayCoreSceneSetupData;
         private PauseController _pauseController;
@@ -356,9 +381,16 @@ namespace HttpSiraStatus.Models
         private Thread _thread;
         private int _lastNoteId = 0;
         private bool _disposedValue;
-        private int _multiplier = 1;
         private BeatmapDataCallbackWrapper _eventDataCallbackWrapper;
         private IReadonlyBeatmapData _beatmapData;
+        private List<GameplayModifierParamsSO> _gameplayModifierParams;
+        private readonly List<ScoringElement> _sortedScoringElementsWithoutMultiplier = new List<ScoringElement>(50);
+        private readonly List<ScoringElement> _scoringElementsWithMultiplier = new List<ScoringElement>(50);
+        private readonly Queue<ScoringElement> _scoringElementsToRemove = new Queue<ScoringElement>(50);
+        private readonly List<float> _sortedNoteTimesWithoutScoringElements = new List<float>(50);
+        private readonly ScoreMultiplierCounter _scoreMultiplierCounter = new ScoreMultiplierCounter();
+        private readonly ScoreMultiplierCounter _maxScoreMultiplierCounter = new ScoreMultiplierCounter();
+        private float _lastProcessedElementTime = 0;
         /// <summary>
         /// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
         /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
@@ -387,8 +419,10 @@ namespace HttpSiraStatus.Models
         private void Constractor(
             IStatusManager statusManager,
             GameStatus gameStatus,
-            CustomCutBuffer.Pool customCutBufferPool,
-            NoteDataEntity.Pool noteEntityPool,
+            CustomGoodCutScoringElement.Pool customCutBufferPool,
+            BadCutScoringElement.Pool badCutScoringElementPool,
+            MissScoringElement.Pool missScoringElementPool,
+            NoteDataEntity.Pool noteDataEntityPool,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
             IScoreController score,
             IComboController comboController,
@@ -404,8 +438,10 @@ namespace HttpSiraStatus.Models
         {
             this._statusManager = statusManager;
             this._gameStatus = gameStatus;
-            this._cutBufferPool = customCutBufferPool;
-            this._notePool = noteEntityPool;
+            this._customGoodCutScoringElementPool = new MemoryPoolContainer<CustomGoodCutScoringElement>(customCutBufferPool);
+            this._badCutScoringElementPool = new MemoryPoolContainer<BadCutScoringElement>(badCutScoringElementPool);
+            this._missScoringElementPool = new MemoryPoolContainer<MissScoringElement>(missScoringElementPool);
+            this._notePool = noteDataEntityPool;
             this._gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
             this._scoreController = score;
             this._gameplayModifiers = gameplayModifiers;
@@ -522,8 +558,6 @@ namespace HttpSiraStatus.Models
             this._comboController.comboDidChangeEvent += this.OnComboDidChange;
             // public ScoreController#multiplierDidChangeEvent<int, float> // multiplier, progress [0..1]
             this._scoreController.multiplierDidChangeEvent += this.OnMultiplierDidChange;
-            this._scoreController.scoringForNoteStartedEvent += this.ScoreController_scoringForNoteStartedEvent;
-            this._scoreController.scoringForNoteFinishedEvent += this.ScoreController_scoringForNoteFinishedEvent;
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             //this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
             this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(0, new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
@@ -595,6 +629,7 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.colorEnvironmentBoost1 = colorScheme.environmentColor1Boost;
             }
             this._gameStatus.colorObstacle = colorScheme.obstaclesColor;
+            this._gameplayModifierParams = this._gameplayModifiersSO.CreateModifierParamsList(this._gameplayModifiers);
             try {
                 // From https://support.unity3d.com/hc/en-us/articles/206486626-How-can-I-get-pixels-from-unreadable-textures-
                 // Modified to correctly handle texture atlases. Fixes #82.
@@ -689,6 +724,39 @@ namespace HttpSiraStatus.Models
             }
             catch (Exception e) {
                 Plugin.Logger.Error(e);
+            }
+        }
+
+        private void LateUpdate()
+        {
+            var lastProcessedElementTime = this._sortedNoteTimesWithoutScoringElements.Any() ? this._sortedNoteTimesWithoutScoringElements[0] : float.MaxValue;
+            var limitSongTime = this._audioTimeSource.songTime + 0.15f;
+            var removeElementCount = 0;
+
+            foreach (var scoringElement in this._sortedScoringElementsWithoutMultiplier) {
+                if (limitSongTime <= scoringElement.time && scoringElement.time <= lastProcessedElementTime) {
+                    break;
+                }
+                this._scoreMultiplierCounter.ProcessMultiplierEvent(scoringElement.multiplierEventType);
+                if (scoringElement.wouldBeCorrectCutBestPossibleMultiplierEventType == ScoreMultiplierCounter.MultiplierEventType.Positive) {
+                    this._maxScoreMultiplierCounter.ProcessMultiplierEvent(ScoreMultiplierCounter.MultiplierEventType.Positive);
+                }
+                scoringElement.SetMultipliers(this._scoreMultiplierCounter.multiplier, this._maxScoreMultiplierCounter.multiplier);
+                this._scoringElementsWithMultiplier.Add(scoringElement);
+                removeElementCount++;
+                this._lastProcessedElementTime = scoringElement.time;
+            }
+            this._sortedScoringElementsWithoutMultiplier.RemoveRange(0, removeElementCount);
+            foreach (var scoringElement2 in this._scoringElementsWithMultiplier) {
+                if (scoringElement2.isFinished) {
+                    this._scoringElementsToRemove.Enqueue(scoringElement2);
+                    this.ScoreController_scoringForNoteFinishedEvent(scoringElement2);
+                }
+            }
+            while (this._scoringElementsToRemove.Any()) {
+                var scoringElement3 = this._scoringElementsToRemove.Dequeue();
+                this._scoringElementsWithMultiplier.Remove(scoringElement3);
+                this.DespawnScoringElement(scoringElement3);
             }
         }
         #endregion
