@@ -23,6 +23,10 @@ namespace HttpSiraStatus.Models
         public NoteData.ScoringType scoringType { get; private set; }
         public float time { get; private set; }
         public int lineIndex { get; private set; }
+        public int subtypeIdentifier { get; private set; }
+        public BeatmapDataItem.BeatmapDataItemType type { get; private set; }
+        public float cutDirectionAngleOffset { get; private set; }
+        public float cutSfxVolumeMultiplier { get; private set; }
         public NoteDataEntity()
         {
         }
@@ -46,6 +50,10 @@ namespace HttpSiraStatus.Models
             this.beforeJumpNoteLineLayer = note.beforeJumpNoteLineLayer;
             this.flipLineIndex = note.flipLineIndex;
             this.flipYSide = note.flipYSide;
+            this.subtypeIdentifier = note.subtypeIdentifier;
+            this.type = note.type;
+            this.cutDirectionAngleOffset = note.cutDirectionAngleOffset;
+            this.cutSfxVolumeMultiplier = note.cutSfxVolumeMultiplier;
         }
 
         public class Pool : MemoryPool<NoteData, bool, NoteDataEntity>
