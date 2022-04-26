@@ -1,6 +1,4 @@
-﻿using System;
-using UnityEngine;
-using Zenject;
+﻿using UnityEngine;
 
 namespace HttpSiraStatus.Models
 {

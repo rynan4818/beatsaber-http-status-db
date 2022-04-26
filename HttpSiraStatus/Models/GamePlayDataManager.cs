@@ -90,6 +90,7 @@ namespace HttpSiraStatus.Models
         private void OnEnergyChanged(float obj)
         {
             this._gameStatus.energy = obj;
+            this._gameStatus.batteryEnergy = this._gameplayModifiers.energyType == GameplayModifiers.EnergyType.Bar ? 0 : Mathf.RoundToInt(1f / obj);
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.EnergyChanged);
         }
         /// <summary>
@@ -157,58 +158,44 @@ namespace HttpSiraStatus.Models
         }
         private void OnNoteWasMissedEvent(NoteController obj)
         {
-            // Event order: combo, multiplier, scoreController.noteWasMissed, (LateUpdate) scoreController.scoreDidChange
-            var noteData = obj.noteData;
-            this._gameStatus.batteryEnergy = this._gameEnergyCounter.batteryEnergy;
-            this._gameStatus.energy = this._gameEnergyCounter.energy;
-
-            this.SetNoteCutStatus(obj.noteData, obj.noteTransform);
-
-            if (noteData.colorType == ColorType.None) {
+            if (obj.noteData.colorType == ColorType.None) {
                 this._gameStatus.passedBombs++;
-
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombMissed);
             }
             else {
                 this._gameStatus.passedNotes++;
                 this._gameStatus.missedNotes++;
-
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
             }
         }
 
         private void OnNoteWasCutEvent(NoteController noteController, in NoteCutInfo noteCutInfo)
         {
-            // Event order: combo, multiplier, scoreController.noteWasCut, (LateUpdate) scoreController.scoreDidChange, afterCut, (LateUpdate) scoreController.scoreDidChange
-            var noteData = noteController.noteData;
-            this.SetNoteCutStatus(noteData, noteController.noteTransform, noteCutInfo);
-            this._gameStatus.finalScore = -1;
-            if (noteData.colorType == ColorType.None) {
+            if (noteController.noteData.colorType == ColorType.None) {
                 this._gameStatus.passedBombs++;
-                this._gameStatus.hitBombs++;
-
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
             }
             else {
                 this._gameStatus.passedNotes++;
-
-                if (noteCutInfo.allIsOK) {
-                    this._gameStatus.hitNotes++;
-                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
-                }
-                else {
-                    this._gameStatus.missedNotes++;
-                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
-                }
             }
         }
 
         private void ScoreController_scoringForNoteStartedEvent(ScoringElement obj)
         {
+            this._gameStatus.finalScore = -1;
             if (obj is CustomGoodCutScoringElement element) {
+                this._gameStatus.hitNotes++;
+                var cutScoreBuffer = element.cutScoreBuffer;
+                var noteCutInfo = cutScoreBuffer.noteCutInfo;
+                this.SetNoteCutStatus(element.NoteDataEntity, element.NoteTransform, noteCutInfo);
                 this._gameStatus.cutDistanceScore = element.cutScoreBuffer.centerDistanceCutScore;
                 this._gameStatus.initialScore = element.cutScore;
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+            }
+            else if (obj is MissScoringElement missElement) {
+                this._gameStatus.missedNotes++;
+                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
+            }
+            else if (obj is BadCutScoringElement badElement) {
+                this._gameStatus.hitBombs++;
+                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
             }
         }
 

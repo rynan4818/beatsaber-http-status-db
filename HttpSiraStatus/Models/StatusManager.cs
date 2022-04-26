@@ -28,7 +28,7 @@ namespace HttpSiraStatus
         public JSONObject OtherJSON { get; } = new JSONObject();
         public ObjectMemoryPool<JSONObject> JsonPool { get; }
         public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
-        
+
 
         public event SendEventHandler SendEvent;
         private readonly Thread _thread;
