@@ -9,6 +9,7 @@ namespace HttpSiraStatus.Installer
         {
             this.Container.BindMemoryPool<CustomGoodCutScoringElement, CustomGoodCutScoringElement.Pool>().WithInitialSize(16);
             this.Container.BindMemoryPool<NoteDataEntity, NoteDataEntity.Pool>().WithInitialSize(16);
+            this.Container.BindMemoryPool<SliderDataEntity, SliderDataEntity.Pool>().WithInitialSize(16);
             this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().FromNewComponentOnNewGameObject().AsCached().NonLazy();
         }
     }

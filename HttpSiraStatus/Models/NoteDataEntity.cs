@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using HttpSiraStatus.Interfaces;
+using System.Collections.Generic;
 using Zenject;
 
 #pragma warning disable IDE1006 // 命名スタイル
@@ -7,7 +8,7 @@ namespace HttpSiraStatus.Models
     /// <summary>
     /// <see cref="Dictionary{TKey, TValue}"/>用にハッシュ値を固定で返すラッパークラス
     /// </summary>
-    public record NoteDataEntity
+    public record NoteDataEntity : IBeatmapObjectEntity
     {
         // C#の命名規則に違反するけど元々のNoteDataをラップするのでここは目をつむる
         public ColorType colorType { get; private set; }

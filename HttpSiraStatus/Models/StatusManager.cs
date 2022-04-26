@@ -257,8 +257,14 @@ namespace HttpSiraStatus
             this.NoteCutJSON["noteID"] = this._gameStatus.noteID;
             this.NoteCutJSON["noteType"] = this.StringOrNull(this._gameStatus.noteType);
             this.NoteCutJSON["noteCutDirection"] = this.StringOrNull(this._gameStatus.noteCutDirection);
+            this.NoteCutJSON["sliderHeadCutDirection"] = this.StringOrNull(this._gameStatus.sliderHeadCutDirection);
+            this.NoteCutJSON["sliderTailCutDirection"] = this.StringOrNull(this._gameStatus.sliderTailCutDirection);
             this.NoteCutJSON["noteLine"] = this._gameStatus.noteLine;
             this.NoteCutJSON["noteLayer"] = this._gameStatus.noteLayer;
+            this.NoteCutJSON["sliderHeadLine"] = this._gameStatus.sliderHeadLine;
+            this.NoteCutJSON["sliderHeadLayer"] = this._gameStatus.sliderHeadLayer;
+            this.NoteCutJSON["sliderTailLine"] = this._gameStatus.sliderTailLine;
+            this.NoteCutJSON["sliderTailLayer"] = this._gameStatus.sliderTailLayer;
             this.NoteCutJSON["speedOK"] = this._gameStatus.speedOK;
             this.NoteCutJSON["directionOK"] = this._gameStatus.noteType == "Bomb" ? JSONNull.CreateOrGet() : new JSONBool(this._gameStatus.directionOK);
             this.NoteCutJSON["saberTypeOK"] = this._gameStatus.noteType == "Bomb" ? JSONNull.CreateOrGet() : new JSONBool(this._gameStatus.saberTypeOK);
