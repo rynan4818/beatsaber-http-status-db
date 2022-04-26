@@ -153,7 +153,7 @@ namespace HttpSiraStatus.Models
             if (obj.noteData.scoringType != NoteData.ScoringType.Ignore) {
                 this._sortedNoteTimesWithoutScoringElements.InsertIntoSortedListFromEnd(obj.noteData.time);
             }
-            this.SetNoteCutStatus(obj.noteData, obj.noteTransform);
+            this.SetNoteCutStatus(obj.noteData);
             this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
         }
         private void OnNoteWasMissedEvent(NoteController obj)
@@ -165,6 +165,12 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.passedNotes++;
                 this._gameStatus.missedNotes++;
             }
+        }
+
+        private void OnBeatmapObjectManager_sliderWasSpawnedEvent(SliderController obj)
+        {
+            this.SetNoteCutStatus(obj.sliderData);
+            this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
         }
 
         private void OnNoteWasCutEvent(NoteController noteController, in NoteCutInfo noteCutInfo)
@@ -184,7 +190,7 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.hitNotes++;
                 var cutScoreBuffer = element.cutScoreBuffer;
                 var noteCutInfo = cutScoreBuffer.noteCutInfo;
-                this.SetNoteCutStatus(element.NoteDataEntity, element.NoteTransform, noteCutInfo);
+                this.SetNoteCutStatus(element.NoteDataEntity, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
                 this._gameStatus.cutDistanceScore = element.cutScoreBuffer.centerDistanceCutScore;
                 this._gameStatus.initialScore = element.cutScore;
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
@@ -204,7 +210,7 @@ namespace HttpSiraStatus.Models
             if (obj is CustomGoodCutScoringElement element) {
                 var cutScoreBuffer = element.cutScoreBuffer;
                 var noteCutInfo = cutScoreBuffer.noteCutInfo;
-                this.SetNoteCutStatus(element.NoteDataEntity, element.NoteTransform, noteCutInfo);
+                this.SetNoteCutStatus(element.NoteDataEntity, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
                 this._gameStatus.swingRating = cutScoreBuffer.noteCutInfo.saberMovementData.ComputeSwingRating();
                 this._gameStatus.afterSwingRating = cutScoreBuffer.afterCutSwingRating;
                 this._gameStatus.beforSwingRating = cutScoreBuffer.beforeCutSwingRating;
@@ -215,14 +221,22 @@ namespace HttpSiraStatus.Models
             }
         }
 
-        private void SetNoteCutStatus(NoteData noteData, Transform noteTransform, in NoteCutInfo noteCutInfo = default)
+        private void SetNoteCutStatus(BeatmapObjectData obj)
         {
-            var noteDataEntity = this._notePool.Spawn(noteData, this._gameplayModifiers.noArrows);
-            this.SetNoteCutStatus(noteDataEntity, noteTransform, noteCutInfo);
-            this._notePool.Despawn(noteDataEntity);
+            if (obj is NoteData noteData) {
+                var noteDataEntity = this._notePool.Spawn(noteData, this._gameplayModifiers.noArrows);
+                this.SetNoteCutStatus(noteDataEntity);
+                this._notePool.Despawn(noteDataEntity);
+            }
+            else if(obj is SliderData sliderData) {
+                var noteDataEntity = this._sliderPool.Spawn(sliderData);
+                this.SetNoteCutStatus(noteDataEntity);
+                this._sliderPool.Despawn(noteDataEntity);
+            }
+            
         }
 
-        private void SetNoteCutStatus(NoteDataEntity entity, Transform noteTransform, in NoteCutInfo noteCutInfo = default)
+        private void SetNoteCutStatus(IBeatmapObjectEntity entity, in Vector3 saberDir = default, in Vector3 cutPoint = default, in Vector3 cutNormal = default, in NoteCutInfo noteCutInfo = default)
         {
             this._gameStatus.ResetNoteCut();
             // Backwards compatibility for <1.12.1
@@ -238,7 +252,7 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.noteID = this._lastNoteId;
             }
             // Backwards compatibility for <1.12.1
-            var colorName = entity.colorType.ToString();
+            string colorName;
             switch (entity.colorType) {
                 case ColorType.ColorA:
                     colorName = "NoteA";
@@ -250,14 +264,26 @@ namespace HttpSiraStatus.Models
                     colorName = "Bomb";
                     break;
                 default:
+                    colorName = entity.colorType.ToString();
                     break;
             }
             this._gameStatus.noteType = colorName;
-            this._gameStatus.noteCutDirection = entity.cutDirection.ToString();
-            this._gameStatus.noteLine = entity.lineIndex;
-            this._gameStatus.noteLayer = (int)entity.noteLineLayer;
-            // If long notes are ever introduced, this name will make no sense
-            this._gameStatus.timeToNextBasicNote = entity.timeToNextColorNote;
+            if (entity is NoteDataEntity noteDataEntity) {
+                this._gameStatus.noteCutDirection = noteDataEntity.cutDirection.ToString();
+                this._gameStatus.noteLine = noteDataEntity.lineIndex;
+                this._gameStatus.noteLayer = (int)noteDataEntity.noteLineLayer;
+                // If long notes are ever introduced, this name will make no sense
+                this._gameStatus.timeToNextBasicNote = noteDataEntity.timeToNextColorNote;
+                this._gameStatus.gameplayType = noteDataEntity.gameplayType.ToString();
+            }
+            else if (entity is SliderDataEntity sliderDataEntity) {
+                this._gameStatus.sliderHeadCutDirection = sliderDataEntity.headCutDirection.ToString();
+                this._gameStatus.sliderTailCutDirection = sliderDataEntity.tailCutDirection.ToString();
+                this._gameStatus.sliderHeadLine = sliderDataEntity.headLineIndex;
+                this._gameStatus.sliderHeadLayer = (int)sliderDataEntity.headLineLayer;
+                this._gameStatus.sliderTailLine = sliderDataEntity.tailLineIndex;
+                this._gameStatus.sliderTailLayer = (int)sliderDataEntity.tailLineLayer;
+            }
             if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
                 var noteScoreDefinition = ScoreModel.GetNoteScoreDefinition(noteCutInfo.noteData.scoringType);
                 var rateBeforeCut = noteScoreDefinition.maxBeforeCutScore > 0 && noteScoreDefinition.minBeforeCutScore != noteScoreDefinition.maxBeforeCutScore;
@@ -267,7 +293,6 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.saberTypeOK = noteCutInfo.saberTypeOK;
                 this._gameStatus.wasCutTooSoon = noteCutInfo.wasCutTooSoon;
                 this._gameStatus.saberSpeed = noteCutInfo.saberSpeed;
-                var saberDir = noteTransform.InverseTransformDirection(noteCutInfo.saberDir);
                 this._gameStatus.saberDirX = saberDir[0];
                 this._gameStatus.saberDirY = saberDir[1];
                 this._gameStatus.saberDirZ = saberDir[2];
@@ -278,11 +303,9 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.saberType = noteCutInfo.saberType.ToString();
                 this._gameStatus.timeDeviation = noteCutInfo.timeDeviation;
                 this._gameStatus.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
-                var cutPoint = noteTransform.InverseTransformPoint(noteCutInfo.cutPoint);
                 this._gameStatus.cutPointX = cutPoint[0];
                 this._gameStatus.cutPointY = cutPoint[1];
                 this._gameStatus.cutPointZ = cutPoint[2];
-                var cutNormal = noteTransform.InverseTransformDirection(noteCutInfo.cutNormal);
                 this._gameStatus.cutNormalX = cutNormal[0];
                 this._gameStatus.cutNormalY = cutNormal[1];
                 this._gameStatus.cutNormalZ = cutNormal[2];
@@ -363,6 +386,7 @@ namespace HttpSiraStatus.Models
         private MemoryPoolContainer<BadCutScoringElement> _badCutScoringElementPool;
         private MemoryPoolContainer<MissScoringElement> _missScoringElementPool;
         private NoteDataEntity.Pool _notePool;
+        private SliderDataEntity.Pool _sliderPool;
         private GameplayCoreSceneSetupData _gameplayCoreSceneSetupData;
         private PauseController _pauseController;
         private IScoreController _scoreController;
@@ -395,7 +419,7 @@ namespace HttpSiraStatus.Models
         /// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
         /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
         /// </summary>
-        private readonly ConcurrentDictionary<NoteDataEntity, int> _noteToIdMapping = new ConcurrentDictionary<NoteDataEntity, int>();
+        private readonly ConcurrentDictionary<IBeatmapObjectEntity, int> _noteToIdMapping = new ConcurrentDictionary<IBeatmapObjectEntity, int>();
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // 構築・破棄
@@ -423,6 +447,7 @@ namespace HttpSiraStatus.Models
             BadCutScoringElement.Pool badCutScoringElementPool,
             MissScoringElement.Pool missScoringElementPool,
             NoteDataEntity.Pool noteDataEntityPool,
+            SliderDataEntity.Pool sliderDataEntityPool,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
             IScoreController score,
             IComboController comboController,
@@ -442,6 +467,7 @@ namespace HttpSiraStatus.Models
             this._badCutScoringElementPool = new MemoryPoolContainer<BadCutScoringElement>(badCutScoringElementPool);
             this._missScoringElementPool = new MemoryPoolContainer<MissScoringElement>(missScoringElementPool);
             this._notePool = noteDataEntityPool;
+            this._sliderPool = sliderDataEntityPool;
             this._gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
             this._scoreController = score;
             this._gameplayModifiers = gameplayModifiers;
@@ -509,6 +535,7 @@ namespace HttpSiraStatus.Models
                         if (this._beatmapObjectManager != null) {
                             this._beatmapObjectManager.noteWasSpawnedEvent -= this.OnNoteWasSpawnedEvent;
                             this._beatmapObjectManager.noteWasMissedEvent -= this.OnNoteWasMissedEvent;
+                            this._beatmapObjectManager.sliderWasSpawnedEvent -= this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
                         }
 
                         if (this._gameEnergyCounter != null) {
@@ -563,6 +590,8 @@ namespace HttpSiraStatus.Models
             this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(0, new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
             this._beatmapObjectManager.noteWasMissedEvent += this.OnNoteWasMissedEvent;
+            this._beatmapObjectManager.sliderWasSpawnedEvent += this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
+            
             this._relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             // public event Action GameEnergyCounter#gameEnergyDidReach0Event;
             this._gameEnergyCounter.gameEnergyDidReach0Event += this.OnEnergyDidReach0Event;
@@ -591,8 +620,19 @@ namespace HttpSiraStatus.Models
 
             this._lastNoteId = 0;
             var beatmapData = await diff.GetBeatmapDataBasicInfoAsync().ConfigureAwait(true);
-            foreach (var note in this._beatmapData.allBeatmapDataItems.OfType<NoteData>().OrderBy(x => x.time).ThenBy(x => x.lineIndex).ThenBy(x => x.noteLineLayer).ThenBy(x => x.cutDirection).Select((x, i) => new { note = x, index = i })) {
-                this._noteToIdMapping.TryAdd(new NoteDataEntity(note.note, this._gameplayModifiers.noArrows), note.index);
+            foreach (var note in this._beatmapData.allBeatmapDataItems.Where(x => x is NoteData || x is SliderData).OrderBy(x => x.time).Select((x, i) => (x, i))) {
+                if (note.x is NoteData noteData) {
+                    if (!this._noteToIdMapping.TryAdd(new NoteDataEntity(noteData, this._gameplayModifiers.noArrows), note.i)) {
+                        Plugin.Logger.Warn($"Dupulicate NoteData. Can't create NoteDataEntity. noteID{note.i}");
+                        Plugin.Logger.Warn($"{note.x}");
+                    }
+                }
+                else if (note.x is SliderData sliderData) {
+                    if (!this._noteToIdMapping.TryAdd(new SliderDataEntity(sliderData), note.i)) {
+                        Plugin.Logger.Warn($"Dupulicate SliderData. Can't create SliderDataEntity. noteID{note.i}");
+                        Plugin.Logger.Warn($"{note.x}");
+                    }
+                }
             }
             this._gameStatus.songName = level.songName;
             this._gameStatus.songSubName = level.songSubName;

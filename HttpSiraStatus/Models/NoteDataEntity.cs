@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using HttpSiraStatus.Interfaces;
+using System.Collections.Generic;
 using Zenject;
 
 #pragma warning disable IDE1006 // 命名スタイル
@@ -7,7 +8,7 @@ namespace HttpSiraStatus.Models
     /// <summary>
     /// <see cref="Dictionary{TKey, TValue}"/>用にハッシュ値を固定で返すラッパークラス
     /// </summary>
-    public record NoteDataEntity
+    public record NoteDataEntity : IBeatmapObjectEntity
     {
         // C#の命名規則に違反するけど元々のNoteDataをラップするのでここは目をつむる
         public ColorType colorType { get; private set; }
@@ -23,6 +24,10 @@ namespace HttpSiraStatus.Models
         public NoteData.ScoringType scoringType { get; private set; }
         public float time { get; private set; }
         public int lineIndex { get; private set; }
+        public int subtypeIdentifier { get; private set; }
+        public BeatmapDataItem.BeatmapDataItemType type { get; private set; }
+        public float cutDirectionAngleOffset { get; private set; }
+        public float cutSfxVolumeMultiplier { get; private set; }
         public NoteDataEntity()
         {
         }
@@ -46,6 +51,10 @@ namespace HttpSiraStatus.Models
             this.beforeJumpNoteLineLayer = note.beforeJumpNoteLineLayer;
             this.flipLineIndex = note.flipLineIndex;
             this.flipYSide = note.flipYSide;
+            this.subtypeIdentifier = note.subtypeIdentifier;
+            this.type = note.type;
+            this.cutDirectionAngleOffset = note.cutDirectionAngleOffset;
+            this.cutSfxVolumeMultiplier = note.cutSfxVolumeMultiplier;
         }
 
         public class Pool : MemoryPool<NoteData, bool, NoteDataEntity>

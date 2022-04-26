@@ -257,8 +257,14 @@ namespace HttpSiraStatus
             this.NoteCutJSON["noteID"] = this._gameStatus.noteID;
             this.NoteCutJSON["noteType"] = this.StringOrNull(this._gameStatus.noteType);
             this.NoteCutJSON["noteCutDirection"] = this.StringOrNull(this._gameStatus.noteCutDirection);
+            this.NoteCutJSON["sliderHeadCutDirection"] = this.StringOrNull(this._gameStatus.sliderHeadCutDirection);
+            this.NoteCutJSON["sliderTailCutDirection"] = this.StringOrNull(this._gameStatus.sliderTailCutDirection);
             this.NoteCutJSON["noteLine"] = this._gameStatus.noteLine;
             this.NoteCutJSON["noteLayer"] = this._gameStatus.noteLayer;
+            this.NoteCutJSON["sliderHeadLine"] = this._gameStatus.sliderHeadLine;
+            this.NoteCutJSON["sliderHeadLayer"] = this._gameStatus.sliderHeadLayer;
+            this.NoteCutJSON["sliderTailLine"] = this._gameStatus.sliderTailLine;
+            this.NoteCutJSON["sliderTailLayer"] = this._gameStatus.sliderTailLayer;
             this.NoteCutJSON["speedOK"] = this._gameStatus.speedOK;
             this.NoteCutJSON["directionOK"] = this._gameStatus.noteType == "Bomb" ? JSONNull.CreateOrGet() : new JSONBool(this._gameStatus.directionOK);
             this.NoteCutJSON["saberTypeOK"] = this._gameStatus.noteType == "Bomb" ? JSONNull.CreateOrGet() : new JSONBool(this._gameStatus.saberTypeOK);
@@ -297,6 +303,7 @@ namespace HttpSiraStatus
             this.NoteCutJSON["cutNormal"][2].AsFloat = this._gameStatus.cutNormalZ;
             this.NoteCutJSON["cutDistanceToCenter"] = this._gameStatus.cutDistanceToCenter;
             this.NoteCutJSON["timeToNextBasicNote"] = this._gameStatus.timeToNextBasicNote;
+            this.NoteCutJSON["gameplayType"] = this.StringOrNull(this._gameStatus.gameplayType);
         }
 
         private void UpdateModJSON()
@@ -356,7 +363,7 @@ namespace HttpSiraStatus
 
         private JSONNode StringOrNull(string str)
         {
-            return str == null ? JSONNull.CreateOrGet() : new JSONString(str);
+            return string.IsNullOrEmpty(str) ? JSONNull.CreateOrGet() : new JSONString(str);
         }
 
         protected virtual void Dispose(bool disposing)

@@ -70,8 +70,14 @@ namespace HttpSiraStatus
         public int noteID { get; set; } = -1;
         public string noteType { get; set; } = null;
         public string noteCutDirection { get; set; } = null;
+        public string sliderHeadCutDirection { get; set; } = null;
+        public string sliderTailCutDirection { get; set; } = null;
         public int noteLine { get; set; } = 0;
         public int noteLayer { get; set; } = 0;
+        public int sliderHeadLine { get; set; } = 0;
+        public int sliderHeadLayer { get; set; } = 0;
+        public int sliderTailLine { get; set; } = 0;
+        public int sliderTailLayer { get; set; } = 0;
         public bool speedOK { get; set; } = false;
         public bool directionOK { get; set; } = false;
         public bool saberTypeOK { get; set; } = false;
@@ -98,6 +104,7 @@ namespace HttpSiraStatus
         public float cutNormalZ { get; set; } = 0;
         public float cutDistanceToCenter { get; set; } = 0;
         public float timeToNextBasicNote { get; set; } = 0;
+        public string gameplayType { get; set; } = "";
 
         // Mods
         public float modifierMultiplier { get; set; } = 1f;
@@ -197,6 +204,14 @@ namespace HttpSiraStatus
             this.noteID = -1;
             this.noteType = null;
             this.noteCutDirection = null;
+            this.sliderHeadCutDirection = null;
+            this.sliderTailCutDirection = null;
+            this.noteLine = 0;
+            this.noteLayer = 0;
+            this.sliderHeadLine = 0;
+            this.sliderHeadLayer = 0;
+            this.sliderTailLine = 0;
+            this.sliderTailLayer = 0;
             this.speedOK = false;
             this.directionOK = false;
             this.saberTypeOK = false;
@@ -222,6 +237,7 @@ namespace HttpSiraStatus
             this.cutNormalY = 0;
             this.cutNormalZ = 0;
             this.cutDistanceToCenter = 0;
+            this.gameplayType = "";
         }
     }
 }
