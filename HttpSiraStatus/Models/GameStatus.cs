@@ -104,6 +104,7 @@ namespace HttpSiraStatus
         public float cutNormalZ { get; set; } = 0;
         public float cutDistanceToCenter { get; set; } = 0;
         public float timeToNextBasicNote { get; set; } = 0;
+        public string gameplayType { get; set; } = "";
 
         // Mods
         public float modifierMultiplier { get; set; } = 1f;
@@ -236,6 +237,7 @@ namespace HttpSiraStatus
             this.cutNormalY = 0;
             this.cutNormalZ = 0;
             this.cutDistanceToCenter = 0;
+            this.gameplayType = "";
         }
     }
 }

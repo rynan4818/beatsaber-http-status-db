@@ -303,6 +303,7 @@ namespace HttpSiraStatus
             this.NoteCutJSON["cutNormal"][2].AsFloat = this._gameStatus.cutNormalZ;
             this.NoteCutJSON["cutDistanceToCenter"] = this._gameStatus.cutDistanceToCenter;
             this.NoteCutJSON["timeToNextBasicNote"] = this._gameStatus.timeToNextBasicNote;
+            this.NoteCutJSON["gameplayType"] = this.StringOrNull(this._gameStatus.gameplayType);
         }
 
         private void UpdateModJSON()
@@ -362,7 +363,7 @@ namespace HttpSiraStatus
 
         private JSONNode StringOrNull(string str)
         {
-            return str == null ? JSONNull.CreateOrGet() : new JSONString(str);
+            return string.IsNullOrEmpty(str) ? JSONNull.CreateOrGet() : new JSONString(str);
         }
 
         protected virtual void Dispose(bool disposing)

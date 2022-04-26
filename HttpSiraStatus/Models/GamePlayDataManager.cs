@@ -274,6 +274,7 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.noteLayer = (int)noteDataEntity.noteLineLayer;
                 // If long notes are ever introduced, this name will make no sense
                 this._gameStatus.timeToNextBasicNote = noteDataEntity.timeToNextColorNote;
+                this._gameStatus.gameplayType = noteDataEntity.gameplayType.ToString();
             }
             else if (entity is SliderDataEntity sliderDataEntity) {
                 this._gameStatus.sliderHeadCutDirection = sliderDataEntity.headCutDirection.ToString();
