@@ -7,7 +7,7 @@ namespace HttpSiraStatus.Installer
     {
         public override void InstallBindings()
         {
-            this.Container.BindMemoryPool<CustomCutBuffer, CustomCutBuffer.Pool>().WithInitialSize(90);
+            this.Container.BindMemoryPool<CustomGoodCutScoringElement, CustomGoodCutScoringElement.Pool>().WithInitialSize(16);
             this.Container.BindMemoryPool<NoteDataEntity, NoteDataEntity.Pool>().WithInitialSize(16);
             this.Container.BindInterfacesAndSelfTo<GamePlayDataManager>().FromNewComponentOnNewGameObject().AsCached().NonLazy();
         }

@@ -26,7 +26,7 @@ namespace HttpSiraStatus.Models
         public NoteDataEntity()
         {
         }
-        public NoteDataEntity(NoteData note, bool noArrow)
+        public NoteDataEntity(NoteData note, bool noArrow = false)
         {
             this.SetData(note, noArrow);
         }
