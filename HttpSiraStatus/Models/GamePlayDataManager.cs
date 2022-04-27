@@ -419,7 +419,6 @@ namespace HttpSiraStatus.Models
         private readonly List<float> _sortedNoteTimesWithoutScoringElements = new List<float>(50);
         private readonly ScoreMultiplierCounter _scoreMultiplierCounter = new ScoreMultiplierCounter();
         private readonly ScoreMultiplierCounter _maxScoreMultiplierCounter = new ScoreMultiplierCounter();
-        private float _lastProcessedElementTime = 0;
         /// <summary>
         /// Beat Saber 1.12.1 removes NoteData.id, forcing us to generate our own note IDs to allow users to easily link events about the same note.
         /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
@@ -787,7 +786,6 @@ namespace HttpSiraStatus.Models
                 scoringElement.SetMultipliers(this._scoreMultiplierCounter.multiplier, this._maxScoreMultiplierCounter.multiplier);
                 this._scoringElementsWithMultiplier.Add(scoringElement);
                 removeElementCount++;
-                this._lastProcessedElementTime = scoringElement.time;
             }
             this._sortedScoringElementsWithoutMultiplier.RemoveRange(0, removeElementCount);
             foreach (var scoringElement2 in this._scoringElementsWithMultiplier) {
