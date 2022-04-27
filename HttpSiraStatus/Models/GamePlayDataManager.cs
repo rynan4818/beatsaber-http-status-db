@@ -19,27 +19,35 @@ namespace HttpSiraStatus.Models
     {
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // パブリックメソッド
-        public void HandleCutScoreBufferDidFinish(CutScoreBuffer cutScoreBuffer)
-        {
-
-        }
-
         [AffinityPatch(typeof(ScoreController), nameof(ScoreController.HandleNoteWasCut))]
         [AffinityPostfix]
         public void NoteWasCutPostfix(NoteController noteController, in NoteCutInfo noteCutInfo)
         {
+            if (noteController.noteData.colorType == ColorType.None) {
+                this._gameStatus.passedBombs++;
+                this._gameStatus.hitBombs++;
+            }
+            else {
+                this._gameStatus.passedNotes++;
+                if (noteCutInfo.allIsOK) {
+                    this._gameStatus.hitNotes++;
+                }
+                else {
+                    this._gameStatus.missedNotes++;
+                }
+            }
             if (noteCutInfo.allIsOK) {
                 var goodCutScoringElement = this._customGoodCutScoringElementPool.Spawn();
                 goodCutScoringElement.Init(noteCutInfo, noteController, this._gameplayModifiers.noArrows);
                 this._sortedScoringElementsWithoutMultiplier.InsertIntoSortedListFromEnd(goodCutScoringElement);
-                this.ScoreController_scoringForNoteStartedEvent(goodCutScoringElement);
+                this.ScoreController_scoringForNoteStartedEvent(goodCutScoringElement, noteController.noteData.colorType);
                 this._sortedNoteTimesWithoutScoringElements.Remove(noteCutInfo.noteData.time);
-                this.OnNoteWasCutEvent(noteController, noteCutInfo);
             }
             else {
                 var badCutScoringElement = this._badCutScoringElementPool.Spawn();
-                badCutScoringElement.Init(noteCutInfo.noteData);
+                badCutScoringElement.Init(noteCutInfo, noteController, this._gameplayModifiers.noArrows);
                 this._sortedScoringElementsWithoutMultiplier.InsertIntoSortedListFromEnd(badCutScoringElement);
+                this.ScoreController_scoringForNoteStartedEvent(badCutScoringElement, noteController.noteData.colorType);
                 this._sortedNoteTimesWithoutScoringElements.Remove(noteCutInfo.noteData.time);
             }
         }
@@ -48,6 +56,13 @@ namespace HttpSiraStatus.Models
         [AffinityPostfix]
         public void NoteWasMissedPostfix(NoteController noteController)
         {
+            if (noteController.noteData.colorType == ColorType.None) {
+                this._gameStatus.passedBombs++;
+            }
+            else {
+                this._gameStatus.passedNotes++;
+                this._gameStatus.missedNotes++;
+            }
             var noteData = noteController.noteData;
             if (noteData.scoringType == NoteData.ScoringType.Ignore) {
                 return;
@@ -55,6 +70,7 @@ namespace HttpSiraStatus.Models
             var missScoringElement = this._missScoringElementPool.Spawn();
             missScoringElement.Init(noteData);
             this._sortedScoringElementsWithoutMultiplier.InsertIntoSortedListFromEnd(missScoringElement);
+            this.ScoreController_scoringForNoteStartedEvent(missScoringElement, noteController.noteData.colorType);
             this._sortedNoteTimesWithoutScoringElements.Remove(noteData.time);
         }
         #endregion
@@ -156,38 +172,16 @@ namespace HttpSiraStatus.Models
             this.SetNoteCutStatus(obj.noteData);
             this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
         }
-        private void OnNoteWasMissedEvent(NoteController obj)
-        {
-            if (obj.noteData.colorType == ColorType.None) {
-                this._gameStatus.passedBombs++;
-            }
-            else {
-                this._gameStatus.passedNotes++;
-                this._gameStatus.missedNotes++;
-            }
-        }
 
         private void OnBeatmapObjectManager_sliderWasSpawnedEvent(SliderController obj)
         {
             this.SetNoteCutStatus(obj.sliderData);
             this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
         }
-
-        private void OnNoteWasCutEvent(NoteController noteController, in NoteCutInfo noteCutInfo)
-        {
-            if (noteController.noteData.colorType == ColorType.None) {
-                this._gameStatus.passedBombs++;
-            }
-            else {
-                this._gameStatus.passedNotes++;
-            }
-        }
-
-        private void ScoreController_scoringForNoteStartedEvent(ScoringElement obj)
+        private void ScoreController_scoringForNoteStartedEvent(ScoringElement obj, ColorType colorType)
         {
             this._gameStatus.finalScore = -1;
             if (obj is CustomGoodCutScoringElement element) {
-                this._gameStatus.hitNotes++;
                 var cutScoreBuffer = element.cutScoreBuffer;
                 var noteCutInfo = cutScoreBuffer.noteCutInfo;
                 this.SetNoteCutStatus(element.NoteDataEntity, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
@@ -195,13 +189,19 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.initialScore = element.cutScore;
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
             }
-            else if (obj is MissScoringElement missElement) {
-                this._gameStatus.missedNotes++;
+            else if (obj is MissScoringElement && colorType != ColorType.None) {
+                this.SetNoteCutStatus(obj.noteData);
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
             }
-            else if (obj is BadCutScoringElement badElement) {
-                this._gameStatus.hitBombs++;
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
+            else if (obj is CustomBadCutScoringElement badElement) {
+                this.SetNoteCutStatus(badElement.NoteDataEntity, badElement.SaberDir, badElement.CutPoint, badElement.CutNormal, badElement.NoteCutInfo);
+                this._gameStatus.initialScore = badElement.cutScore;
+                if (colorType == ColorType.None) {
+                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
+                }
+                else {
+                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+                }
             }
         }
 
@@ -219,6 +219,12 @@ namespace HttpSiraStatus.Models
                 this._gameStatus.finalScore = element.cutScore;
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
             }
+            else if (obj is CustomBadCutScoringElement badElement && obj.noteData.colorType != ColorType.None) {
+                this.SetNoteCutStatus(badElement.NoteDataEntity, badElement.SaberDir, badElement.CutPoint, badElement.CutNormal, badElement.NoteCutInfo);
+                this._gameStatus.cutMultiplier = badElement.multiplier;
+                this._gameStatus.finalScore = badElement.cutScore;
+                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
+            }
         }
 
         private void SetNoteCutStatus(BeatmapObjectData obj)
@@ -233,7 +239,6 @@ namespace HttpSiraStatus.Models
                 this.SetNoteCutStatus(noteDataEntity);
                 this._sliderPool.Despawn(noteDataEntity);
             }
-            
         }
 
         private void SetNoteCutStatus(IBeatmapObjectEntity entity, in Vector3 saberDir = default, in Vector3 cutPoint = default, in Vector3 cutNormal = default, in NoteCutInfo noteCutInfo = default)
@@ -368,7 +373,7 @@ namespace HttpSiraStatus.Models
                 this._customGoodCutScoringElementPool.Despawn(item);
                 return;
             }
-            else if (scoringElement is BadCutScoringElement item2) {
+            else if (scoringElement is CustomBadCutScoringElement item2) {
                 this._badCutScoringElementPool.Despawn(item2);
                 return;
             }
@@ -383,7 +388,7 @@ namespace HttpSiraStatus.Models
         private IStatusManager _statusManager;
         private GameStatus _gameStatus;
         private MemoryPoolContainer<CustomGoodCutScoringElement> _customGoodCutScoringElementPool;
-        private MemoryPoolContainer<BadCutScoringElement> _badCutScoringElementPool;
+        private MemoryPoolContainer<CustomBadCutScoringElement> _badCutScoringElementPool;
         private MemoryPoolContainer<MissScoringElement> _missScoringElementPool;
         private NoteDataEntity.Pool _notePool;
         private SliderDataEntity.Pool _sliderPool;
@@ -444,7 +449,7 @@ namespace HttpSiraStatus.Models
             IStatusManager statusManager,
             GameStatus gameStatus,
             CustomGoodCutScoringElement.Pool customCutBufferPool,
-            BadCutScoringElement.Pool badCutScoringElementPool,
+            CustomBadCutScoringElement.Pool badCutScoringElementPool,
             MissScoringElement.Pool missScoringElementPool,
             NoteDataEntity.Pool noteDataEntityPool,
             SliderDataEntity.Pool sliderDataEntityPool,
@@ -464,7 +469,7 @@ namespace HttpSiraStatus.Models
             this._statusManager = statusManager;
             this._gameStatus = gameStatus;
             this._customGoodCutScoringElementPool = new MemoryPoolContainer<CustomGoodCutScoringElement>(customCutBufferPool);
-            this._badCutScoringElementPool = new MemoryPoolContainer<BadCutScoringElement>(badCutScoringElementPool);
+            this._badCutScoringElementPool = new MemoryPoolContainer<CustomBadCutScoringElement>(badCutScoringElementPool);
             this._missScoringElementPool = new MemoryPoolContainer<MissScoringElement>(missScoringElementPool);
             this._notePool = noteDataEntityPool;
             this._sliderPool = sliderDataEntityPool;
@@ -534,7 +539,6 @@ namespace HttpSiraStatus.Models
 
                         if (this._beatmapObjectManager != null) {
                             this._beatmapObjectManager.noteWasSpawnedEvent -= this.OnNoteWasSpawnedEvent;
-                            this._beatmapObjectManager.noteWasMissedEvent -= this.OnNoteWasMissedEvent;
                             this._beatmapObjectManager.sliderWasSpawnedEvent -= this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
                         }
 
@@ -589,7 +593,6 @@ namespace HttpSiraStatus.Models
             //this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
             this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(0, new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
-            this._beatmapObjectManager.noteWasMissedEvent += this.OnNoteWasMissedEvent;
             this._beatmapObjectManager.sliderWasSpawnedEvent += this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
             
             this._relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
