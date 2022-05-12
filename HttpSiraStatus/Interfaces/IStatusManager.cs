@@ -7,7 +7,7 @@ namespace HttpSiraStatus.Interfaces
     public interface IStatusManager
     {
         [Obsolete("このプロパティはいずれなくなります。DiContainerからInjectで取得してください。", true)]
-        GameStatus GameStatus { get; }
+        IGameStatus GameStatus { get; }
         JSONObject StatusJSON { get; }
         JSONObject NoteCutJSON { get; }
         JSONObject BeatmapEventJSON { get; }

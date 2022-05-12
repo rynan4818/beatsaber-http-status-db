@@ -12,7 +12,7 @@ namespace HttpSiraStatus
     public class StatusManager : IStatusManager, IDisposable
     {
         [Inject]
-        public StatusManager(GameStatus gameStatus)
+        internal StatusManager(GameStatus gameStatus)
         {
             this._gameStatus = gameStatus;
             this.JsonPool = new ObjectMemoryPool<JSONObject>(null, r => { r.Clear(); }, 20);
@@ -21,7 +21,7 @@ namespace HttpSiraStatus
             this._thread.Start();
         }
 
-        public GameStatus GameStatus => this._gameStatus;
+        public IGameStatus GameStatus => this._gameStatus;
         public JSONObject StatusJSON { get; } = new JSONObject();
         public JSONObject NoteCutJSON { get; } = new JSONObject();
         public JSONObject BeatmapEventJSON { get; } = new JSONObject();
@@ -107,7 +107,7 @@ namespace HttpSiraStatus
 
         private void RaiseSendEvent()
         {
-            while (true) {
+            while (!this._disposedValue) {
                 try {
                     while (this.JsonQueue.TryDequeue(out var json)) {
                         this.SendEvent?.Invoke(this, new SendEventArgs(json));
@@ -369,14 +369,6 @@ namespace HttpSiraStatus
         protected virtual void Dispose(bool disposing)
         {
             if (!this._disposedValue) {
-                if (disposing) {
-                    try {
-                        this._thread?.Abort();
-                    }
-                    catch (Exception e) {
-                        Plugin.Logger.Error(e);
-                    }
-                }
                 this._disposedValue = true;
             }
         }
