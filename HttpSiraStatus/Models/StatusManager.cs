@@ -180,7 +180,7 @@ namespace HttpSiraStatus
             beatmapJSON["length"] = new JSONNumber(this._gameStatus.length);
             beatmapJSON["difficulty"] = this.StringOrNull(this._gameStatus.difficulty);
             beatmapJSON["difficultyEnum"] = this.StringOrNull(this._gameStatus.difficultyEnum);
-            beatmapJSON["characteristic "] = this.StringOrNull(this._gameStatus.characteristic);
+            beatmapJSON["characteristic"] = this.StringOrNull(this._gameStatus.characteristic);
             beatmapJSON["notesCount"] = this._gameStatus.notesCount;
             beatmapJSON["bombsCount"] = this._gameStatus.bombsCount;
             beatmapJSON["obstaclesCount"] = this._gameStatus.obstaclesCount;
