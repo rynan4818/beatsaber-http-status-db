@@ -148,7 +148,7 @@ namespace HttpSiraStatus
             gameJSON["pluginVersion"] = Plugin.PluginVersion;
             gameJSON["gameVersion"] = Plugin.GameVersion;
             gameJSON["scene"] = this.StringOrNull(this._gameStatus.scene);
-            gameJSON["mode"] = this.StringOrNull(this._gameStatus.mode);
+            gameJSON["mode"] = $"{this._gameStatus.mode.GetDescription()}{this._gameStatus.characteristic}";
         }
 
         private void UpdateBeatmapJSON()
