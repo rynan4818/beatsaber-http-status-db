@@ -88,4 +88,15 @@ namespace HttpSiraStatus
         PerformanceAndNoteCut = Performance | NoteCut,
         BeatmapAndPerformanceAndMod = Beatmap | Performance | Mod
     }
+
+    public enum GameModeHeadder
+    {
+        Unknown,
+        [Description("Solo")]
+        Solo,
+        [Description("Party")]
+        Party,
+        [Description("Multiplayer")]
+        Multiplayer,
+    }
 }

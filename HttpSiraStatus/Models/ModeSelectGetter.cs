@@ -20,45 +20,30 @@ namespace HttpSiraStatus.Models
                 case MainMenuViewController.MenuButton.SoloFreePlay:
                     this._gameStatus.partyMode = false;
                     this._gameStatus.multiplayer = false;
+                    this._gameStatus.mode = GameModeHeadder.Solo;
                     break;
                 case MainMenuViewController.MenuButton.Party:
                     this._gameStatus.partyMode = true;
                     this._gameStatus.multiplayer = false;
-                    break;
-                case MainMenuViewController.MenuButton.BeatmapEditor:
-                    this._gameStatus.partyMode = false;
-                    this._gameStatus.multiplayer = false;
-                    break;
-                case MainMenuViewController.MenuButton.SoloCampaign:
-                    this._gameStatus.partyMode = false;
-                    this._gameStatus.multiplayer = false;
-                    break;
-                case MainMenuViewController.MenuButton.FloorAdjust:
-                    this._gameStatus.partyMode = false;
-                    this._gameStatus.multiplayer = false;
-                    break;
-                case MainMenuViewController.MenuButton.Quit:
-                    this._gameStatus.partyMode = false;
-                    this._gameStatus.multiplayer = false;
+                    this._gameStatus.mode = GameModeHeadder.Party;
                     break;
                 case MainMenuViewController.MenuButton.Multiplayer:
                     this._gameStatus.partyMode = false;
                     this._gameStatus.multiplayer = true;
+                    this._gameStatus.mode = GameModeHeadder.Multiplayer;
                     break;
+                case MainMenuViewController.MenuButton.SoloCampaign:
+                case MainMenuViewController.MenuButton.BeatmapEditor:
+                case MainMenuViewController.MenuButton.FloorAdjust:
+                case MainMenuViewController.MenuButton.Quit:
                 case MainMenuViewController.MenuButton.Options:
-                    this._gameStatus.partyMode = false;
-                    this._gameStatus.multiplayer = false;
-                    break;
                 case MainMenuViewController.MenuButton.HowToPlay:
-                    this._gameStatus.partyMode = false;
-                    this._gameStatus.multiplayer = false;
-                    break;
                 default:
                     this._gameStatus.partyMode = false;
                     this._gameStatus.multiplayer = false;
+                    this._gameStatus.mode = GameModeHeadder.Unknown;
                     break;
             }
-            this._gameStatus.mode = $"{arg2}";
         }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*

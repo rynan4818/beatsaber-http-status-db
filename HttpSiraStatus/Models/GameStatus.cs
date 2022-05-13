@@ -11,7 +11,7 @@ namespace HttpSiraStatus
         public string scene { get; set; } = "Menu";
         public bool partyMode { get; set; } = false;
         public bool multiplayer { get; set; } = false;
-        public string mode { get; set; } = null;
+        public GameModeHeadder mode { get; set; } = GameModeHeadder.Unknown;
 
         // Beatmap
         public string songName { get; set; } = null;

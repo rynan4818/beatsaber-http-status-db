@@ -14,7 +14,7 @@
     <DebugType>portable</DebugType>
     <LocalRefsDir Condition="Exists('..\Refs')">..\Refs</LocalRefsDir>
     <ErrorReport>prompt</ErrorReport>
-    <Version>7.1.4</Version>
+    <Version>7.1.5</Version>
     <WarningLevel>4</WarningLevel>
 	<AssemblySearchPaths>$(ReferencePath)</AssemblySearchPaths>
   </PropertyGroup>

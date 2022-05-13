@@ -148,7 +148,7 @@ namespace HttpSiraStatus
             gameJSON["pluginVersion"] = Plugin.PluginVersion;
             gameJSON["gameVersion"] = Plugin.GameVersion;
             gameJSON["scene"] = this.StringOrNull(this._gameStatus.scene);
-            gameJSON["mode"] = this.StringOrNull(this._gameStatus.mode);
+            gameJSON["mode"] = $"{this._gameStatus.mode.GetDescription()}{this._gameStatus.characteristic}";
         }
 
         private void UpdateBeatmapJSON()
@@ -180,7 +180,7 @@ namespace HttpSiraStatus
             beatmapJSON["length"] = new JSONNumber(this._gameStatus.length);
             beatmapJSON["difficulty"] = this.StringOrNull(this._gameStatus.difficulty);
             beatmapJSON["difficultyEnum"] = this.StringOrNull(this._gameStatus.difficultyEnum);
-            beatmapJSON["characteristic "] = this.StringOrNull(this._gameStatus.characteristic);
+            beatmapJSON["characteristic"] = this.StringOrNull(this._gameStatus.characteristic);
             beatmapJSON["notesCount"] = this._gameStatus.notesCount;
             beatmapJSON["bombsCount"] = this._gameStatus.bombsCount;
             beatmapJSON["obstaclesCount"] = this._gameStatus.obstaclesCount;
