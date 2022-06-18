@@ -58,7 +58,7 @@ namespace HttpSiraStatus.Interfaces
         int missedNotes { get; }
         bool modBatteryEnergy { get; }
         bool modDisappearingArrows { get; }
-        string mode { get; }
+        GameModeHeadder mode { get; }
         bool modFailOnSaberClash { get; }
         bool modFastNotes { get; }
         bool modGhostNotes { get; }
