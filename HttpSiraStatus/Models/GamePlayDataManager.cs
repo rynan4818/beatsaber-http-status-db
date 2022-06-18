@@ -369,17 +369,18 @@ namespace HttpSiraStatus.Models
 
         public void DespawnScoringElement(ScoringElement scoringElement)
         {
-            if (scoringElement is CustomGoodCutScoringElement item) {
-                this._customGoodCutScoringElementPool.Despawn(item);
-                return;
-            }
-            else if (scoringElement is CustomBadCutScoringElement item2) {
-                this._badCutScoringElementPool.Despawn(item2);
-                return;
-            }
-            else if (scoringElement is MissScoringElement item3) {
-                this._missScoringElementPool.Despawn(item3);
-                return;
+            switch (scoringElement) {
+                case CustomGoodCutScoringElement good:
+                    this._customGoodCutScoringElementPool.Despawn(good);
+                    break;
+                case CustomBadCutScoringElement bad:
+                    this._badCutScoringElementPool.Despawn(bad);
+                    break;
+                case MissScoringElement miss:
+                    this._missScoringElementPool.Despawn(miss);
+                    break;
+                default:
+                    break;
             }
         }
         #endregion
@@ -433,15 +434,21 @@ namespace HttpSiraStatus.Models
         /// <param name="statusManager"></param>
         /// <param name="gameStatus"></param>
         /// <param name="customCutBufferPool"></param>
-        /// <param name="noteEntityPool"></param>
+        /// <param name="badCutScoringElementPool"></param>
+        /// <param name="missScoringElementPool"></param>
+        /// <param name="noteDataEntityPool"></param>
+        /// <param name="sliderDataEntityPool"></param>
         /// <param name="gameplayCoreSceneSetupData"></param>
         /// <param name="score"></param>
+        /// <param name="comboController"></param>
         /// <param name="gameplayModifiers"></param>
         /// <param name="audioTimeSource"></param>
+        /// <param name="readonlyBeatmapData"></param>
         /// <param name="beatmapObjectCallbackController"></param>
         /// <param name="playerHeadAndObstacleInteraction"></param>
         /// <param name="gameEnergyCounter"></param>
         /// <param name="relative"></param>
+        /// <param name="beatmapObjectManager"></param>
         /// <param name="diContainer"></param>
         [Inject]
         private void Constractor(

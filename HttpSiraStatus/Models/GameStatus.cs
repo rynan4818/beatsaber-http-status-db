@@ -5,11 +5,12 @@ namespace HttpSiraStatus
 {
     internal class GameStatus : IGameStatus
     {
+#pragma warning disable IDE1006 // 命名スタイル
         public string updateCause { get; internal set; }
         public string scene { get; internal set; } = "Menu";
         public bool partyMode { get; internal set; } = false;
         public bool multiplayer { get; internal set; } = false;
-        public string mode { get; internal set; } = null;
+        public GameModeHeadder mode { get; internal set; } = GameModeHeadder.Unknown;
 
         // Beatmap
         public string songName { get; internal set; } = null;
