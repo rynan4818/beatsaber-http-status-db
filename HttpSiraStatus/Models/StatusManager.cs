@@ -208,12 +208,13 @@ namespace HttpSiraStatus
                 parent[key] = JSONNull.CreateOrGet();
                 return;
             }
+            var color32 = (Color32?)color;
 
             var arr = parent[key] as JSONArray ?? new JSONArray();
 
-            arr[0] = Mathf.RoundToInt(((Color)color).r * 255);
-            arr[1] = Mathf.RoundToInt(((Color)color).g * 255);
-            arr[2] = Mathf.RoundToInt(((Color)color).b * 255);
+            arr[0] = (int)color32.Value.r;
+            arr[1] = (int)color32.Value.g;
+            arr[2] = (int)color32.Value.b;
 
             parent[key] = arr;
         }
