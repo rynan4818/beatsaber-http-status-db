@@ -12,7 +12,7 @@ namespace HttpSiraStatus
     public class StatusManager : IStatusManager, IDisposable
     {
         [Inject]
-        public StatusManager(GameStatus gameStatus)
+        internal StatusManager(GameStatus gameStatus)
         {
             this._gameStatus = gameStatus;
             this.JsonPool = new ObjectMemoryPool<JSONObject>(null, r => { r.Clear(); }, 20);
@@ -21,7 +21,7 @@ namespace HttpSiraStatus
             this._thread.Start();
         }
 
-        public GameStatus GameStatus => this._gameStatus;
+        public IGameStatus GameStatus => this._gameStatus;
         public JSONObject StatusJSON { get; } = new JSONObject();
         public JSONObject NoteCutJSON { get; } = new JSONObject();
         public JSONObject BeatmapEventJSON { get; } = new JSONObject();
@@ -107,7 +107,7 @@ namespace HttpSiraStatus
 
         private void RaiseSendEvent()
         {
-            while (true) {
+            while (!this._disposedValue) {
                 try {
                     while (this.JsonQueue.TryDequeue(out var json)) {
                         this.SendEvent?.Invoke(this, new SendEventArgs(json));
@@ -208,12 +208,13 @@ namespace HttpSiraStatus
                 parent[key] = JSONNull.CreateOrGet();
                 return;
             }
+            var color32 = (Color32?)color;
 
             var arr = parent[key] as JSONArray ?? new JSONArray();
 
-            arr[0] = Mathf.RoundToInt(((Color)color).r * 255);
-            arr[1] = Mathf.RoundToInt(((Color)color).g * 255);
-            arr[2] = Mathf.RoundToInt(((Color)color).b * 255);
+            arr[0] = (int)color32.Value.r;
+            arr[1] = (int)color32.Value.g;
+            arr[2] = (int)color32.Value.b;
 
             parent[key] = arr;
         }
@@ -369,14 +370,6 @@ namespace HttpSiraStatus
         protected virtual void Dispose(bool disposing)
         {
             if (!this._disposedValue) {
-                if (disposing) {
-                    try {
-                        this._thread?.Abort();
-                    }
-                    catch (Exception e) {
-                        Plugin.Logger.Error(e);
-                    }
-                }
                 this._disposedValue = true;
             }
         }

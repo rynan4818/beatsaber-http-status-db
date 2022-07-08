@@ -1,148 +1,146 @@
-using System;
+using HttpSiraStatus.Interfaces;
 using UnityEngine;
 
 namespace HttpSiraStatus
 {
-    [Serializable]
-    public class GameStatus
+    internal class GameStatus : IGameStatus
     {
-#pragma warning disable IDE1006 // 命名スタイル
-        public string updateCause { get; set; }
-        public string scene { get; set; } = "Menu";
-        public bool partyMode { get; set; } = false;
-        public bool multiplayer { get; set; } = false;
-        public GameModeHeadder mode { get; set; } = GameModeHeadder.Unknown;
+#pragma warning disable IDE1006 // 蜻ｽ蜷阪せ繧ｿ繧､繝ｫ
+        public string updateCause { get; internal set; }
+        public string scene { get; internal set; } = "Menu";
+        public bool partyMode { get; internal set; } = false;
+        public bool multiplayer { get; internal set; } = false;
+        public GameModeHeadder mode { get; internal set; } = GameModeHeadder.Unknown;
 
         // Beatmap
-        public string songName { get; set; } = null;
-        public string songSubName { get; set; } = null;
-        public string songAuthorName { get; set; } = null;
-        public string levelAuthorName { get; set; } = null;
-        public string songCover { get; set; } = null;
-        public string songHash { get; set; } = null;
-        public string levelId { get; set; } = null;
-        public float songBPM { get; set; }
-        public float noteJumpSpeed { get; set; }
-        public float noteJumpStartBeatOffset { get; set; }
-        public long songTimeOffset { get; set; } = 0;
-        public long length { get; set; } = 0;
-        public long start { get; set; } = 0;
-        public long paused { get; set; } = 0;
-        public string difficulty { get; set; } = null;
-        public string difficultyEnum { get; set; } = null;
-        public string characteristic { get; set; } = null;
-        public int notesCount { get; set; } = 0;
-        public int bombsCount { get; set; } = 0;
-        public int obstaclesCount { get; set; } = 0;
-        public int maxScore { get; set; } = 0;
-        public string maxRank { get; set; } = "E";
-        public string environmentName { get; set; } = null;
-        public Color? colorSaberA { get; set; } = null;
-        public Color? colorSaberB { get; set; } = null;
-        public Color? colorEnvironment0 { get; set; } = null;
-        public Color? colorEnvironment1 { get; set; } = null;
-        public Color? colorEnvironmentBoost0 { get; set; } = null;
-        public Color? colorEnvironmentBoost1 { get; set; } = null;
-        public Color? colorObstacle { get; set; } = null;
+        public string songName { get; internal set; } = null;
+        public string songSubName { get; internal set; } = null;
+        public string songAuthorName { get; internal set; } = null;
+        public string levelAuthorName { get; internal set; } = null;
+        public string songCover { get; internal set; } = null;
+        public string songHash { get; internal set; } = null;
+        public string levelId { get; internal set; } = null;
+        public float songBPM { get; internal set; }
+        public float noteJumpSpeed { get; internal set; }
+        public float noteJumpStartBeatOffset { get; internal set; }
+        public long songTimeOffset { get; internal set; } = 0;
+        public long length { get; internal set; } = 0;
+        public long start { get; internal set; } = 0;
+        public long paused { get; internal set; } = 0;
+        public string difficulty { get; internal set; } = null;
+        public string difficultyEnum { get; internal set; } = null;
+        public string characteristic { get; internal set; } = null;
+        public int notesCount { get; internal set; } = 0;
+        public int bombsCount { get; internal set; } = 0;
+        public int obstaclesCount { get; internal set; } = 0;
+        public int maxScore { get; internal set; } = 0;
+        public string maxRank { get; internal set; } = "E";
+        public string environmentName { get; internal set; } = null;
+        public Color? colorSaberA { get; internal set; } = null;
+        public Color? colorSaberB { get; internal set; } = null;
+        public Color? colorEnvironment0 { get; internal set; } = null;
+        public Color? colorEnvironment1 { get; internal set; } = null;
+        public Color? colorEnvironmentBoost0 { get; internal set; } = null;
+        public Color? colorEnvironmentBoost1 { get; internal set; } = null;
+        public Color? colorObstacle { get; internal set; } = null;
 
         // Performance
-        public int rawScore { get; set; } = 0;
-        public int score { get; set; } = 0;
-        public int currentMaxScore { get; set; } = 0;
-        public string rank { get; set; } = "E";
-        public int passedNotes { get; set; } = 0;
-        public int hitNotes { get; set; } = 0;
-        public int missedNotes { get; set; } = 0;
-        public int lastNoteScore { get; set; } = 0;
-        public int passedBombs { get; set; } = 0;
-        public int hitBombs { get; set; } = 0;
-        public int combo { get; set; } = 0;
-        public int maxCombo { get; set; } = 0;
-        public int multiplier { get; set; } = 0;
-        public float multiplierProgress { get; set; } = 0;
-        public int batteryEnergy { get; set; } = 1;
-        public float energy { get; set; } = 0;
-        public bool softFailed { get; set; } = false;
-        public float relativeScore { get; set; } = 1;
-        public int currentSongTime { get; set; } = 0;
+        public int rawScore { get; internal set; } = 0;
+        public int score { get; internal set; } = 0;
+        public int currentMaxScore { get; internal set; } = 0;
+        public string rank { get; internal set; } = "E";
+        public int passedNotes { get; internal set; } = 0;
+        public int hitNotes { get; internal set; } = 0;
+        public int missedNotes { get; internal set; } = 0;
+        public int lastNoteScore { get; internal set; } = 0;
+        public int passedBombs { get; internal set; } = 0;
+        public int hitBombs { get; internal set; } = 0;
+        public int combo { get; internal set; } = 0;
+        public int maxCombo { get; internal set; } = 0;
+        public int multiplier { get; internal set; } = 0;
+        public float multiplierProgress { get; internal set; } = 0;
+        public int batteryEnergy { get; internal set; } = 1;
+        public float energy { get; internal set; } = 0;
+        public bool softFailed { get; internal set; } = false;
+        public float relativeScore { get; internal set; } = 1;
+        public int currentSongTime { get; internal set; } = 0;
 
         // Note cut
-        public int noteID { get; set; } = -1;
-        public string noteType { get; set; } = null;
-        public string noteCutDirection { get; set; } = null;
-        public string sliderHeadCutDirection { get; set; } = null;
-        public string sliderTailCutDirection { get; set; } = null;
-        public int noteLine { get; set; } = 0;
-        public int noteLayer { get; set; } = 0;
-        public int sliderHeadLine { get; set; } = 0;
-        public int sliderHeadLayer { get; set; } = 0;
-        public int sliderTailLine { get; set; } = 0;
-        public int sliderTailLayer { get; set; } = 0;
-        public bool speedOK { get; set; } = false;
-        public bool directionOK { get; set; } = false;
-        public bool saberTypeOK { get; set; } = false;
-        public bool wasCutTooSoon { get; set; } = false;
-        public int initialScore { get; set; } = -1;
-        public int finalScore { get; set; } = -1;
-        public int cutDistanceScore { get; set; } = -1;
-        public int cutMultiplier { get; set; } = 0;
-        public float saberSpeed { get; set; } = 0;
-        public float saberDirX { get; set; } = 0;
-        public float saberDirY { get; set; } = 0;
-        public float saberDirZ { get; set; } = 0;
-        public string saberType { get; set; } = null;
-        public float swingRating { get; set; } = 0;
-        public float beforSwingRating { get; set; } = 0;
-        public float afterSwingRating { get; set; } = 0;
-        public float timeDeviation { get; set; } = 0;
-        public float cutDirectionDeviation { get; set; } = 0;
-        public float cutPointX { get; set; } = 0;
-        public float cutPointY { get; set; } = 0;
-        public float cutPointZ { get; set; } = 0;
-        public float cutNormalX { get; set; } = 0;
-        public float cutNormalY { get; set; } = 0;
-        public float cutNormalZ { get; set; } = 0;
-        public float cutDistanceToCenter { get; set; } = 0;
-        public float timeToNextBasicNote { get; set; } = 0;
-        public string gameplayType { get; set; } = "";
+        public int noteID { get; internal set; } = -1;
+        public string noteType { get; internal set; } = null;
+        public string noteCutDirection { get; internal set; } = null;
+        public string sliderHeadCutDirection { get; internal set; } = null;
+        public string sliderTailCutDirection { get; internal set; } = null;
+        public int noteLine { get; internal set; } = 0;
+        public int noteLayer { get; internal set; } = 0;
+        public int sliderHeadLine { get; internal set; } = 0;
+        public int sliderHeadLayer { get; internal set; } = 0;
+        public int sliderTailLine { get; internal set; } = 0;
+        public int sliderTailLayer { get; internal set; } = 0;
+        public bool speedOK { get; internal set; } = false;
+        public bool directionOK { get; internal set; } = false;
+        public bool saberTypeOK { get; internal set; } = false;
+        public bool wasCutTooSoon { get; internal set; } = false;
+        public int initialScore { get; internal set; } = -1;
+        public int finalScore { get; internal set; } = -1;
+        public int cutDistanceScore { get; internal set; } = -1;
+        public int cutMultiplier { get; internal set; } = 0;
+        public float saberSpeed { get; internal set; } = 0;
+        public float saberDirX { get; internal set; } = 0;
+        public float saberDirY { get; internal set; } = 0;
+        public float saberDirZ { get; internal set; } = 0;
+        public string saberType { get; internal set; } = null;
+        public float swingRating { get; internal set; } = 0;
+        public float beforSwingRating { get; internal set; } = 0;
+        public float afterSwingRating { get; internal set; } = 0;
+        public float timeDeviation { get; internal set; } = 0;
+        public float cutDirectionDeviation { get; internal set; } = 0;
+        public float cutPointX { get; internal set; } = 0;
+        public float cutPointY { get; internal set; } = 0;
+        public float cutPointZ { get; internal set; } = 0;
+        public float cutNormalX { get; internal set; } = 0;
+        public float cutNormalY { get; internal set; } = 0;
+        public float cutNormalZ { get; internal set; } = 0;
+        public float cutDistanceToCenter { get; internal set; } = 0;
+        public float timeToNextBasicNote { get; internal set; } = 0;
+        public string gameplayType { get; internal set; } = "";
 
         // Mods
-        public float modifierMultiplier { get; set; } = 1f;
-        public string modObstacles { get; set; } = "All";
-        public bool modInstaFail { get; set; } = false;
-        public bool modNoFail { get; set; } = false;
-        public bool modBatteryEnergy { get; set; } = false;
-        public int batteryLives { get; set; } = 1;
-        public bool modDisappearingArrows { get; set; } = false;
-        public bool modNoBombs { get; set; } = false;
-        public string modSongSpeed { get; set; } = "Normal";
-        public float songSpeedMultiplier { get; set; } = 1f;
-        public bool modNoArrows { get; set; } = false;
-        public bool modGhostNotes { get; set; } = false;
-        public bool modFailOnSaberClash { get; set; } = false;
-        public bool modStrictAngles { get; set; } = false;
-        public bool modFastNotes { get; set; } = false;
-        public bool modSmallNotes { get; set; } = false;
-        public bool modProMode { get; set; } = false;
-        public bool modZenMode { get; set; } = false;
+        public float modifierMultiplier { get; internal set; } = 1f;
+        public string modObstacles { get; internal set; } = "All";
+        public bool modInstaFail { get; internal set; } = false;
+        public bool modNoFail { get; internal set; } = false;
+        public bool modBatteryEnergy { get; internal set; } = false;
+        public int batteryLives { get; internal set; } = 1;
+        public bool modDisappearingArrows { get; internal set; } = false;
+        public bool modNoBombs { get; internal set; } = false;
+        public string modSongSpeed { get; internal set; } = "Normal";
+        public float songSpeedMultiplier { get; internal set; } = 1f;
+        public bool modNoArrows { get; internal set; } = false;
+        public bool modGhostNotes { get; internal set; } = false;
+        public bool modFailOnSaberClash { get; internal set; } = false;
+        public bool modStrictAngles { get; internal set; } = false;
+        public bool modFastNotes { get; internal set; } = false;
+        public bool modSmallNotes { get; internal set; } = false;
+        public bool modProMode { get; internal set; } = false;
+        public bool modZenMode { get; internal set; } = false;
 
         // Player settings
-        public bool staticLights { get; set; } = false;
-        public bool leftHanded { get; set; } = false;
-        public float playerHeight { get; set; } = 1.7f;
-        public float sfxVolume { get; set; } = 0.7f;
-        public bool reduceDebris { get; set; } = false;
-        public bool noHUD { get; set; } = false;
-        public bool advancedHUD { get; set; } = false;
-        public bool autoRestart { get; set; } = false;
-        public float saberTrailIntensity { get; set; } = 0.5f;
-        public string environmentEffects { get; set; } = EnvironmentEffectsFilterPreset.AllEffects.ToString();
-        public bool hideNoteSpawningEffect { get; set; } = false;
+        public bool staticLights { get; internal set; } = false;
+        public bool leftHanded { get; internal set; } = false;
+        public float playerHeight { get; internal set; } = 1.7f;
+        public float sfxVolume { get; internal set; } = 0.7f;
+        public bool reduceDebris { get; internal set; } = false;
+        public bool noHUD { get; internal set; } = false;
+        public bool advancedHUD { get; internal set; } = false;
+        public bool autoRestart { get; internal set; } = false;
+        public float saberTrailIntensity { get; internal set; } = 0.5f;
+        public string environmentEffects { get; internal set; } = EnvironmentEffectsFilterPreset.AllEffects.ToString();
+        public bool hideNoteSpawningEffect { get; internal set; } = false;
 
         // Beatmap event
-        public int beatmapEventType { get; set; } = 0;
-        public int beatmapEventValue { get; set; } = 0;
-#pragma warning restore IDE1006 // 命名スタイル
+        public int beatmapEventType { get; internal set; } = 0;
+        public int beatmapEventValue { get; internal set; } = 0;
         public void ResetMapInfo()
         {
             this.songName = null;
