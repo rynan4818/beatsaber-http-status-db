@@ -361,9 +361,25 @@ namespace HttpSiraStatus.Models
 
         private void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
         {
-            this._gameStatus.beatmapEventType = (int)beatmapEventData.type;
-            this._gameStatus.beatmapEventValue = beatmapEventData.executionOrder;
-
+            // TODO
+            switch (beatmapEventData) {
+                case BasicBeatmapEventData basic:
+                    break;
+                case BPMChangeBeatmapEventData bpm:
+                    break;
+                case ColorBoostBeatmapEventData color:
+                    break;
+                case LightColorBeatmapEventData lightColor:
+                    break;
+                case LightRotationBeatmapEventData lightRotation:
+                    break;
+                case SpawnRotationBeatmapEventData spawn:
+                    break;
+                default:
+                    this._gameStatus.beatmapEventType = (int)beatmapEventData.type;
+                    this._gameStatus.beatmapEventValue = beatmapEventData.executionOrder;
+                    break;
+            }
             this._statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
         }
 
@@ -597,7 +613,7 @@ namespace HttpSiraStatus.Models
             this._scoreController.multiplierDidChangeEvent += this.OnMultiplierDidChange;
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             //this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
-            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(0, new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
+            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(0, new BeatmapDataCallback<BeatmapEventData>(this.OnBeatmapEventDidTrigger));
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
             this._beatmapObjectManager.sliderWasSpawnedEvent += this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
             
