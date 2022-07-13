@@ -12,10 +12,12 @@ namespace HttpSiraStatus
     public class StatusManager : IStatusManager, IDisposable
     {
         [Inject]
-        internal StatusManager(GameStatus gameStatus)
+        internal StatusManager(GameStatus gameStatus, V2BeatmapEventInfomation.Pool v2Pool, V3BeatmapEventInfomation.Pool v3Pool)
         {
             this._gameStatus = gameStatus;
             this.JsonPool = new ObjectMemoryPool<JSONObject>(null, r => { r.Clear(); }, 20);
+            this._v2Pool = v2Pool;
+            this._v3Pool = v3Pool;
             this.UpdateAll();
             this._thread = new Thread(new ThreadStart(this.RaiseSendEvent));
             this._thread.Start();
@@ -24,16 +26,17 @@ namespace HttpSiraStatus
         public IGameStatus GameStatus => this._gameStatus;
         public JSONObject StatusJSON { get; } = new JSONObject();
         public JSONObject NoteCutJSON { get; } = new JSONObject();
-        public JSONObject BeatmapEventJSON { get; } = new JSONObject();
+        public ConcurrentQueue<IBeatmapEventInformation> BeatmapEventJSON { get; } = new ConcurrentQueue<IBeatmapEventInformation>();
         public JSONObject OtherJSON { get; } = new JSONObject();
         public ObjectMemoryPool<JSONObject> JsonPool { get; }
         public ConcurrentQueue<JSONObject> JsonQueue { get; } = new ConcurrentQueue<JSONObject>();
-
 
         public event SendEventHandler SendEvent;
         private readonly Thread _thread;
         private bool _disposedValue;
         private readonly GameStatus _gameStatus;
+        private readonly V2BeatmapEventInfomation.Pool _v2Pool;
+        private readonly V3BeatmapEventInfomation.Pool _v3Pool;
 
         public void EmitStatusUpdate(ChangedProperty changedProps, BeatSaberEvent e)
         {
@@ -58,9 +61,7 @@ namespace HttpSiraStatus
                 this.UpdateModJSON();
                 this.UpdatePlayerSettingsJSON();
             }
-            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
-                this.UpdateBeatmapEventJSON();
-            }
+
             this.EnqueueMessage(changedProps, e);
         }
 
@@ -96,8 +97,18 @@ namespace HttpSiraStatus
             if ((changedProps & ChangedProperty.NoteCut) == ChangedProperty.NoteCut) {
                 eventJSON["noteCut"] = this.NoteCutJSON;
             }
-            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent) {
-                eventJSON["beatmapEvent"] = this.BeatmapEventJSON;
+            if ((changedProps & ChangedProperty.BeatmapEvent) == ChangedProperty.BeatmapEvent && this.BeatmapEventJSON.TryDequeue(out var eventInformation)) {
+                eventJSON["beatmapEvent"] = eventInformation.ToJson();
+                switch (eventInformation) {
+                    case V2BeatmapEventInfomation v2:
+                        this._v2Pool.Despawn(v2);
+                        break;
+                    case V3BeatmapEventInfomation v3:
+                        this._v3Pool.Despawn(v3);
+                        break;
+                    default:
+                        break;
+                }
             }
             if ((changedProps & ChangedProperty.Other) != 0) {
                 eventJSON["other"] = this.OtherJSON;
@@ -130,7 +141,6 @@ namespace HttpSiraStatus
                 this.UpdateNoteCutJSON();
                 this.UpdateModJSON();
                 this.UpdatePlayerSettingsJSON();
-                this.UpdateBeatmapEventJSON();
             }
             catch (Exception e) {
                 Plugin.Logger.Error(e);
@@ -354,12 +364,6 @@ namespace HttpSiraStatus
             playerSettingsJSON["saberTrailIntensity"] = this._gameStatus.saberTrailIntensity;
             playerSettingsJSON["environmentEffects"] = this._gameStatus.environmentEffects;
             playerSettingsJSON["hideNoteSpawningEffect"] = this._gameStatus.hideNoteSpawningEffect;
-        }
-
-        private void UpdateBeatmapEventJSON()
-        {
-            this.BeatmapEventJSON["type"] = this._gameStatus.beatmapEventType;
-            this.BeatmapEventJSON["value"] = this._gameStatus.beatmapEventValue;
         }
 
         private JSONNode StringOrNull(string str)

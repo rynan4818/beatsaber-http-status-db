@@ -10,7 +10,7 @@ namespace HttpSiraStatus.Interfaces
         IGameStatus GameStatus { get; }
         JSONObject StatusJSON { get; }
         JSONObject NoteCutJSON { get; }
-        JSONObject BeatmapEventJSON { get; }
+        ConcurrentQueue<IBeatmapEventInformation> BeatmapEventJSON { get; }
         JSONObject OtherJSON { get; }
         ConcurrentQueue<JSONObject> JsonQueue { get; }
         event SendEventHandler SendEvent;

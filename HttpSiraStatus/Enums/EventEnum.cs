@@ -100,46 +100,13 @@ namespace HttpSiraStatus
         Multiplayer,
     }
 
-
-    /// <summary>
-    /// BeatmapEventType
-    /// </summary>
-    /// <remarks>https://github.com/Caeden117/ChroMapper/blob/master/Assets/__Scripts/Map/Events/MapEvent.cs</remarks>
-    public enum BeatmapEventType
+    public enum V3BeatmapEventType
     {
-        BackLasers = 0,
-        RingLights = 1,
-        LeftLasers = 2,
-        RightLasers = 3,
-        RoadLights = 4,
-        BoostLights = 5,
-        CustomLight2 = 6,
-        CustomLight3 = 7,
-        RingsRotate = 8,
-        RingsZoom = 9,
-        CustomLight4 = 10,
-        CustomLight5 = 11,
-        LeftLasersSpeed = 12,
-        RightLasersSpeed = 13,
-        EarlyRotation = 14,
-        LateRotation = 15,
-        CustomEvent1 = 16,
-        CustomEvent2 = 17,
-    }
-
-    /// <summary>
-    /// BeatmapEventLightValue
-    /// </summary>
-    public enum BeatmapEventLightValue
-    {
-        Off = 0,
-
-        BlueON = 1,
-        BlueFlash = 2,
-        BlueFade = 3,
-
-        RedON = 5,
-        RedFlash = 6,
-        RedFade = 7,
+        Unknown,
+        BPM,
+        ColorBoost,
+        LightColor,
+        LightRotation,
+        SpawnRotation
     }
 }
