@@ -234,7 +234,7 @@ namespace HttpSiraStatus.Models
                 this.SetNoteCutStatus(noteDataEntity);
                 this._notePool.Despawn(noteDataEntity);
             }
-            else if(obj is SliderData sliderData) {
+            else if (obj is SliderData sliderData) {
                 var noteDataEntity = this._sliderPool.Spawn(sliderData);
                 this.SetNoteCutStatus(noteDataEntity);
                 this._sliderPool.Despawn(noteDataEntity);
@@ -361,9 +361,25 @@ namespace HttpSiraStatus.Models
 
         private void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
         {
-            this._gameStatus.beatmapEventType = (int)beatmapEventData.type;
-            this._gameStatus.beatmapEventValue = beatmapEventData.executionOrder;
-
+            IBeatmapEventInformation info;
+            switch (beatmapEventData) {
+                case BasicBeatmapEventData basic:
+                    // V2 map
+                    info = this._v2Pool.Spawn();
+                    info.Init(basic);
+                    this._statusManager.BeatmapEventJSON.Enqueue(info);
+                    break;
+                case BPMChangeBeatmapEventData bpm:
+                case ColorBoostBeatmapEventData color:
+                case LightColorBeatmapEventData lightColor:
+                case LightRotationBeatmapEventData lightRotation:
+                case SpawnRotationBeatmapEventData spawn:
+                default:
+                    info = this._v3Pool.Spawn();
+                    info.Init(beatmapEventData);
+                    this._statusManager.BeatmapEventJSON.Enqueue(info);
+                    break;
+            }
             this._statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
         }
 
@@ -393,6 +409,8 @@ namespace HttpSiraStatus.Models
         private MemoryPoolContainer<MissScoringElement> _missScoringElementPool;
         private NoteDataEntity.Pool _notePool;
         private SliderDataEntity.Pool _sliderPool;
+        private V2BeatmapEventInfomation.Pool _v2Pool;
+        private V3BeatmapEventInfomation.Pool _v3Pool;
         private GameplayCoreSceneSetupData _gameplayCoreSceneSetupData;
         private PauseController _pauseController;
         private IScoreController _scoreController;
@@ -459,6 +477,8 @@ namespace HttpSiraStatus.Models
             MissScoringElement.Pool missScoringElementPool,
             NoteDataEntity.Pool noteDataEntityPool,
             SliderDataEntity.Pool sliderDataEntityPool,
+            V2BeatmapEventInfomation.Pool v2BeatmapEventInfomationPool,
+            V3BeatmapEventInfomation.Pool v3BeatmapEventInfomationPool,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
             IScoreController score,
             IComboController comboController,
@@ -479,6 +499,8 @@ namespace HttpSiraStatus.Models
             this._missScoringElementPool = new MemoryPoolContainer<MissScoringElement>(missScoringElementPool);
             this._notePool = noteDataEntityPool;
             this._sliderPool = sliderDataEntityPool;
+            this._v2Pool = v2BeatmapEventInfomationPool;
+            this._v3Pool = v3BeatmapEventInfomationPool;
             this._gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
             this._scoreController = score;
             this._gameplayModifiers = gameplayModifiers;
@@ -597,10 +619,11 @@ namespace HttpSiraStatus.Models
             this._scoreController.multiplierDidChangeEvent += this.OnMultiplierDidChange;
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             //this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
-            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(0, new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
+            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(new BeatmapDataCallback<BeatmapEventData>(this.OnBeatmapEventDidTrigger));
+            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
             this._beatmapObjectManager.sliderWasSpawnedEvent += this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
-            
+
             this._relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             // public event Action GameEnergyCounter#gameEnergyDidReach0Event;
             this._gameEnergyCounter.gameEnergyDidReach0Event += this.OnEnergyDidReach0Event;

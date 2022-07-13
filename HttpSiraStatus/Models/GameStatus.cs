@@ -137,10 +137,6 @@ namespace HttpSiraStatus
         public float saberTrailIntensity { get; internal set; } = 0.5f;
         public string environmentEffects { get; internal set; } = EnvironmentEffectsFilterPreset.AllEffects.ToString();
         public bool hideNoteSpawningEffect { get; internal set; } = false;
-
-        // Beatmap event
-        public int beatmapEventType { get; internal set; } = 0;
-        public int beatmapEventValue { get; internal set; } = 0;
         public void ResetMapInfo()
         {
             this.songName = null;

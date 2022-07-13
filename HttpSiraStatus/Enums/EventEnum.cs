@@ -99,4 +99,14 @@ namespace HttpSiraStatus
         [Description("Multiplayer")]
         Multiplayer,
     }
+
+    public enum V3BeatmapEventType
+    {
+        Unknown,
+        BPM,
+        ColorBoost,
+        LightColor,
+        LightRotation,
+        SpawnRotation
+    }
 }

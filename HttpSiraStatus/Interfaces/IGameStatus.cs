@@ -10,8 +10,6 @@ namespace HttpSiraStatus.Interfaces
         bool autoRestart { get; }
         int batteryEnergy { get; }
         int batteryLives { get; }
-        int beatmapEventType { get; }
-        int beatmapEventValue { get; }
         float beforSwingRating { get; }
         int bombsCount { get; }
         string characteristic { get; }
