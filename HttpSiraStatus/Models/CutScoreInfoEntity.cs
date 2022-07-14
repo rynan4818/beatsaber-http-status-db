@@ -1,5 +1,4 @@
 ﻿using HttpSiraStatus.Interfaces;
-using System.Collections.Generic;
 using UnityEngine;
 using Zenject;
 
