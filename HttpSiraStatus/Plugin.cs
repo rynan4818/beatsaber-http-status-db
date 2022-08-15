@@ -1,3 +1,4 @@
+using HarmonyLib;
 using HttpSiraStatus.Configuration;
 using HttpSiraStatus.Installer;
 using IPA;
@@ -5,6 +6,7 @@ using IPA.Config;
 using IPA.Config.Stores;
 using IPA.Loader;
 using SiraUtil.Zenject;
+using System;
 using System.Reflection;
 using UnityEngine;
 using IPALogger = IPA.Logging.Logger;
@@ -24,6 +26,7 @@ namespace HttpSiraStatus
         public static IPALogger Logger { get; private set; }
         private static PluginMetadata s_metadata;
         private static PluginConfig s_config;
+        private static Harmony s_harmony = null;
         [Init]
         public void Init(IPALogger logger, Zenjector zenjector, PluginMetadata metadata, Config config)
         {
@@ -54,13 +57,27 @@ namespace HttpSiraStatus
         [OnEnable]
         public void OnEnable()
         {
-
+            try {
+                if (s_harmony != null) {
+                    return;
+                }
+                s_harmony = Harmony.CreateAndPatchAll(Assembly.GetExecutingAssembly());
+            }
+            catch (Exception e) {
+                Logger.Error(e);
+            }
         }
 
         [OnDisable]
         public void OnDisable()
         {
-
+            try {
+                s_harmony?.UnpatchSelf();
+                s_harmony = null;
+            }
+            catch (Exception e) {
+                Logger.Error(e);
+            }
         }
     }
 }
