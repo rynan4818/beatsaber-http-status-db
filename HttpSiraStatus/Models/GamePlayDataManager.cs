@@ -616,6 +616,8 @@ namespace HttpSiraStatus.Models
             // public event Action<BeatmapEventData> BeatmapObjectCallbackController#beatmapEventDidTriggerEvent
             //this.beatmapObjectCallbackController.beatmapEventDidTriggerEvent += this.OnBeatmapEventDidTrigger;
             this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(new BeatmapDataCallback<BeatmapEventData>(this.OnBeatmapEventDidTrigger));
+            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(new BeatmapDataCallback<ColorBoostBeatmapEventData>(this.OnBeatmapEventDidTrigger));
+            this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(new BeatmapDataCallback<SpawnRotationBeatmapEventData>(this.OnBeatmapEventDidTrigger));
             this._eventDataCallbackWrapper = this._beatmapObjectCallbackController.AddBeatmapCallback(new BeatmapDataCallback<BasicBeatmapEventData>(this.OnBeatmapEventDidTrigger));
             this._beatmapObjectManager.noteWasSpawnedEvent += this.OnNoteWasSpawnedEvent;
             this._beatmapObjectManager.sliderWasSpawnedEvent += this.OnBeatmapObjectManager_sliderWasSpawnedEvent;
