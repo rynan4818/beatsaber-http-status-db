@@ -1,4 +1,5 @@
-﻿using HttpSiraStatus.Interfaces;
+﻿using HttpSiraStatus.Enums;
+using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using IPA.Utilities;
 using SiraUtil.Affinity;
@@ -6,6 +7,7 @@ using SiraUtil.Zenject;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -169,38 +171,33 @@ namespace HttpSiraStatus.Models
             if (obj.noteData.scoringType != NoteData.ScoringType.Ignore) {
                 this._sortedNoteTimesWithoutScoringElements.InsertIntoSortedListFromEnd(obj.noteData.time);
             }
-            this.SetNoteCutStatus(obj.noteData);
-            this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
+            this.SetNoteCutStatus(obj.noteData, BeatSaberEvent.NoteSpawned);
         }
 
         private void OnBeatmapObjectManager_sliderWasSpawnedEvent(SliderController obj)
         {
-            this.SetNoteCutStatus(obj.sliderData);
-            this._statusManager.EmitStatusUpdate(ChangedProperty.NoteCut, BeatSaberEvent.NoteSpawned);
+            this.SetNoteCutStatus(obj.sliderData, BeatSaberEvent.NoteSpawned);
         }
         private void ScoreController_scoringForNoteStartedEvent(ScoringElement obj, ColorType colorType)
         {
             if (obj is CustomGoodCutScoringElement element) {
                 var cutScoreBuffer = element.cutScoreBuffer;
                 var noteCutInfo = cutScoreBuffer.noteCutInfo;
-                var notecut = this.SetNoteCutStatus(element.NoteDataEntity, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
+                var notecut = this.SetNoteCutStatus(element.NoteDataEntity, BeatSaberEvent.NoteCut, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
                 notecut.cutDistanceScore = element.cutScoreBuffer.centerDistanceCutScore;
                 notecut.initialScore = element.cutScore;
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
+                notecut.beforeSwingRating = cutScoreBuffer.beforeCutSwingRating;
+                notecut.afterSwingRating = cutScoreBuffer.afterCutSwingRating;
+                notecut.beforeCutScore = cutScoreBuffer.beforeCutScore;
+                notecut.afterCutScore = cutScoreBuffer.afterCutScore;
             }
             else if (obj is MissScoringElement && colorType != ColorType.None) {
-                this.SetNoteCutStatus(obj.noteData);
+                this.SetNoteCutStatus(obj.noteData, BeatSaberEvent.NoteMissed);
                 this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteMissed);
             }
             else if (obj is CustomBadCutScoringElement badElement) {
-                var notecut = this.SetNoteCutStatus(badElement.NoteDataEntity, badElement.SaberDir, badElement.CutPoint, badElement.CutNormal, badElement.NoteCutInfo);
+                var notecut = this.SetNoteCutStatus(badElement.NoteDataEntity, colorType == ColorType.None ? BeatSaberEvent.BombCut : BeatSaberEvent.NoteCut, badElement.SaberDir, badElement.CutPoint, badElement.CutNormal, badElement.NoteCutInfo);
                 notecut.initialScore = badElement.cutScore;
-                if (colorType == ColorType.None) {
-                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.BombCut);
-                }
-                else {
-                    this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteCut);
-                }
             }
         }
 
@@ -209,37 +206,42 @@ namespace HttpSiraStatus.Models
             if (obj is CustomGoodCutScoringElement element) {
                 var cutScoreBuffer = element.cutScoreBuffer;
                 var noteCutInfo = cutScoreBuffer.noteCutInfo;
-                var notecut = this.SetNoteCutStatus(element.NoteDataEntity, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
+                var notecut = this.SetNoteCutStatus(element.NoteDataEntity, BeatSaberEvent.NoteFullyCut, element.SaberDir, element.CutPoint, element.CutNormal, noteCutInfo);
                 notecut.cutMultiplier = element.multiplier;
                 notecut.cutDistanceScore = element.cutScoreBuffer.centerDistanceCutScore;
+                notecut.initialScore = element.InitialScore;
                 notecut.finalScore = element.cutScore;
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
+                notecut.beforeSwingRating = cutScoreBuffer.beforeCutSwingRating;
+                notecut.afterSwingRating = cutScoreBuffer.afterCutSwingRating;
+                notecut.beforeCutScore = cutScoreBuffer.beforeCutScore;
+                notecut.afterCutScore = cutScoreBuffer.afterCutScore;
+                this._gameStatus.lastNoteScore = element.cutScore;
             }
             else if (obj is CustomBadCutScoringElement badElement && obj.noteData.colorType != ColorType.None) {
-                var notecut = this.SetNoteCutStatus(badElement.NoteDataEntity, badElement.SaberDir, badElement.CutPoint, badElement.CutNormal, badElement.NoteCutInfo);
+                var notecut = this.SetNoteCutStatus(badElement.NoteDataEntity, BeatSaberEvent.NoteFullyCut, badElement.SaberDir, badElement.CutPoint, badElement.CutNormal, badElement.NoteCutInfo);
                 notecut.cutMultiplier = badElement.multiplier;
+                notecut.initialScore = badElement.InitialScore;
                 notecut.finalScore = badElement.cutScore;
-                this._statusManager.EmitStatusUpdate(ChangedProperty.PerformanceAndNoteCut, BeatSaberEvent.NoteFullyCut);
             }
         }
 
-        private CutScoreInfoEntity SetNoteCutStatus(BeatmapObjectData obj)
+        private CutScoreInfoEntity SetNoteCutStatus(BeatmapObjectData obj, BeatSaberEvent cutEvent)
         {
             CutScoreInfoEntity cutScoreInfoEntity = null;
             if (obj is NoteData noteData) {
                 var noteDataEntity = this._notePool.Spawn(noteData, this._gameplayModifiers.noArrows);
-                cutScoreInfoEntity = this.SetNoteCutStatus(noteDataEntity);
+                cutScoreInfoEntity = this.SetNoteCutStatus(noteDataEntity, cutEvent);
                 this._notePool.Despawn(noteDataEntity);
             }
             else if (obj is SliderData sliderData) {
                 var noteDataEntity = this._sliderPool.Spawn(sliderData);
-                cutScoreInfoEntity = this.SetNoteCutStatus(noteDataEntity);
+                cutScoreInfoEntity = this.SetNoteCutStatus(noteDataEntity, cutEvent);
                 this._sliderPool.Despawn(noteDataEntity);
             }
             return cutScoreInfoEntity;
         }
 
-        private CutScoreInfoEntity SetNoteCutStatus(IBeatmapObjectEntity entity, in Vector3 saberDir = default, in Vector3 cutPoint = default, in Vector3 cutNormal = default, in NoteCutInfo noteCutInfo = default)
+        private CutScoreInfoEntity SetNoteCutStatus(IBeatmapObjectEntity entity, BeatSaberEvent cutEvent, in Vector3 saberDir = default, in Vector3 cutPoint = default, in Vector3 cutNormal = default, in NoteCutInfo noteCutInfo = default)
         {
             var notecut = this._cutScoreInfoEntityPool.Spawn();
             // Check the near notes first for performance
@@ -286,9 +288,6 @@ namespace HttpSiraStatus.Models
                 notecut.sliderTailLayer = (int)sliderDataEntity.tailLineLayer;
             }
             if (!EqualityComparer<NoteCutInfo>.Default.Equals(noteCutInfo, default)) {
-                var noteScoreDefinition = ScoreModel.GetNoteScoreDefinition(noteCutInfo.noteData.scoringType);
-                var rateBeforeCut = noteScoreDefinition.maxBeforeCutScore > 0 && noteScoreDefinition.minBeforeCutScore != noteScoreDefinition.maxBeforeCutScore;
-                var rateAfterCut = noteScoreDefinition.maxAfterCutScore > 0 && noteScoreDefinition.minAfterCutScore != noteScoreDefinition.maxAfterCutScore;
                 notecut.speedOK = noteCutInfo.speedOK;
                 notecut.directionOK = noteCutInfo.directionOK;
                 notecut.saberTypeOK = noteCutInfo.saberTypeOK;
@@ -297,8 +296,6 @@ namespace HttpSiraStatus.Models
                 notecut.saberDir = saberDir;
                 var rating = noteCutInfo.saberMovementData?.ComputeSwingRating();
                 notecut.swingRating = noteCutInfo.saberMovementData == null ? -1 : rating.Value;
-                notecut.afterSwingRating = rateAfterCut ? 0 : 1;
-                notecut.beforSwingRating = rateAfterCut ? rating.Value : 1;
                 notecut.saberType = noteCutInfo.saberType.ToString();
                 notecut.timeDeviation = noteCutInfo.timeDeviation;
                 notecut.cutDirectionDeviation = noteCutInfo.cutDirDeviation;
@@ -306,7 +303,7 @@ namespace HttpSiraStatus.Models
                 notecut.cutNormal = cutNormal;
                 notecut.cutDistanceToCenter = noteCutInfo.cutDistanceToCenter;
             }
-            this._statusManager.CutScoreInfoQueue.Enqueue(notecut);
+            this._statusManager.CutScoreInfoQueue.Enqueue((notecut, cutEvent));
             return notecut;
         }
 
@@ -353,26 +350,9 @@ namespace HttpSiraStatus.Models
 
         private void OnBeatmapEventDidTrigger(BeatmapEventData beatmapEventData)
         {
-            IBeatmapEventInformation info;
-            switch (beatmapEventData) {
-                case BasicBeatmapEventData basic:
-                    // V2 map
-                    info = this._v2Pool.Spawn();
-                    info.Init(basic);
-                    this._statusManager.BeatmapEventJSON.Enqueue(info);
-                    break;
-                case BPMChangeBeatmapEventData bpm:
-                case ColorBoostBeatmapEventData color:
-                case LightColorBeatmapEventData lightColor:
-                case LightRotationBeatmapEventData lightRotation:
-                case SpawnRotationBeatmapEventData spawn:
-                default:
-                    info = this._v3Pool.Spawn();
-                    info.Init(beatmapEventData);
-                    this._statusManager.BeatmapEventJSON.Enqueue(info);
-                    break;
+            if (this._eventToEventInfoMapping?.TryGetValue(beatmapEventData, out var beatmapEvent) == true) {
+                this._statusManager.BeatmapEventJSON.Enqueue(beatmapEvent);
             }
-            this._statusManager.EmitStatusUpdate(ChangedProperty.BeatmapEvent, BeatSaberEvent.BeatmapEvent);
         }
 
         public void DespawnScoringElement(ScoringElement scoringElement)
@@ -402,8 +382,6 @@ namespace HttpSiraStatus.Models
         private CutScoreInfoEntity.Pool _cutScoreInfoEntityPool;
         private NoteDataEntity.Pool _notePool;
         private SliderDataEntity.Pool _sliderPool;
-        private V2BeatmapEventInfomation.Pool _v2Pool;
-        private V3BeatmapEventInfomation.Pool _v3Pool;
         private GameplayCoreSceneSetupData _gameplayCoreSceneSetupData;
         private PauseController _pauseController;
         private IScoreController _scoreController;
@@ -436,6 +414,7 @@ namespace HttpSiraStatus.Models
         /// Before 1.12.1 the noteID matched the note order in the beatmap file, but this is impossible to replicate now without hooking into the level loading code.
         /// </summary>
         private readonly ConcurrentDictionary<IBeatmapObjectEntity, int> _noteToIdMapping = new ConcurrentDictionary<IBeatmapObjectEntity, int>();
+        private ReadOnlyDictionary<BeatmapEventData, IBeatmapEventInformation> _eventToEventInfoMapping;
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // 構築・破棄
@@ -472,8 +451,6 @@ namespace HttpSiraStatus.Models
             NoteDataEntity.Pool noteDataEntityPool,
             SliderDataEntity.Pool sliderDataEntityPool,
             CutScoreInfoEntity.Pool cutScoreInfoEntityPool,
-            V2BeatmapEventInfomation.Pool v2BeatmapEventInfomationPool,
-            V3BeatmapEventInfomation.Pool v3BeatmapEventInfomationPool,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
             IScoreController score,
             IComboController comboController,
@@ -495,8 +472,6 @@ namespace HttpSiraStatus.Models
             this._cutScoreInfoEntityPool = cutScoreInfoEntityPool;
             this._notePool = noteDataEntityPool;
             this._sliderPool = sliderDataEntityPool;
-            this._v2Pool = v2BeatmapEventInfomationPool;
-            this._v3Pool = v3BeatmapEventInfomationPool;
             this._gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
             this._scoreController = score;
             this._gameplayModifiers = gameplayModifiers;
@@ -530,6 +505,8 @@ namespace HttpSiraStatus.Models
 
                         // Clear note id mappings.
                         this._noteToIdMapping?.Clear();
+
+                        this._eventToEventInfoMapping = null;
 
                         this._statusManager?.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.Menu);
 
@@ -664,6 +641,30 @@ namespace HttpSiraStatus.Models
                     }
                 }
             }
+            var eventDic = new Dictionary<BeatmapEventData, IBeatmapEventInformation>();
+            foreach (var beatmapEvent in this._beatmapData.allBeatmapDataItems.OfType<BeatmapEventData>()) {
+                IBeatmapEventInformation info;
+                switch (beatmapEvent) {
+                    case BasicBeatmapEventData basic:
+                        // V2 map
+                        info = new V2BeatmapEventInfomation();
+                        info.Init(basic);
+                        break;
+                    case BPMChangeBeatmapEventData bpm:
+                    case ColorBoostBeatmapEventData color:
+                    case LightColorBeatmapEventData lightColor:
+                    case LightRotationBeatmapEventData lightRotation:
+                    case SpawnRotationBeatmapEventData spawn:
+                    default:
+                        info = new V3BeatmapEventInfomation();
+                        info.Init(beatmapEvent);
+                        break;
+                }
+                if (!eventDic.ContainsKey(beatmapEvent)) {
+                    eventDic.Add(beatmapEvent, info);
+                }
+            }
+            this._eventToEventInfoMapping = new(eventDic);
             this._gameStatus.songName = level.songName;
             this._gameStatus.songSubName = level.songSubName;
             this._gameStatus.songAuthorName = level.songAuthorName;
@@ -694,9 +695,11 @@ namespace HttpSiraStatus.Models
             this._gameStatus.colorSaberB = colorScheme.saberBColor;
             this._gameStatus.colorEnvironment0 = colorScheme.environmentColor0;
             this._gameStatus.colorEnvironment1 = colorScheme.environmentColor1;
+            this._gameStatus.colorEnvironmentW = colorScheme.environmentColorW;
             if (colorScheme.supportsEnvironmentColorBoost) {
                 this._gameStatus.colorEnvironmentBoost0 = colorScheme.environmentColor0Boost;
                 this._gameStatus.colorEnvironmentBoost1 = colorScheme.environmentColor1Boost;
+                this._gameStatus.colorEnvironmentBoostW = colorScheme.environmentColorWBoost;
             }
             this._gameStatus.colorObstacle = colorScheme.obstaclesColor;
             this._gameplayModifierParams = this._gameplayModifiersSO.CreateModifierParamsList(this._gameplayModifiers);
@@ -719,7 +722,7 @@ namespace HttpSiraStatus.Models
                 // Unity sucks. The coordinates of the sprite on its texture atlas are only accessible through the Sprite.uv property since rect always returns `x=0,y=0`, so we need to convert them back into texture space.
                 cover.ReadPixels(new Rect(
                     uv.x * texture.width,
-                    texture.height - uv.y * texture.height,
+                    texture.height - (uv.y * texture.height),
                     spriteRect.width,
                     spriteRect.height
                 ), 0, 0);

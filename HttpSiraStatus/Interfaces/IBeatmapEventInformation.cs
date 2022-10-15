@@ -6,8 +6,13 @@ namespace HttpSiraStatus.Interfaces
     public interface IBeatmapEventInformation
     {
         public string version { get; }
-        void Init(BeatmapEventData eventData);
+        public float time { get; }
+        public int executionOrder { get; }
+        public JSONObject SilializedJson { get; }
+        public IBeatmapEventInformation previousSameTypeEventData { get; }
+        public IBeatmapEventInformation nextSameTypeEventData { get; }
+        void Init(BeatmapEventData eventData, bool isChild = false);
         void Reset();
-        JSONObject ToJson();
+        JSONNode ToJson(bool isChild = false);
     }
 }

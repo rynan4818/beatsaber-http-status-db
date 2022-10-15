@@ -1,6 +1,6 @@
-﻿using HttpSiraStatus.Interfaces;
+﻿using HttpSiraStatus.Enums;
+using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
-using Zenject;
 
 namespace HttpSiraStatus.Models
 {
@@ -8,6 +8,14 @@ namespace HttpSiraStatus.Models
     {
         public string version { get; } = "3.0.0";
         public V3BeatmapEventType BeatmapEventType { get; private set; }
+        #region Common
+        public float time { get; private set; }
+        public int executionOrder { get; private set; }
+        public IBeatmapEventInformation previousSameTypeEventData { get; private set; } = null;
+        public IBeatmapEventInformation nextSameTypeEventData { get; private set; } = null;
+        public JSONObject SilializedJson { get; } = new JSONObject();
+        #endregion
+
         #region BPM
         public float BPM { get; private set; }
         #endregion
@@ -37,8 +45,18 @@ namespace HttpSiraStatus.Models
         public float Rotation { get; private set; }
         #endregion
 
-        public void Init(BeatmapEventData eventData)
+        public void Init(BeatmapEventData eventData, bool isChild)
         {
+            if (eventData != null) {
+                this.time = eventData.time;
+                this.executionOrder = eventData.executionOrder;
+                if (!isChild) {
+                    this.previousSameTypeEventData ??= new V3BeatmapEventInfomation();
+                    this.previousSameTypeEventData.Init(eventData.previousSameTypeEventData, true);
+                    this.nextSameTypeEventData ??= new V3BeatmapEventInfomation();
+                    this.nextSameTypeEventData.Init(eventData.nextSameTypeEventData, true);
+                }
+            }
             switch (eventData) {
                 case BPMChangeBeatmapEventData bpm:
                     this.BeatmapEventType = V3BeatmapEventType.BPM;
@@ -77,10 +95,14 @@ namespace HttpSiraStatus.Models
                     this.BeatmapEventType = V3BeatmapEventType.Unknown;
                     break;
             }
+
+            this.ToJson(false);
         }
 
         public void Reset()
         {
+            this.time = 0;
+            this.executionOrder = 0;
             this.BeatmapEventType = V3BeatmapEventType.Unknown;
             this.BPM = 0;
             this.BoostColorsAreOn = false;
@@ -96,13 +118,19 @@ namespace HttpSiraStatus.Models
             this.LoopCount = 0;
             this.RotationDirection = LightRotationDirection.Automatic;
             this.RotationDirection = 0;
+            this.previousSameTypeEventData?.Reset();
+            this.nextSameTypeEventData?.Reset();
+            this.ToJson(false);
         }
 
-        public JSONObject ToJson()
+        public JSONNode ToJson(bool isChild)
         {
-            var result = new JSONObject();
+            var result = this.SilializedJson;
+            result.Clear();
             result["version"] = this.version;
             result["type"] = (int)this.BeatmapEventType;
+            result["time"] = this.time;
+            result["executionOrder"] = this.executionOrder;
             switch (this.BeatmapEventType) {
                 case V3BeatmapEventType.BPM:
                     result["bpm"] = this.BPM;
@@ -135,15 +163,11 @@ namespace HttpSiraStatus.Models
                 default:
                     break;
             }
-            return result;
-        }
-
-        public class Pool : MemoryPool<V3BeatmapEventInfomation>
-        {
-            protected override void OnDespawned(V3BeatmapEventInfomation item)
-            {
-                item.Reset();
+            if (!isChild) {
+                result["previousSameTypeEventData"] = this.previousSameTypeEventData?.ToJson(true);
+                result["nextSameTypeEventData"] = this.nextSameTypeEventData?.ToJson(true);
             }
+            return result.Clone();
         }
     }
 }
