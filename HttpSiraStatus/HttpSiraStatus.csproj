@@ -139,8 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="manifest.json" />
-    <OutputCopy Include="$(OutputPath)$(TargetName).dll" OutputPath="Plugins\$(TargetName).dll">
-    </OutputCopy>
+    <OutputCopy Include="$(OutputPath)$(TargetName).dll" OutputPath="Plugins\$(TargetName).dll"></OutputCopy>
   </ItemGroup>
   <ItemGroup>
     <None Include="Directory.Build.props" Condition="Exists('Directory.Build.props')" />
