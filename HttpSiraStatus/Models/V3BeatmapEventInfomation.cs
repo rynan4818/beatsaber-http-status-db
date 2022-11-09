@@ -39,7 +39,7 @@ namespace HttpSiraStatus.Models
         #region LightRotation
         public bool UsePreviousEventValue { get; private set; }
         public EaseType EaseType { get; private set; }
-        public LightRotationBeatmapEventData.Axis Axis { get; private set; }
+        public LightAxis Axis { get; private set; }
         public int LoopCount { get; private set; }
         public LightRotationDirection RotationDirection { get; private set; }
         public float Rotation { get; private set; }
@@ -114,7 +114,7 @@ namespace HttpSiraStatus.Models
             this.StrobeBeatFrequency = 0;
             this.UsePreviousEventValue = false;
             this.EaseType = EaseType.None;
-            this.Axis = LightRotationBeatmapEventData.Axis.X;
+            this.Axis = LightAxis.X;
             this.LoopCount = 0;
             this.RotationDirection = LightRotationDirection.Automatic;
             this.RotationDirection = 0;

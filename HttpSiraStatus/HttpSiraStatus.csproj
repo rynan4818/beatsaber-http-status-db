@@ -13,10 +13,11 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <LocalRefsDir Condition="Exists('..\Refs')">..\Refs</LocalRefsDir>
+    <BeatSaberDir>$(LocalRefsDir)</BeatSaberDir>
     <ErrorReport>prompt</ErrorReport>
-    <Version>9.0.1</Version>
+    <Version>9.0.2</Version>
     <WarningLevel>4</WarningLevel>
-	<AssemblySearchPaths>$(ReferencePath)</AssemblySearchPaths>
+    <AssemblySearchPaths>$(ReferencePath)</AssemblySearchPaths>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <Optimize>false</Optimize>
@@ -138,7 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="manifest.json" />
-	  <OutputCopy Include="$(OutputPath)$(TargetName).dll" OutputPath="Plugins\$(TargetName).dll"></OutputCopy>
+    <OutputCopy Include="$(OutputPath)$(TargetName).dll" OutputPath="Plugins\$(TargetName).dll"></OutputCopy>
   </ItemGroup>
   <ItemGroup>
     <None Include="Directory.Build.props" Condition="Exists('Directory.Build.props')" />
@@ -146,7 +147,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BeatSaberModdingTools.Tasks">
-      <Version>2.0.0-beta1</Version>
+      <Version>2.0.0-beta4</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
