@@ -96,7 +96,7 @@ namespace HttpSiraStatus.Models
                     break;
             }
 
-            this.ToJson(false);
+            this.ApplyValuesToJson(isChild);
         }
 
         public void Reset()
@@ -119,11 +119,13 @@ namespace HttpSiraStatus.Models
             this.RotationDirection = LightRotationDirection.Automatic;
             this.RotationDirection = 0;
             this.previousSameTypeEventData?.Reset();
+            this.previousSameTypeEventData = null;
             this.nextSameTypeEventData?.Reset();
-            this.ToJson(false);
+            this.nextSameTypeEventData = null;
+            this.ApplyValuesToJson(false);
         }
 
-        public JSONNode ToJson(bool isChild)
+        private void ApplyValuesToJson(bool isChild)
         {
             var result = this.SilializedJson;
             result.Clear();
@@ -167,7 +169,11 @@ namespace HttpSiraStatus.Models
                 result["previousSameTypeEventData"] = this.previousSameTypeEventData?.ToJson(true);
                 result["nextSameTypeEventData"] = this.nextSameTypeEventData?.ToJson(true);
             }
-            return result.Clone();
+        }
+
+        public JSONNode ToJson(bool isChild)
+        {
+            return this.SilializedJson.Clone();
         }
     }
 }

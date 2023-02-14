@@ -7,6 +7,7 @@ namespace HttpSiraStatus.Configuration
     public class PluginConfig
     {
         public virtual int Port { get; set; } = 6557;
+        public virtual bool SendBeatmapEvents { get; set; } = true;
         /// <summary>
         /// This is called whenever BSIPA reads the config from disk (including when file changes are detected).
         /// </summary>
