@@ -1,4 +1,5 @@
-﻿using HttpSiraStatus.Enums;
+﻿using HttpSiraStatus.Configuration;
+using HttpSiraStatus.Enums;
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using IPA.Utilities;
@@ -14,6 +15,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
+
+#if DEBUG
+using System.Diagnostics;
+#endif
 
 namespace HttpSiraStatus.Models
 {
@@ -415,6 +420,7 @@ namespace HttpSiraStatus.Models
         /// </summary>
         private readonly ConcurrentDictionary<IBeatmapObjectEntity, int> _noteToIdMapping = new ConcurrentDictionary<IBeatmapObjectEntity, int>();
         private ReadOnlyDictionary<BeatmapEventData, IBeatmapEventInformation> _eventToEventInfoMapping;
+        private PluginConfig _config;
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // 構築・破棄
@@ -462,6 +468,7 @@ namespace HttpSiraStatus.Models
             GameEnergyCounter gameEnergyCounter,
             RelativeScoreAndImmediateRankCounter relative,
             BeatmapObjectManager beatmapObjectManager,
+            PluginConfig config,
             DiContainer diContainer)
         {
             this._statusManager = statusManager;
@@ -483,6 +490,7 @@ namespace HttpSiraStatus.Models
             this._beatmapObjectManager = beatmapObjectManager;
             this._comboController = comboController;
             this._beatmapData = readonlyBeatmapData;
+            this._config= config;
             if (this._scoreController is ScoreController scoreController) {
                 this._gameplayModifiersSO = scoreController.GetField<GameplayModifiersModelSO, ScoreController>("_gameplayModifiersModel");
             }
@@ -641,30 +649,69 @@ namespace HttpSiraStatus.Models
                     }
                 }
             }
+#if DEBUG
+            var sw = new Stopwatch();
+            sw.Start();
             var eventDic = new Dictionary<BeatmapEventData, IBeatmapEventInformation>();
-            foreach (var beatmapEvent in this._beatmapData.allBeatmapDataItems.OfType<BeatmapEventData>()) {
-                IBeatmapEventInformation info;
-                switch (beatmapEvent) {
-                    case BasicBeatmapEventData basic:
-                        // V2 map
-                        info = new V2BeatmapEventInfomation();
-                        info.Init(basic);
-                        break;
-                    case BPMChangeBeatmapEventData bpm:
-                    case ColorBoostBeatmapEventData color:
-                    case LightColorBeatmapEventData lightColor:
-                    case LightRotationBeatmapEventData lightRotation:
-                    case SpawnRotationBeatmapEventData spawn:
-                    default:
-                        info = new V3BeatmapEventInfomation();
-                        info.Init(beatmapEvent);
-                        break;
+            var bedArray = this._beatmapData.allBeatmapDataItems.OfType<BeatmapEventData>().ToArray();
+            Plugin.Logger.Debug($"time:{sw.ElapsedMilliseconds}ms");
+            if (this._config.SendBeatmapEvents) {
+                foreach (var beatmapEvent in bedArray) {
+                    IBeatmapEventInformation info;
+                    switch (beatmapEvent) {
+                        case BasicBeatmapEventData basic:
+                            // V2 map
+                            info = new V2BeatmapEventInfomation();
+                            info.Init(basic);
+                            break;
+                        case BPMChangeBeatmapEventData bpm:
+                        case ColorBoostBeatmapEventData color:
+                        case LightColorBeatmapEventData lightColor:
+                        case LightRotationBeatmapEventData lightRotation:
+                        case SpawnRotationBeatmapEventData spawn:
+                        default:
+                            info = new V3BeatmapEventInfomation();
+                            info.Init(beatmapEvent);
+                            break;
+                    }
+                    if (!eventDic.ContainsKey(beatmapEvent)) {
+                        eventDic.Add(beatmapEvent, info);
+                    }
                 }
-                if (!eventDic.ContainsKey(beatmapEvent)) {
-                    eventDic.Add(beatmapEvent, info);
+            }
+            Plugin.Logger.Debug($"time:{sw.ElapsedMilliseconds}ms");
+            this._eventToEventInfoMapping = new(eventDic);
+            sw.Stop();
+            Plugin.Logger.Debug($"count:{bedArray.Length}, time:{sw.ElapsedMilliseconds}ms");
+#else
+            var eventDic = new Dictionary<BeatmapEventData, IBeatmapEventInformation>();
+            if (this._config.SendBeatmapEvents) {
+                foreach (var beatmapEvent in this._beatmapData.allBeatmapDataItems.OfType<BeatmapEventData>()) {
+                    IBeatmapEventInformation info;
+                    switch (beatmapEvent) {
+                        case BasicBeatmapEventData basic:
+                            // V2 map
+                            info = new V2BeatmapEventInfomation();
+                            info.Init(basic);
+                            break;
+                        case BPMChangeBeatmapEventData bpm:
+                        case ColorBoostBeatmapEventData color:
+                        case LightColorBeatmapEventData lightColor:
+                        case LightRotationBeatmapEventData lightRotation:
+                        case SpawnRotationBeatmapEventData spawn:
+                        default:
+                            info = new V3BeatmapEventInfomation();
+                            info.Init(beatmapEvent);
+                            break;
+                    }
+                    if (!eventDic.ContainsKey(beatmapEvent)) {
+                        eventDic.Add(beatmapEvent, info);
+                    }
                 }
             }
             this._eventToEventInfoMapping = new(eventDic);
+#endif
+
             this._gameStatus.songName = level.songName;
             this._gameStatus.songSubName = level.songSubName;
             this._gameStatus.songAuthorName = level.songAuthorName;
