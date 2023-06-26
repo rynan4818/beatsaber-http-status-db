@@ -26,7 +26,7 @@ namespace HttpSiraStatus.Models
     {
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // パブリックメソッド
-        [AffinityPatch(typeof(ScoreController), nameof(ScoreController.HandleNoteWasCut))]
+        [AffinityPatch(typeof(ScoreController), "HandleNoteWasCut")]
         [AffinityPostfix]
         public void NoteWasCutPostfix(NoteController noteController, in NoteCutInfo noteCutInfo)
         {
@@ -59,7 +59,7 @@ namespace HttpSiraStatus.Models
             }
         }
 
-        [AffinityPatch(typeof(ScoreController), nameof(ScoreController.HandleNoteWasMissed))]
+        [AffinityPatch(typeof(ScoreController), "HandleNoteWasMissed")]
         [AffinityPostfix]
         public void NoteWasMissedPostfix(NoteController noteController)
         {
