@@ -24,6 +24,10 @@ namespace HttpSiraStatus.Models
         public bool BoostColorsAreOn { get; private set; }
         #endregion
 
+        #region FlaotFx
+        public float Value { get; private set; }
+        #endregion
+
         #region LightCommon
         public int GroupId { get; private set; } = -1;
         public int ElementId { get; private set; } = -1;
@@ -31,14 +35,19 @@ namespace HttpSiraStatus.Models
 
         #region LightColor
         public BeatmapEventTransitionType TransitionType { get; private set; }
+        public EaseType EaseType { get; private set; }
         public EnvironmentColorType ColorType { get; private set; }
         public float Brightness { get; private set; }
         public int StrobeBeatFrequency { get; private set; }
         #endregion
 
+        #region LightTransaction
+        public float Translation { get; private set; }
+        public float Distribution { get; private set; }
+        #endregion
+
         #region LightRotation
         public bool UsePreviousEventValue { get; private set; }
-        public EaseType EaseType { get; private set; }
         public LightAxis Axis { get; private set; }
         public int LoopCount { get; private set; }
         public LightRotationDirection RotationDirection { get; private set; }
@@ -66,11 +75,16 @@ namespace HttpSiraStatus.Models
                     this.BeatmapEventType = V3BeatmapEventType.ColorBoost;
                     this.BoostColorsAreOn = color.boostColorsAreOn;
                     break;
+                case FloatFxBeatmapEventData floatFxBeatmapEventData:
+                    this.BeatmapEventType = V3BeatmapEventType.FloatFx;
+                    this.Value = floatFxBeatmapEventData.value;
+                    this.EaseType = floatFxBeatmapEventData.easeType;
+                    break;
                 case LightColorBeatmapEventData lightColor:
                     this.BeatmapEventType = V3BeatmapEventType.LightColor;
                     this.GroupId = lightColor.groupId;
                     this.ElementId = lightColor.elementId;
-                    this.TransitionType = lightColor.transitionType;
+                    this.EaseType = lightColor.easeType;
                     this.ColorType = lightColor.colorType;
                     this.Brightness = lightColor.brightness;
                     this.StrobeBeatFrequency = lightColor.strobeBeatFrequency;
@@ -85,6 +99,16 @@ namespace HttpSiraStatus.Models
                     this.LoopCount = lightRotation.loopCount;
                     this.RotationDirection = lightRotation.rotationDirection;
                     this.Rotation = lightRotation.rotation;
+                    break;
+                case LightTranslationBeatmapEventData lightTranslation:
+                    this.BeatmapEventType = V3BeatmapEventType.LightTranslation;
+                    this.GroupId = lightTranslation.groupId;
+                    this.ElementId = lightTranslation.elementId;
+                    this.UsePreviousEventValue = lightTranslation.usePreviousEventValue;
+                    this.EaseType = lightTranslation.easeType;
+                    this.Axis = lightTranslation.axis;
+                    this.Translation = lightTranslation.translation;
+                    this.Distribution = lightTranslation.distribution;
                     break;
                 case SpawnRotationBeatmapEventData spawn:
                     this.BeatmapEventType = V3BeatmapEventType.SpawnRotation;
@@ -122,6 +146,9 @@ namespace HttpSiraStatus.Models
             this.previousSameTypeEventData = null;
             this.nextSameTypeEventData?.Reset();
             this.nextSameTypeEventData = null;
+            this.Value = 0;
+            this.Translation = 0;
+            this.Distribution = 0;
             this.ApplyValuesToJson(false);
         }
 
@@ -140,6 +167,10 @@ namespace HttpSiraStatus.Models
                 case V3BeatmapEventType.ColorBoost:
                     result["boostColorsAreOn"] = this.BoostColorsAreOn;
                     break;
+                case V3BeatmapEventType.FloatFx:
+                    result["value"] = this.Value;
+                    result["easeType"] = $"{this.EaseType}";
+                    break;
                 case V3BeatmapEventType.LightColor:
                     result["groupId"] = this.GroupId;
                     result["elementId"] = this.ElementId;
@@ -157,6 +188,15 @@ namespace HttpSiraStatus.Models
                     result["loopCount"] = this.LoopCount;
                     result["rotationDirection"] = $"{this.RotationDirection}";
                     result["rotation"] = this.Rotation;
+                    break;
+                case V3BeatmapEventType.LightTranslation:
+                    result["groupId"] = this.GroupId;
+                    result["elementId"] = this.ElementId;
+                    result["usePreviousEventValue"] = this.UsePreviousEventValue;
+                    result["easeType"] = $"{this.EaseType}";
+                    result["axis"] = $"{this.Axis}";
+                    result["translation"] = $"{this.Translation}";
+                    result["distribution"] = $"{this.Distribution}";
                     break;
                 case V3BeatmapEventType.SpawnRotation:
                     result["rotation"] = this.Rotation;

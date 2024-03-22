@@ -1,5 +1,6 @@
 using HttpSiraStatus.Enums;
 using HttpSiraStatus.Interfaces;
+using System;
 using UnityEngine;
 
 namespace HttpSiraStatus.Models
@@ -17,6 +18,8 @@ namespace HttpSiraStatus.Models
         public string songSubName { get; internal set; } = null;
         public string songAuthorName { get; internal set; } = null;
         public string levelAuthorName { get; internal set; } = null;
+        public string[] levelAuthorNamesArray { get; internal set; } = Array.Empty<string>();
+        public string[] lighterNamesArray { get; internal set; } = Array.Empty<string>();
         public string songCover { get; internal set; } = null;
         public string songHash { get; internal set; } = null;
         public string levelId { get; internal set; } = null;
@@ -99,12 +102,15 @@ namespace HttpSiraStatus.Models
         public float saberTrailIntensity { get; internal set; } = 0.5f;
         public string environmentEffects { get; internal set; } = EnvironmentEffectsFilterPreset.AllEffects.ToString();
         public bool hideNoteSpawningEffect { get; internal set; } = false;
+
+
         public void ResetMapInfo()
         {
             this.songName = null;
             this.songSubName = null;
             this.songAuthorName = null;
             this.levelAuthorName = null;
+            this.levelAuthorNamesArray = Array.Empty<string>();
             this.songCover = null;
             this.songHash = null;
             this.levelId = null;
